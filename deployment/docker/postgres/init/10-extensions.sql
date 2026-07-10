@@ -1,5 +1,5 @@
--- Runs once on first cluster init (empty data dir). Enables the extensions in
--- template1 so every database — including the app DB — inherits them.
-\connect template1
+-- Runs once on first cluster init, against the POSTGRES_DB database created by the
+-- entrypoint (travel_companion). Enables the extensions the app relies on. Migrations
+-- also CREATE EXTENSION IF NOT EXISTS so a fresh non-Docker database is self-contained.
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;

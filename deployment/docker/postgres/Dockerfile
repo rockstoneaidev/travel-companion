@@ -3,13 +3,17 @@
 # product is geospatial-first (PRD §9.3, §14.2). Built and pushed by
 # .github/workflows/postgres-image.yml (not on every app deploy).
 #
-# Base: official PostGIS image (Debian, PGDG apt repo preconfigured).
-# If the 18-3.6 tag is unavailable, fall back to postgis/postgis:18-master.
-FROM postgis/postgis:18-3.6
+# Based on the official multi-arch postgres:18 (amd64 + arm64) so it builds on
+# both the amd64 server/CI and Apple Silicon dev machines. (postgis/postgis:18-*
+# is amd64-only, which breaks local arm64 builds.) The official image ships the
+# PGDG apt repo, so PostGIS and pgvector install straight from apt.
+FROM postgres:18-trixie
 
-# pgvector from the PGDG apt repo that the PostGIS image already trusts.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-18-pgvector \
+    && apt-get install -y --no-install-recommends \
+        postgresql-18-postgis-3 \
+        postgresql-18-postgis-3-scripts \
+        postgresql-18-pgvector \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable both extensions in every new database created from template1.

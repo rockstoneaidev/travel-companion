@@ -39,7 +39,8 @@ services:
       POSTGRES_USER: '${DB_USERNAME:-travel}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
     volumes:
-      - 'travel-postgres:/var/lib/postgresql/data'
+      # PG18 requires the mount at /var/lib/postgresql (data in a version subdir).
+      - 'travel-postgres:/var/lib/postgresql'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-travel} -d ${DB_DATABASE:-travel_companion}']
       retries: 5
