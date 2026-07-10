@@ -10,6 +10,10 @@ services:
       - ./.env
     environment:
       APP_ENV: local
+      # Inside the container, reach services by name (overrides the 127.0.0.1 in
+      # .env, which is for the native `composer run dev` path).
+      DB_HOST: postgres
+      REDIS_HOST: redis
     volumes:
       - .:/var/www/app
     restart: unless-stopped
