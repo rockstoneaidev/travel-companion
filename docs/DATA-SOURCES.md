@@ -40,7 +40,9 @@ Sources divide into two classes, and confusing them creates legal debt that is e
 - **Canonical core** — open-licensed data we may persist, transform, and build our `places` database on: OSM (ODbL), Overture (CDLA-Permissive), Wikidata (CC0), Wikipedia/Wikivoyage (CC BY-SA), government open data (Licence Ouverte / Etalab, etc.), our curated layer, our users' contributions.
 - **Enrichment edge** — proprietary APIs whose ToS prohibit building our own database from them: **Google Places data must never seed or persist into the canonical places table.** Store the `place_id` (permitted), fetch details/hours/photos live or within permitted short-term caching windows, discard. Same discipline for any commercial API.
 
-Every source adapter in `SourceRegistry` carries license metadata: *what may be stored, for how long, with what attribution.* This is enforced in code, not in a wiki page. ODbL note: derived databases built on OSM carry share-alike obligations on the derived *database* — get this reviewed once, early, for the canonical-core design.
+Every source adapter in `SourceRegistry` carries license metadata: *what may be stored, for how long, with what attribution.* This is enforced in code, not in a wiki page.
+
+**ODbL resolution:** the share-alike review has been done — see [ODBL-REVIEW.md](ODBL-REVIEW.md). Outcome: conflating OSM with other sources' POIs (our entity-resolution design) creates an ODbL Derivative Database, and publicly serving recommendations triggers the §4.6 obligation to offer that database. Adopted architecture ("open core, proprietary shell"): the conflated geo-core (names/geometry/categories from OSM + Overture + Wikidata + gov open data) is treated as ODbL and publishable; all proprietary value (curated layer, packs, user signals, scores) lives in independent data types linked by `place_id`, which the OSMF Collective Database Guideline keeps out of share-alike. Pending final counsel confirmation before public launch.
 
 ### 1.2 Source credibility tiers (feeds the confidence score)
 

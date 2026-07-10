@@ -317,6 +317,7 @@ The same place appears in Google (place_id), OSM (node/way), Wikipedia (article)
 - Persistent **cross-source ID mapping** per canonical place.
 - Conflicts (diverging opening hours, coordinates) resolved by source-credibility ranking; disagreement lowers the place's confidence score.
 - `places` (stable, canonical, deduped, long-TTL) is strictly separated from `opportunities` (ephemeral, context-bound, TTL'd, cheap to discard and regenerate). The opportunities table must never become a junk drawer.
+- **Licensing consequence (see [ODBL-REVIEW.md](ODBL-REVIEW.md)):** because conflation includes OSM data, the conflated geo-core (`places_core`: names, geometry, categories) is an ODbL Derivative Database — it is designed as a publishable open layer from day one, with all proprietary value (curated content, packs, scores, user signals) in separate independent tables keyed by `place_id`. A public dump job and in-app attribution screen are Phase 1 requirements.
 
 ---
 
