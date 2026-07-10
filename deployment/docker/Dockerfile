@@ -36,6 +36,9 @@ WORKDIR /app
 COPY package.json package-lock.json* .npmrc* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm i; fi
 COPY . ./
+# `import 'ziggy-js'` resolves to vendor/tightenco/ziggy (tsconfig path). vendor is
+# .dockerignored, so bring Ziggy in from the composer stage — both tsc and vite need it.
+COPY --from=composer /app/vendor/tightenco/ziggy ./vendor/tightenco/ziggy
 RUN npm run build
 
 # =============================================
