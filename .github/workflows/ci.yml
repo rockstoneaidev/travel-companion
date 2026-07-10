@@ -1,0 +1,76 @@
+name: CI (quality gate)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Pint + PHPUnit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, bcmath, intl, pdo_sqlite, sqlite3, redis, pcntl
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pint (lint, no-fix)
+        run: vendor/bin/pint --test
+
+      # Tests use the in-memory SQLite connection forced by phpunit.xml.
+      # NOTE: once geospatial migrations/queries land, add a Postgres service
+      # container (ghcr.io/rockstoneaidev/travel-postgres:pg18) — SQLite cannot
+      # exercise PostGIS. See docs/SERVER-DEPLOYMENT.md.
+      - name: PHPUnit
+        run: php artisan test
+
+  frontend:
+    name: Frontend (ESLint + tsc + Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Prettier (check)
+        run: npm run format:check

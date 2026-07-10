@@ -2,13 +2,28 @@
 
 ## What this project is
 
-Travel Companion AI — an agentic travel companion that proactively surfaces contextual "opportunities" (not places) to travelers. Laravel modular monolith backend + React frontend, PostgreSQL/PostGIS/pgvector, Redis/Horizon. Currently in **planning phase**: `docs/` is authoritative, no application code exists yet.
+Travel Companion AI — an agentic travel companion that proactively surfaces contextual "opportunities" (not places) to travelers. Laravel modular monolith backend + Inertia/React frontend, PostgreSQL/PostGIS/pgvector, Redis/Horizon. The app is **scaffolded** (auth, CI, deploy) but feature work has not started; `docs/` is authoritative for what to build.
 
 Read before designing or implementing anything:
 
 - `docs/PRD.md` — product requirements, architecture, phasing. The section numbers below refer to this file unless noted.
 - `docs/DATA-SOURCES.md` — data source catalog, licensing classes, Regional Knowledge Packs.
 - `docs/ODBL-REVIEW.md` — ODbL analysis; defines the `places_core` database boundary.
+- `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
+
+## Stack & tooling
+
+- **Backend:** Laravel 13, PHP 8.5. Auth via the Laravel React starter kit (Inertia). API tokens via Sanctum. Queues via Horizon. Lint: Pint. Tests: PHPUnit (in-memory SQLite).
+- **Frontend:** React 19 + TypeScript, Inertia 2, Vite 8, Tailwind 4, shadcn/ui (in `resources/js/components/ui`). Lint: ESLint; format: Prettier.
+- **Data:** PostgreSQL 18 + PostGIS + pgvector (custom image, `deployment/docker/postgres/`). Redis (shared on staging — keys are prefixed `travel_`).
+- **Commands:** `composer run dev` (all-in-one local), `composer test`, `npm run {lint,typecheck,format:check}`, `docker compose up --build`.
+
+## Conventions & rules specific to this repo
+
+- **API-first boundary (load-bearing):** Inertia is the Phase-1 web delivery layer, but it is NOT an API. All product logic lives in `app/Domain/*` services; Inertia controllers AND the versioned JSON API (`routes/api.php`, `/api/v1`, Sanctum) are thin wrappers over those services. The Phase-2 mobile client must be *additive*, never a backend rewrite. Do not put business logic in Inertia controllers.
+- **Registration is allowlisted** while pre-launch: `config('auth.allowed_registration_emails')` from `ALLOWED_REGISTRATION_EMAILS` (empty = open). Enforced in `RegisteredUserController`.
+- Behind Traefik (TLS terminated at proxy): `trustProxies(at: '*')` is set in `bootstrap/app.php` — keep it.
+- `config/database.php` uses PHP 8.5's `Pdo\Mysql::` constant (not the deprecated `PDO::MYSQL_*`).
 
 ## Non-negotiable constraints
 

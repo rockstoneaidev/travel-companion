@@ -1,0 +1,82 @@
+# Local development stack. The server uses deployment/staging/docker-compose.yml.
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: deployment/docker/Dockerfile
+      args:
+        APP_ENV: local
+    env_file:
+      - ./.env
+    environment:
+      APP_ENV: local
+    volumes:
+      - .:/var/www/app
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-80}:80'
+      - '${VITE_PORT:-5173}:5173'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      travel-companion: {}
+
+  postgres:
+    build:
+      context: ./
+      dockerfile: deployment/docker/postgres/Dockerfile
+    image: travel-postgres:pg18-local
+    restart: unless-stopped
+    ports:
+      - '${FORWARD_DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: '${DB_DATABASE:-travel_companion}'
+      POSTGRES_USER: '${DB_USERNAME:-travel}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - 'travel-postgres:/var/lib/postgresql/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-travel} -d ${DB_DATABASE:-travel_companion}']
+      retries: 5
+      timeout: 5s
+    networks:
+      travel-companion: {}
+
+  redis:
+    image: 'redis:8-alpine'
+    restart: unless-stopped
+    ports:
+      - '${FORWARD_REDIS_PORT:-6379}:6379'
+    volumes:
+      - 'travel-redis:/data'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      retries: 3
+      timeout: 5s
+    networks:
+      travel-companion: {}
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - '${ADMINER_PORT:-8080}:8080'
+    depends_on:
+      - postgres
+    networks:
+      travel-companion: {}
+
+volumes:
+  travel-postgres:
+    driver: local
+  travel-redis:
+    driver: local
+
+networks:
+  travel-companion:
+    driver: bridge

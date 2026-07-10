@@ -12,7 +12,37 @@ The system is built around **opportunities**, not places: a place is static; an 
 
 ## Status
 
-📋 **Planning phase.** The product is fully specified in `docs/`; implementation has not started.
+🚧 **Scaffolded.** The product is fully specified in `docs/`, and the application skeleton
+(Laravel 13 + Inertia 2 + React 19 + shadcn) is in place with CI and staging deploy wired.
+Feature work has not started.
+
+## Local development
+
+Requires PHP 8.5, Composer, Node 24. Two ways to run:
+
+```bash
+# Native (SQLite/Redis on host or Docker), fastest inner loop:
+composer install && npm install
+cp .env.example .env && php artisan key:generate
+composer run dev          # serves app + queue + logs + vite concurrently
+
+# Or the full Docker stack (Postgres+PostGIS+pgvector, Redis, Adminer):
+docker compose up --build
+```
+
+Quality gates (match CI):
+
+```bash
+composer test             # Pint + PHPUnit
+npm run lint && npm run typecheck && npm run format:check
+```
+
+## Deployment
+
+Push to `main` → GitHub Actions builds a Docker image, pushes it to GHCR (SHA-pinned),
+and deploys to **travel.bergsten.net** on the shared Hetzner staging box (Traefik + TLS).
+Rollback by setting a previous SHA in the server's `.env`. Full details, server layout, and
+operations: [docs/SERVER-DEPLOYMENT.md](docs/SERVER-DEPLOYMENT.md).
 
 ## Documentation
 

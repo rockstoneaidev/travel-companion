@@ -1,0 +1,73 @@
+# Staging stack — lives at /srv/staging/apps/travel-companion/docker-compose.yml on the
+# Hetzner box. Joins the shared Traefik (`web`) and data (`internal`) networks. Reuses
+# the shared `staging-redis`; runs its OWN Postgres because the shared one lacks PostGIS.
+# IMAGE_TAG is written by CI (commit SHA) into the sibling .env file.
+services:
+  app:
+    image: ghcr.io/rockstoneaidev/travel-companion:${IMAGE_TAG:-latest}
+    container_name: travel-companion-app
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    volumes:
+      - ./.env.docker:/var/www/app/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router
+      - "traefik.http.routers.travel-companion.rule=Host(`travel.bergsten.net`)"
+      - "traefik.http.routers.travel-companion.entrypoints=websecure"
+      - "traefik.http.routers.travel-companion.tls=true"
+      - "traefik.http.routers.travel-companion.tls.certresolver=le"
+      - "traefik.http.services.travel-companion.loadbalancer.server.port=80"
+      # HTTP -> HTTPS redirect (app-scoped middleware to avoid clashing with other apps)
+      - "traefik.http.routers.travel-companion-http.rule=Host(`travel.bergsten.net`)"
+      - "traefik.http.routers.travel-companion-http.entrypoints=web"
+      - "traefik.http.routers.travel-companion-http.middlewares=travel-companion-https"
+      - "traefik.http.middlewares.travel-companion-https.redirectscheme.scheme=https"
+
+  scheduler:
+    image: ghcr.io/rockstoneaidev/travel-companion:${IMAGE_TAG:-latest}
+    container_name: travel-companion-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    volumes:
+      - ./.env.docker:/var/www/app/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    command: ["sh", "-lc", "php artisan schedule:work --verbose --no-interaction"]
+
+  postgres:
+    image: ghcr.io/rockstoneaidev/travel-postgres:pg18
+    container_name: travel-postgres
+    restart: unless-stopped
+    # POSTGRES_DB/USER/PASSWORD live in .env.docker alongside the app's DB_* vars.
+    env_file:
+      - .env.docker
+    volumes:
+      - travel-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "${POSTGRES_USER:-travel}" -d "${POSTGRES_DB:-travel_companion}"']
+      retries: 5
+      timeout: 5s
+    networks:
+      - internal
+
+volumes:
+  travel-postgres:
+    driver: local
+
+networks:
+  web:
+    external: true
+  internal:
+    external: true

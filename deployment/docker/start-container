@@ -1,0 +1,56 @@
+#!/bin/ash
+
+set -euo pipefail
+
+APP_ENVIRONMENT="${APP_ENV:-production}"
+PROJECT_ROOT="/var/www/app"
+
+export HOME="${HOME:-/var/www}"
+
+# Postgres TLS: local Docker DB works without TLS; managed DBs set PGSSLMODE=require.
+export PGSSLMODE="${PGSSLMODE:-prefer}"
+
+# Install vendor at boot only if missing (image normally ships it).
+if [ "${RUN_COMPOSER_ON_BOOT:-false}" = "true" ] || [ ! -d "$PROJECT_ROOT/vendor" ]; then
+    echo "Running composer install on container start" >&2
+    composer install --no-dev --no-interaction --no-scripts
+    composer dump-autoload --optimize
+fi
+
+# Ensure Laravel writable dirs exist before any artisan call
+mkdir -p \
+    "$PROJECT_ROOT/storage/app/public" \
+    "$PROJECT_ROOT/storage/framework/cache/data" \
+    "$PROJECT_ROOT/storage/framework/sessions" \
+    "$PROJECT_ROOT/storage/framework/views" \
+    "$PROJECT_ROOT/bootstrap/cache"
+chown -R www-data:www-data "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" || true
+chmod -R 775 "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" || true
+
+# Idempotent storage symlink
+php artisan storage:link --force >&2 || echo "storage:link failed; continuing." >&2
+
+# Generate APP_KEY only if none was provided via env
+if [ -z "${APP_KEY:-}" ]; then
+    php artisan key:generate --force >&2 || echo "key:generate failed; continuing." >&2
+fi
+
+# Warm/refresh caches; tolerate services not being up yet on first boot
+php artisan optimize:clear >&2 || echo "optimize:clear failed; continuing." >&2
+
+if [ "${RUN_MIGRATIONS_ON_BOOT:-false}" = "true" ]; then
+    echo "Running database migrations..." >&2
+    php artisan migrate --force >&2 || echo "migrate failed; continuing." >&2
+fi
+
+if [ $# -eq 0 ]; then
+    set -- /usr/bin/supervisord -c /etc/supervisord.conf
+fi
+
+if [ "$APP_ENVIRONMENT" != "production" ]; then
+    echo "Bootstrapping non-production environment" >&2
+    exec /usr/local/bin/docker-php-entrypoint-dev "$@"
+else
+    echo "Bootstrapping production environment" >&2
+    exec /usr/local/bin/docker-php-entrypoint "$@"
+fi
