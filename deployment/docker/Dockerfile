@@ -22,10 +22,12 @@ RUN if [ -n "$GH_PACKAGES_TOKEN" ]; then \
     fi
 # Runtime provides ext-pcntl (built below); ignore only that ext for resolution,
 # never the PHP version — the version is the check that actually matters.
+# --no-scripts always: this stage has only composer.json/lock, no artisan, so
+# post-autoload scripts (package:discover) would fail. They run at container boot.
 RUN if [ "$APP_ENV" = "production" ]; then \
         composer install --no-dev --prefer-dist --no-progress --no-interaction --no-scripts --no-ansi --ignore-platform-req=ext-pcntl; \
     else \
-        composer install --prefer-dist --no-progress --no-interaction --no-ansi --ignore-platform-req=ext-pcntl; \
+        composer install --prefer-dist --no-progress --no-interaction --no-scripts --no-ansi --ignore-platform-req=ext-pcntl; \
     fi
 
 # =============================================
