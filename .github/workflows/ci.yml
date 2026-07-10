@@ -57,6 +57,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      # tsconfig maps `ziggy-js` -> vendor/tightenco/ziggy, so type-checking needs
+      # the Composer package present (Ziggy is the single source of truth for routes).
+      - name: Install Composer deps (for Ziggy types)
+        run: composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress
+
       - name: Setup Node 24
         uses: actions/setup-node@v4
         with:
