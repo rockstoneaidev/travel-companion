@@ -14,6 +14,8 @@ services:
       # .env, which is for the native `composer run dev` path).
       DB_HOST: postgres
       REDIS_HOST: redis
+      # Auto-run migrations on boot so a fresh `docker compose up` has a usable DB.
+      RUN_MIGRATIONS_ON_BOOT: "true"
     volumes:
       - .:/var/www/app
     restart: unless-stopped

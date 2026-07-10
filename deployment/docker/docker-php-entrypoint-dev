@@ -5,7 +5,10 @@ set -e
 /usr/local/bin/docker-php-entrypoint
 
 chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache 2>/dev/null || true
-chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache 2>/dev/null || true
+# Dirs 775, files 664 — avoid setting the exec bit on files, which would dirty
+# tracked files (storage/.gitignore etc.) on the host through the bind mount.
+find /var/www/app/storage /var/www/app/bootstrap/cache -type d -exec chmod 775 {} + 2>/dev/null || true
+find /var/www/app/storage /var/www/app/bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
 
 cd /var/www/app
 

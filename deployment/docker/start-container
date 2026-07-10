@@ -25,7 +25,10 @@ mkdir -p \
     "$PROJECT_ROOT/storage/framework/views" \
     "$PROJECT_ROOT/bootstrap/cache"
 chown -R www-data:www-data "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" || true
-chmod -R 775 "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" || true
+# Dirs 775, files 664 — NOT `chmod -R 775`, which would set the exec bit on files
+# and, via the dev bind mount, dirty tracked files (e.g. storage/.gitignore) on the host.
+find "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" -type d -exec chmod 775 {} + 2>/dev/null || true
+find "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" -type f -exec chmod 664 {} + 2>/dev/null || true
 
 # Idempotent storage symlink
 php artisan storage:link --force >&2 || echo "storage:link failed; continuing." >&2
