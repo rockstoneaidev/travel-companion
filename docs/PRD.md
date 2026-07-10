@@ -253,7 +253,9 @@ interface ScoutSource
 }
 ```
 
-**Source adapters (pluggable):** Google Places (Nearby/Text Search, Details, Photos) · Google Routes · OpenStreetMap/Overpass · Wikipedia geosearch · Wikidata SPARQL · Ticketmaster/event APIs · local tourism boards · RSS/local news · curated content · user-saved places.
+**Source adapters (pluggable):** Google Places (Nearby/Text Search, Details, Photos) · Google Routes · OpenStreetMap/Overpass · Overture Maps · Wikipedia geosearch · Wikivoyage · Wikidata SPARQL · Ticketmaster/event APIs · local tourism boards · government open data (e.g., DATAtourisme, Base Mérimée for France) · RSS/local news · curated content · user-saved places.
+
+> **Full source catalog, licensing rules, credibility tiers, and per-phase adapter roadmap: [DATA-SOURCES.md](DATA-SOURCES.md).** Key architectural rule from that document: the canonical `places` database is built **only on open-licensed data**; proprietary APIs (Google Places, etc.) are a live enrichment/verification edge and are never persisted into the world model. Regional Knowledge Packs (DATA-SOURCES.md §8) are the concrete mechanism for the curated layer below.
 
 ### 9.2 Scout bounded regions — never crawl the world
 
