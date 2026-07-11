@@ -25,7 +25,7 @@ uses(RefreshDatabase::class);
 function fakeOverpass(): void
 {
     Http::fake([
-        'overpass.kumi.systems/*' => Http::response(
+        'lz4.overpass-api.de/*' => Http::response(
             file_get_contents(base_path('tests/Fixtures/Sources/osm-overpass-gamla-stan.json')),
         ),
     ]);
@@ -71,6 +71,8 @@ it('re-running the same region refreshes rows instead of duplicating them', func
 });
 
 it('reports overture as unsupported (degraded, not failed) when no extract exists', function () {
+    \Illuminate\Support\Facades\Storage::fake('local'); // the real disk may hold a downloaded extract
+
     $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm-test'), 'overture');
 
     expect($result)->toBe(['fetched' => 0, 'candidates' => 0, 'tiles' => 0]);

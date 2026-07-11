@@ -30,9 +30,9 @@ final class OsmAdapter implements ScoutSource
 
     public const VERSION = 'v1';
 
-    // The Kumi mirror: the main overpass-api.de instance rate-limits
-    // interactive-scale use aggressively; the mirror welcomes it.
-    private const OVERPASS_URL = 'https://overpass.kumi.systems/api/interpreter';
+    // The lz4 endpoint of the main instance: the plain endpoint 504s under
+    // load and the Kumi mirror stalls; lz4 answers reliably.
+    private const OVERPASS_URL = 'https://lz4.overpass-api.de/api/interpreter';
 
     public function supports(ScoutRequest $request): bool
     {
@@ -46,9 +46,13 @@ final class OsmAdapter implements ScoutSource
         // Ways on a quadrant seam appear twice — dedupe on type/id.
         $elements = [];
 
-        foreach ($this->quadrants($request) as $quadrant) {
+        foreach ($this->quadrants($request) as $i => $quadrant) {
+            if ($i > 0) {
+                sleep(3); // politeness: public Overpass instances rate-limit bursts
+            }
+
             $response = Http::timeout(180)
-                ->retry(2, 5000)
+                ->retry(3, 10000)
                 ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
                 ->asForm()
                 ->post(self::OVERPASS_URL, ['data' => $this->overpassQuery($quadrant)]);
