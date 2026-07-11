@@ -627,6 +627,9 @@ Opportunities that don't clear the push/feed bar don't die — they surface in a
   (manifest + service worker, foreground geolocation), and the same UI as a desktop web app —
   explicitly desired, not an afterthought. No Expo shell, no app store. This rides the existing
   Laravel + Inertia 2 + React 19 scaffold directly.
+- **Visual design — DECIDED (2026-07-12): the "Passo" direction** (warm/analog travel journal;
+  working wordmark, name may change). Design system and per-screen specs:
+  [design/DESIGN.md](design/DESIGN.md) · [design/SCREENS.md](design/SCREENS.md).
 - **Phase 2:** background behavior, battery, permission UX, and notification quality are make-or-break — move to native Swift/Kotlin **or** React Native with a mature native background-geolocation SDK. This decision is explicitly deferred until Phase 1 proves quality.
 
 ### 13.2 Onboarding taste calibration (cold start)

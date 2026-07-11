@@ -15,8 +15,11 @@ Read before designing or implementing anything:
 - `docs/ENTITY-RESOLUTION.md` — the v1 matching/merge algorithm behind the canonical `places` table (explicit-ID joins → blocked fuzzy matching → survivorship; `resolver_version`).
 - `docs/CURATION.md` — curated layer + Regional Knowledge Packs: schema, LLM-draft→ground→review pipeline, and the decided pack plan (Stockholm test + France-trip corridor).
 - `docs/ONBOARDING.md` — the taste-calibration content (9 facet-separating pairs + 2 practical questions; `calibration_version`).
+- `docs/design/DESIGN.md` + `docs/design/SCREENS.md` — the **Passo** UI design system (tokens, type, component anatomy, voice) and per-screen build specs with API bindings. Authoritative for all UI work; source mockups in `../Brand/Travel companion brand exploration/`.
 - `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
 - `docs/conventions/` — **how the code is shaped.** Read `docs/conventions/01-domain-modules.md` before writing any code, then the document matching what you're touching (enums, migrations, controllers, jobs, source adapters, LLM calls, testing, caching). These are binding; flag conflicts rather than deviating.
+
+**Fast lookup — knowledge graph (`graphify-out/`):** the whole repo (code + all docs above) is indexed as a queryable knowledge graph in `graphify-out/graph.json` (946 nodes / 1,531 edges, community-clustered). Any LLM/agent should use it to *find* things before grepping or reading whole docs: if the graphify skill is available, run `/graphify query "<question>"`; otherwise read `graphify-out/GRAPH_REPORT.md` (community hubs = a table of contents for the repo) or traverse `graphify-out/graph.json` directly. Answers cite `source_location`, so use it to jump to the right doc section rather than as a substitute for reading it — the docs remain authoritative. The directory is gitignored (generated artifact): refresh it after large doc/code changes with `/graphify --update`, or build it with `/graphify .` if it's missing on your checkout.
 
 ## Stack & tooling
 
