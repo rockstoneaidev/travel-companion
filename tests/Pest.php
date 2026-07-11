@@ -37,3 +37,19 @@ expect()->extend('toBeIso8601', function () {
 
     return $this;
 });
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+|
+| Geo fixtures are real coordinates in the launch region, never (0, 0) — null
+| island passes tests and hides bugs (conventions/11).
+|
+*/
+
+/** Liljeholmen, Stockholm — the test region (PRD §8.0). @return array{lat: float, lng: float} */
+function stockholmOrigin(): array
+{
+    return ['lat' => 59.3100, 'lng' => 18.0200];
+}

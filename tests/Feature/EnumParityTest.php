@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Domain\Context\Enums\AppState;
+use App\Domain\Context\Enums\MovementMode;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Opportunities\Enums\OpportunityKind;
 use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Places\Enums\PlaceTypeDomain;
+use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Enums\TravelMode;
+use App\Domain\Trips\Enums\TripSource;
+use App\Domain\Trips\Enums\TripStatus;
 use App\Enums\AppealFacet;
 use App\Enums\Permission;
 use App\Enums\Role;
@@ -64,4 +69,24 @@ it('mirrors TravelMode in resources/js/types/enums.ts', function () use ($tsCons
 
 it('mirrors FeedbackEvent in resources/js/types/enums.ts', function () use ($tsConstValues) {
     expect($tsConstValues('FEEDBACK_EVENTS'))->toBe(FeedbackEvent::values());
+});
+
+it('mirrors TripStatus in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('TRIP_STATUSES'))->toBe(TripStatus::values());
+});
+
+it('mirrors TripSource in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('TRIP_SOURCES'))->toBe(TripSource::values());
+});
+
+it('mirrors ExploreSessionStatus in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('EXPLORE_SESSION_STATUSES'))->toBe(ExploreSessionStatus::values());
+});
+
+it('mirrors MovementMode in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('MOVEMENT_MODES'))->toBe(MovementMode::values());
+});
+
+it('mirrors AppState in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('APP_STATES'))->toBe(AppState::values());
 });
