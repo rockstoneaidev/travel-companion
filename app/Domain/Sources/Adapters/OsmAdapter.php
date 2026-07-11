@@ -47,7 +47,7 @@ final class OsmAdapter implements ScoutSource
         $elements = [];
 
         foreach ($this->quadrants($request) as $i => $quadrant) {
-            if ($i > 0) {
+            if ($i > 0 && ! app()->runningUnitTests()) {
                 sleep(3); // politeness: public Overpass instances rate-limit bursts
             }
 

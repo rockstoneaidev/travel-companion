@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Places\Contracts\ResolvableItems;
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Places\Services\PostgresTileIndexer;
+use App\Domain\Sources\Services\ProvideResolvableItems;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
@@ -23,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             TileIndexer::class,
             PostgresTileIndexer::class,
+        );
+        $this->app->singleton(
+            ResolvableItems::class,
+            ProvideResolvableItems::class,
         );
     }
 

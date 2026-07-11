@@ -8,6 +8,7 @@ use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Places\Data\PlaceData;
 use App\Domain\Places\Models\Place;
+use App\Domain\Places\Models\PlaceMerge;
 use App\Enums\AppealFacet;
 use RuntimeException;
 
@@ -31,6 +32,10 @@ final class LookupPlaces implements PlaceLookup
     }
 
     /**
+     * Redirects resolve here (ENTITY-RESOLUTION §2): a merged-away id returns
+     * its canonical place, keyed by the id the caller asked for — stale
+     * references in user data keep working.
+     *
      * @param  list<string>  $ids
      * @return array<string, PlaceData>
      */
@@ -40,11 +45,30 @@ final class LookupPlaces implements PlaceLookup
             return [];
         }
 
-        return Place::query()
-            ->whereIn('id', $ids)
-            ->get()
-            ->mapWithKeys(fn (Place $place): array => [$place->id => self::toData($place)])
+        $redirects = PlaceMerge::query()
+            ->whereIn('old_place_id', $ids)
+            ->pluck('canonical_place_id', 'old_place_id')
             ->all();
+
+        $canonicalIds = array_values(array_unique(array_map(
+            static fn (string $id): string => $redirects[$id] ?? $id,
+            $ids,
+        )));
+
+        $places = Place::query()
+            ->whereIn('id', $canonicalIds)
+            ->get()
+            ->keyBy('id');
+
+        $out = [];
+        foreach ($ids as $id) {
+            $place = $places->get($redirects[$id] ?? $id);
+            if ($place !== null) {
+                $out[$id] = self::toData($place);
+            }
+        }
+
+        return $out;
     }
 
     private static function toData(Place $place, ?int $distanceMeters = null): PlaceData
