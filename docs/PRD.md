@@ -109,7 +109,7 @@ Every part of the system — data model, pipeline, scoring, delivery — revolve
 The system maintains a "**Trip Brain**" combining four continuously updated models:
 
 1. **User model** — learned from behavior, not questionnaires: which recommendations they accept/ignore, how far they walk, what they photograph, dwell times, what consistently creates engagement. Bootstrapped via onboarding calibration (§13.2) to solve cold start.
-2. **Trip model** — where they are in the journey: day 1 vs. last afternoon, travel day vs. sightseeing day vs. relaxation day vs. road trip. Recommendations adapt accordingly.
+2. **Trip model** — where they are in the journey: day 1 vs. last afternoon, travel day vs. sightseeing day vs. relaxation day vs. road trip. Recommendations adapt accordingly. Its structural entities (Trip, Explore Session, Segment) are defined in §6.6; the tempo classification above is a **Phase 2** capability (it needs continuous context), so in Phase 1 the model is thin — which trip, how far in, what's been seen this trip.
 3. **Context model** — current location, movement mode, route, weather, available time window, time of day, fatigue estimate, practical constraints.
 4. **World model** — places, events, stories, routes, closures, weather, light, food, hidden things: combined from maps, historical databases, local events, tourism boards, Wikipedia/Wikidata, OSM, local news, weather services (§9).
 
@@ -148,6 +148,42 @@ weights converge from a handful of signals; ~65 type weights never would — whi
 start (§11) tractable. The facets deliberately mirror the Phase 3 specialist lenses above, so each
 specialist later becomes a facet scorer. Implemented as PHP backed enums (`PlaceType`,
 `PlaceTypeDomain`, `AppealFacet`) per [conventions/02-enums.md](conventions/02-enums.md).
+
+### 6.6 Journey structure: Trip, Explore Session, Segment
+
+The three terms operate at different layers and different phases — conflating them is a category
+error. The rule:
+
+- **Explore Session** — the atomic Phase 1 unit, and the *only* one the user initiates. "I have 3
+  hours from here (optionally heading that way) — find me something." An origin, a time budget, an
+  optional direction/destination, a 3–5 item feed, accumulated feedback, and an end. This is the
+  spine of the pull-only MVP.
+- **Trip** — a container providing cross-session continuity (novelty, the trip model, the digest,
+  privacy deletion, and the seed of Phase 3 cross-trip memory). **Implicit-first:** it materialises
+  around sessions — a new session attaches to the user's current active trip when it is close in
+  space and time (same region, gap under ~3–4 days) or else opens a new one. The user never has to
+  "create a trip" before exploring. One optional explicit path exists — a planner may pre-create a
+  named trip to enable pre-scouting (§10) — and both paths converge on the same entity (a `source`
+  field records `auto` vs. `user`). Lifecycle `planned → active → completed`; "active" begins at the
+  first session, "completed" on inactivity or explicitly. At most one active trip per user.
+- **Segment** — a **Phase 2** concept: a system-*inferred* tempo-phase of a trip (travel day /
+  sightseeing / relaxation) or a route-leg. Both drivers are Phase 2 — tempo inference needs
+  continuous background context, and route-legs need corridor scouting (§9.2). **Segments do not
+  exist in Phase 1.** A session's *declared* intent ("I have 3 hours to explore") substitutes for
+  the inference. This is the answer to "segment vs. session": orthogonal concepts — a session is a
+  *request the user makes*; a segment is an *inferred classification of the trip's timeline* — and
+  only the session exists yet.
+
+**Scoping rules that follow** (previously undefined — this is what the entities are *for*): novelty
+is **trip-scoped** ("three castles this trip"); `repetition_penalty` is **session-scoped** in Phase
+1 (no three churches in one 5-item feed), day-scoped later; context events/snapshots are
+**session-scoped**. Trip attribution is a *derived* clustering of sessions, so it is recomputable and
+the clustering thresholds are low-stakes.
+
+Both `Trip` and `ExploreSession` live in the **Trips** domain module (conventions/01 — no thirteenth
+module). The table is `explore_sessions`, never `sessions` (Laravel owns that name for its session
+store). `TripStatus` and `ExploreSessionStatus` are Trips-module enums (conventions/02). **`trip_segments`
+is not built in Phase 1.**
 
 ---
 
@@ -201,7 +237,7 @@ The user opens the app and says, in effect: *"I'm exploring for the next 3 hours
 3. Offers a **daily digest**: a morning "today near you" view and evening recap of opportunities that were found but not surfaced (§12.4).
 
 **In scope:**
-- Trip creation, Explore Mode sessions ("I have N hours"), foreground location only.
+- Explore Sessions ("I have N hours") as the primary interaction, foreground location only; Trips created **implicitly** around sessions (§6.6) — no mandatory trip-creation step. Optional explicit trip pre-creation for planners.
 - Full backend pipeline: context ingestion → scouts → normalize → dedupe → enrich → score → serve (§10).
 - Evidence display and "why this suggestion" explainability.
 - Feedback capture (explicit + implicit) and category-level preference learning.
@@ -560,15 +596,18 @@ app/
 
 ```text
 users, profiles, profile_signals
-trips, trip_segments
-context_events, context_snapshots
+trips                         (implicit-first container — §6.6)
+explore_sessions              (the Phase 1 interaction unit — §6.6; NOT `sessions`, Laravel owns that)
+trip_segments                 [Phase 2 — inferred tempo-phase/route-leg; not built in Phase 1]
+context_events, context_snapshots   (session-scoped)
 source_items                  (raw normalized candidates, per source)
 places                        (canonical, deduped — §9.6; carries type + type_domain +
                                facets[] + raw source_tags + taxonomy_version — §6.5, TAXONOMY.md)
 place_source_ids              (cross-source ID mapping)
 opportunities                 (ephemeral, context-bound, TTL'd)
 opportunity_evidence
-recommendations               (what was actually served, with full trace)
+recommendations               (what was actually served, with full trace;
+                               carries explore_session_id + denormalized trip_id — §6.6)
 recommendation_feedback
 notification_budget           [Phase 2]
 scout_runs, agent_runs        (observability)
@@ -621,25 +660,41 @@ Every LLM output is generated **from an evidence bundle** and the bundle is stor
 
 ### 14.5 API shape (boring and explicit)
 
+The session — not the trip — is what the user initiates, so it is a **top-level** resource; the
+server resolves-or-creates the implicit trip (§6.6). (All under `/api/v1` — conventions/04.)
+
 ```text
-POST /api/trips
-POST /api/trips/{trip}/start
-POST /api/trips/{trip}/explore-sessions            ("I have 3 hours")
-POST /api/trips/{trip}/context-events
-GET  /api/trips/{trip}/opportunities
-GET  /api/trips/{trip}/recommendations/current
-GET  /api/trips/{trip}/digest                       (morning/evening digest)
-POST /api/recommendations/{id}/feedback
-GET  /api/recommendations/{id}/explanation          ("why did I get this?")
-POST /api/trips/{trip}/pause
-POST /api/trips/{trip}/privacy/delete-location-history
+# Explore Sessions — the Phase 1 interaction
+POST /api/v1/explore-sessions                       ("I have 3 hours from here, heading that way")
+GET  /api/v1/explore-sessions/{session}             (session state + current feed)
+GET  /api/v1/explore-sessions/{session}/opportunities
+POST /api/v1/explore-sessions/{session}/context-events
+POST /api/v1/explore-sessions/{session}/end
+
+# Recommendations
+POST /api/v1/recommendations/{recommendation}/feedback
+GET  /api/v1/recommendations/{recommendation}/explanation   ("why did I get this?")
+
+# Trips — implicit container; read / rename / delete, not create-then-start
+GET   /api/v1/trips
+GET   /api/v1/trips/{trip}
+PATCH /api/v1/trips/{trip}                           (rename, mark ended)
+POST  /api/v1/trips                                  (OPTIONAL — planner pre-creates a named trip)
+GET   /api/v1/trips/{trip}/digest                    (morning/evening digest)
+DELETE /api/v1/trips/{trip}/location-history         (privacy — trip-scoped)
+
+# Phase 2
+POST /api/v1/trips/{trip}/trip-mode/start            [P2 — explicit background companion mode]
 ```
+
+`POST /trips/{trip}/start` from earlier drafts is gone: in pull-only Phase 1 the first session *is*
+the start; an explicit start only means something for Phase 2 Trip Mode.
 
 Context event payload (fields degrade gracefully when absent):
 
 ```json
 {
-  "trip_id": "trip_123",
+  "explore_session_id": "sess_123",
   "timestamp": "2026-07-08T15:22:00+02:00",
   "location": { "lat": 47.024, "lng": 4.839, "accuracy_m": 42 },
   "movement": { "mode": "walking", "speed_mps": 1.2, "heading": 84 },
