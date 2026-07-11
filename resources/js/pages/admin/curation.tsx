@@ -34,8 +34,8 @@ export default function AdminCuration({ items, approvedCount }: { items: Curatio
             <Head title="Curation" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <p className="text-muted-foreground text-sm">
-                    {items.length} awaiting review · {approvedCount} approved. Approval makes a claim Tier-A evidence —
-                    read it like it will be spoken to a traveler, because it will.
+                    {items.length} awaiting review · {approvedCount} approved. Approval makes a claim Tier-A evidence — read it like it will be spoken
+                    to a traveler, because it will.
                 </p>
 
                 {items.map((item) => (
