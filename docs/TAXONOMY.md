@@ -214,10 +214,10 @@ Per [conventions/02-enums.md](conventions/02-enums.md): **native PHP backed stri
 | `PlaceType` | `app/Domain/Places/Enums/PlaceType.php` | ~65 cases. `domain(): PlaceTypeDomain` and `baseFacets(): array` methods. |
 | `AppealFacet` | `app/Enums/AppealFacet.php` | **Cross-module** (Places tags, Profiles weights, Recommendations scoring, Curation) — belongs in `app/Enums`, like `SourceLicense`. |
 
-`OpportunityKind` (the opportunity `type` field, PRD §14.2) is a **separate** enum
-(`app/Domain/Opportunities/Enums/OpportunityKind.php`) covering `ephemeral_detour`, `evergreen`,
-`event`, etc. — out of scope for this document (PRD gap #6), noted here only so it is not confused
-with `PlaceType`.
+`OpportunityKind` (the opportunity `kind` field) is a **separate** enum
+(`app/Domain/Opportunities/Enums/OpportunityKind.php`) covering `evergreen`, `ephemeral`, `event`,
+`seasonal` — defined in **PRD §14.2**. Noted here only so it is not confused with `PlaceType`:
+`PlaceType` is what a place *is*, `OpportunityKind` is the *temporal nature* of a moment.
 
 ### 6.1 Columns on `places`
 

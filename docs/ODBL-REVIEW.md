@@ -71,7 +71,7 @@ Related approved guidelines we rely on: **Regional Cuts** (different sources for
 | 5 | User feedback tags, profile signals, scores, opportunities, notification traces | Independent data types, our own origin | **None** — remains proprietary |
 | 6 | Cross-source ID concordance (our `place_id` ↔ `osm_id`/`wikidata_qid`/`gers_id`) | Reference/metadata layer; likely independent, but systematic region-wide OSM-ID coverage is a gray zone | Low risk; confirm with counsel (§9.2) |
 | 7 | Reverse-geocoding context events (e.g., Nominatim) | Per the [Geocoding Guideline](https://osmfoundation.org/wiki/Licence/Community_Guidelines/Geocoding_-_Guideline): insubstantial extracts, **not** derivative/produced works | No share-alike on our context data; attribution required; must not aggregate geocodes into a general-purpose geodatabase |
-| 8 | Embeddings computed over text/names that include OSM-derived content (PRD §10 step 7) | No approved OSMF guideline; arguably derived | Low practical risk; keep regenerable and segregated by source; flag to counsel (§9.3) |
+| 8 | Embeddings computed over text/names that include OSM-derived content (PRD §10 step 5) | No approved OSMF guideline; arguably derived | Low practical risk; keep regenerable and segregated by source; flag to counsel (§9.3) |
 | 9 | Wikipedia/Wikivoyage excerpts stored as evidence (CC BY-SA) | Separate evidence store = collective component | Keep out of the ODbL layer (CC BY-SA ↛ ODbL relicensing); attribute per CC BY-SA |
 | 10 | Google Places data | Never enters any persisted layer | Google ToS + ODbL-incompatibility both forbid it |
 

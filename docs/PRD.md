@@ -193,6 +193,15 @@ is not built in Phase 1.**
 
 > **"I would have missed this" moments per trip-day** — recommendations that the user accepted, actually visited (visit-detected or confirmed), and rated positively or saved as a memory.
 
+**Measuring it in Phase 1 (honest caveat).** A foreground-only client cannot *passively* detect
+visits, so the golden label comes from **explicit confirmation** ("I'm here" / "Did you go?" / save-
+as-memory) plus **foreground proxies** (started navigation, then dwell near the place while the app
+is open). The confirmed-visit label is therefore **sparse but high-quality**, and the north star is
+**partly self-reported** in Phase 1 — with acceptance and saves as the denser proxy signals it is
+read alongside. Passive, dwell-based visit detection arrives with background location in **Phase 2**,
+which is what makes the golden label dense. This is a known limit of proving quality in a pull-only
+pilot, not a gap to close before Phase 1 (§13.3, §18).
+
 ### 7.2 MVP validation questions
 
 The MVP exists to answer four questions:
@@ -408,22 +417,26 @@ UserIsNearSavedOpportunity (Phase 2), TripEnded
  2. Determine region    Current tile(s), route corridor, next destination, hotel area.
  3. Run scouts          Check tile cache first; run only stale/missing scouts.
  4. Normalize           All sources -> shared candidate format.
- 5. Deduplicate         Entity resolution against canonical places (§9.6).
- 6. Enrich              Opening hours, price, walk/route friction, photos, credibility.
- 7. Reachability gate   HARD FILTER (§11): keep only candidates reachable AND
+ 5. Embed               Semantic representation (pgvector), generated once per canonical
+                        place and cached with the tile. Needed NEXT for semantic dedup and
+                        for the tile-scoped distinctiveness signal; taste-matching in P2+.
+ 6. Deduplicate         Entity resolution against canonical places (§9.6; uses embeddings).
+ 7. Enrich              Opening hours, price, walk/route friction, photos, credibility, and
+                        the tile-scoped `uniqueness` signals (SCORING.md §4.2).
+ 8. Reachability gate   HARD FILTER (§11): keep only candidates reachable AND
                         experienceable within the remaining time budget —
                         travel + typical dwell + return (pure-radius) or
                         continue-to-destination (destination mode). Unreachable
                         candidates are EXCLUDED here, never merely down-ranked.
- 8. Embed               Semantic representation stored (pgvector); used for
-                        dedup/distinctiveness in MVP, taste-matching in Phase 2+.
  9. Score               Composite score (§11), using the context-appropriate weight vector.
 10. Decide              Serve in feed / hold for digest / watch / discard.
                         (Phase 2 adds: push now / register geofence.)
 11. Learn               Feedback updates profile and future ranking.
 ```
 
-The **reachability gate** (step 7) is what makes "I have 3 hours" actually constrain the feed:
+Steps 5–7 (embed, dedup, tile-scoped enrichment incl. `uniqueness`) are **user-independent and
+cached per H3 tile** (§9.3); only steps 8–9 run per user at request time. The **reachability gate**
+(step 8) is what makes "I have 3 hours" actually constrain the feed:
 it is a filter, not a scoring weight. Distance then plays a *second, softer* role inside `friction_penalty`
 (§11) — "among the ones I can reach, closer is nicer" — with no double-counting, because the gate
 decides *membership* and the penalty decides *ordering*.
@@ -448,7 +461,7 @@ ACCEPTED -> { VISITED | ABANDONED }
 ## 11. Ranking & scoring
 
 Ranking is never "nearest + highest rating." It runs only over candidates that survived the
-**reachability gate** (§10 step 7) — scoring orders the reachable set, it does not decide membership.
+**reachability gate** (§10 step 8) — scoring orders the reachable set, it does not decide membership.
 
 **There is no single universal weight vector — the vector is context-gated.** Two terms only exist
 in some contexts: `route_fit` requires a route/destination (see below), and `interruption_penalty`
@@ -558,7 +571,7 @@ A ~60-second calibration at first launch: the user picks between pairs/sets of c
 
 ### 13.3 Learning from behavior (honest about signal quality)
 
-- **Golden label:** detected/confirmed **visits** (did they actually go?). Everything else is weak evidence.
+- **Golden label:** detected/confirmed **visits** (did they actually go?). Everything else is weak evidence. In foreground-only **Phase 1** a visit is *explicitly confirmed* (an "I'm here" / "Did you go?" tap, or save-as-memory) or inferred from strong foreground proxies (started navigation → dwell near the place) — **sparse but high-quality**; the update rule (target 1, η 0.30) in SCORING.md §4.1 applies to whichever facets the visited place carries. **Passive** dwell-based detection needs background location (Phase 2), which is what turns this sparse label dense.
 - **Ignores are ambiguous** — didn't see vs. saw-and-rejected vs. interested-but-busy. Weight accordingly; provide a one-tap "not my thing" affordance to convert ambiguity into signal.
 - **Phase 1 learner:** **facet-level** preference weights (§6.5, [TAXONOMY.md](TAXONOMY.md)) — the primary taste signal — plus **type/domain-level** habituation for `novelty`/`repetition_penalty`, and simple per-user thresholds (walking tolerance, price band). The concrete update rule and per-signal learning rates are [SCORING.md](SCORING.md) §4.1. No embedding-based taste model until facet weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
 - Delayed reward matters: saves, photos at the location (if permitted), and revisit intent are memorability signals; log them even before they feed the model.
@@ -669,7 +682,7 @@ curated_items                 (the hand-built regional layer — §9.4)
 {
   "id": "opp_123",
   "place_id": "plc_456",
-  "type": "ephemeral_detour",
+  "kind": "event",
   "title": "Small jazz concert in a courtyard",
   "summary": "A local trio starts in 35 minutes, 7 minutes from your current route.",
   "location": { "lat": 48.8566, "lng": 2.3522 },
@@ -687,6 +700,23 @@ curated_items                 (the hand-built regional layer — §9.4)
   "expires_at": "2026-07-08T18:40:00+02:00"
 }
 ```
+
+**`kind` is an `OpportunityKind`** (`App\Domain\Opportunities\Enums\OpportunityKind`, per
+[conventions/02-enums.md](conventions/02-enums.md)) — it classifies the *temporal nature* of the
+opportunity, which governs `time_window` semantics, `expires_at`, and which signals dominate scoring.
+v1 cases:
+
+| Kind | Meaning | `time_window` | Effect |
+|---|---|---|---|
+| `evergreen` | a stable place, no inherent time pressure (a viewpoint, a museum) | none (opening hours only) | low `temporal_urgency`; ranked on fit/uniqueness |
+| `ephemeral` | a fleeting *now* window — closing soon, short queue now, ideal light/weather now | short, near-term | high `temporal_urgency`; short `expires_at` |
+| `event` | a scheduled happening (concert, market day, exhibition run) | fixed `starts_at`/`ends_at` | urgency from the window; expires at `ends_at` |
+| `seasonal` | available only within a season/date range (harvest, bloom, seasonal opening) | wide date range | mild urgency until the range nears its end |
+
+Two things that are deliberately **not** kinds: the *geometry* of an opportunity (detour vs.
+on-route) lives in `friction`/`route_fit` (§11), not the kind (hence the rename from the earlier
+`ephemeral_detour`, which conflated the two); and "last chance before leaving the region" is
+`temporal_urgency`'s stay-aware horizon (SCORING.md §4.3) — a property of the trip, not the place.
 
 ### 14.3 Cost model (first-class requirement)
 
@@ -844,7 +874,7 @@ Positioning upside: *"Your travel memory belongs to you"* is a differentiator, n
 2. Phase 1 client: PWA vs. minimal Expo shell (decision gate at Phase 1 start).
 3. Curation tooling: admin UI scope for the curated layer (build minimal in Phase 1).
 4. Cost ceiling per trip-hour: instrument first, then set the target (Phase 1, week ~4).
-5. Visit detection heuristics in a foreground-only client (dwell + map-open + self-report?).
+5. ~~Visit detection heuristics in a foreground-only client.~~ **Resolved (§7.1, §13.3):** Phase 1 uses explicit confirmation + foreground proxies (a sparse, high-quality golden label; the north star is accordingly part self-reported in Phase 1); passive dwell detection is Phase 2. Only the exact proxy thresholds remain, to tune against pilot data.
 6. Monetization (subscription vs. premium regions vs. B2B tourism boards) — explicitly out of scope for this PRD; revisit after Phase 1 exit criteria are met.
 
 ---

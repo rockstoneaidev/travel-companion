@@ -29,12 +29,23 @@ Five structural decisions matter more than any constant below.
 
 ### 2.1 Feasibility is a gate, not a score
 
-The **reachability gate** (PRD §10 step 7) decides *membership*; scoring decides *ordering* over the
+The **reachability gate** (PRD §10 step 8) decides *membership*; scoring decides *ordering* over the
 reachable set. Never encode "can't get there before it closes" as a low score. This is what keeps
 sub-scores interpretable and offline-fittable — without it, `friction_penalty` gets abused to
-express disqualification and its scale becomes unanswerable. One further floor lives at the *Decide*
-step (PRD §10 step 10), not in scoring: `confidence < 0.25` → the opportunity is held (`WATCHING` /
-digest), never served in the feed.
+express disqualification and its scale becomes unanswerable.
+
+Two further **evidence gates** live at the *Decide* step (PRD §10 step 10), not in scoring — both
+are membership rules, not soft scores:
+
+- **`confidence < 0.25` → held** (`WATCHING` / digest), never served in the feed.
+- **Non-Tier-D corroboration required.** An opportunity may only be **served or digested** if it has
+  at least one **non-Tier-D** source establishing that it exists (DATA-SOURCES §1.2: Tier-D "never
+  sole evidence… never establish facts"). A candidate whose *only* evidence is Tier-D (a blog, a
+  Reddit thread, a YouTube list) is not a user-facing item — it is a **lead**: routed to the
+  corroboration queue (CuratedScout / curator) to find a non-D source, and surfaced only if one is
+  found. Tier-D still *enriches and boosts* opportunities that clear this bar; it just can't
+  originate one. This is the literal reading of the sole-evidence rule, and it makes the 0.40 Tier-D
+  `confidence` cap (§4.6) a secondary safety net rather than the primary guard.
 
 ### 2.2 Every sub-score is a pure function of a recorded input struct
 
@@ -157,20 +168,29 @@ For u1, *measured-low* (tile has review coverage, this place has few) scores hig
 
 ### 4.3 `temporal_urgency` — one variable does all the work
 
-The driving quantity is **slack until the last feasible start within the user's remaining stay in
-the region** — not merely until today's window closes. "Remaining stay" is the trip's known/estimated
-departure from the region, falling back to end-of-day for day-scoped sessions.
+The driving quantity is **slack until the last feasible start** for this opportunity, given the
+user's remaining time horizon.
 
 ```text
 slack            = last_feasible_start − now − travel_time
 temporal_urgency = decay(slack, H = 8h)
-                   // 30 min → .96 · 2 h → .84 · today-only (~8 h) → .50 · tomorrow-too → ~.15
+                   // 30 min → .96 · 2 h → .84 · ~8 h out → .50 · a day+ out → ~.15
 special-moment floor: max(above, 0.7) while a light/weather/tide window is open right now
 ```
 
-Two behaviors fall out for free, and both are correct: evergreen places have slack ≈ length of stay
-→ urgency ≈ 0 by construction; and on the **last day of a trip everything becomes urgent** without
-being special-cased.
+**The horizon is phase-dependent, and Phase 1 is the shallower case — state it plainly:**
+
+- **Phase 1 (the common case).** Trips are *implicit* (PRD §6.6, no declared departure), so the
+  horizon is the **opportunity's own closing** (opening hours, event `ends_at`, condition window)
+  bounded by **end of the session's day**. `temporal_urgency` is therefore essentially *within-day
+  closing/now urgency* — exactly what a pull-only "I have 3 hours" session needs. Evergreen places
+  with no near closing get low urgency by construction.
+- **Stay-aware horizon (enhancement — needs known trip dates).** When a trip has a known/estimated
+  departure (an explicit planner trip, or Phase 2 inference), `last_feasible_start` extends to the
+  last chance *before leaving the region*, and two behaviors then fall out for free: evergreen slack
+  ≈ length of stay → urgency ≈ 0, and the **last day of a trip makes everything urgent** without
+  being special-cased. Do not build against these in pure Phase 1 — they only fire once departure is
+  known.
 
 ### 4.4 `route_fit` — destination context only
 

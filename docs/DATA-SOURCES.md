@@ -54,7 +54,7 @@ Tier D  Blogs, Reddit, YouTube, forums — hypothesis generators, never sole evi
 Own     Curated layer (Tier A after human review), user feedback (grows toward A)
 ```
 
-Rule: a Tier-D claim ("locals say the back room is the real experience") can *boost* an opportunity but never *establish* facts (existence, hours, price). Cross-source agreement raises confidence; disagreement lowers it. The numeric tier values and the full `confidence` formula (agreement, freshness, coverage, and the Tier-D-only cap at 0.40) are defined in [SCORING.md](SCORING.md) §4.6.
+Rule: a Tier-D claim ("locals say the back room is the real experience") can *boost* an opportunity but never *establish* facts (existence, hours, price). Operationally this means a **D-only** candidate is never served or digested — it is a *lead* for corroboration until a non-D source is found (the serve/hold gate in [SCORING.md](SCORING.md) §2.1). Cross-source agreement raises confidence; disagreement lowers it. The numeric tier values and the full `confidence` formula (agreement, freshness, coverage, and the Tier-D-only cap at 0.40) are defined in [SCORING.md](SCORING.md) §4.6.
 
 ---
 
