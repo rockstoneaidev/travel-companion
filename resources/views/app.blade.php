@@ -10,6 +10,7 @@
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F0E4">
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#221B13">
         <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
         @routes
         @viteReactRefresh
