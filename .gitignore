@@ -11,6 +11,7 @@
 /.vscode
 /.zed
 /bootstrap/ssr
+/graphify-out
 /node_modules
 /public/build
 /public/hot
