@@ -10,6 +10,7 @@ Read before designing or implementing anything:
 - `docs/DATA-SOURCES.md` — data source catalog, licensing classes, Regional Knowledge Packs.
 - `docs/ODBL-REVIEW.md` — ODbL analysis; defines the `places_core` database boundary.
 - `docs/TAXONOMY.md` — the categorisation taxonomy (Type axis + appeal facets); load-bearing for onboarding, scoring, and learning. Implemented as enums per `conventions/02`.
+- `docs/SCORING.md` — the scoring model: every PRD §11 sub-score's v1 formula, constants, penalties, cold-start weight interpolation, and feed selection. Authoritative for implementing ranking.
 - `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
 - `docs/conventions/` — **how the code is shaped.** Read `docs/conventions/01-domain-modules.md` before writing any code, then the document matching what you're touching (enums, migrations, controllers, jobs, source adapters, LLM calls, testing, caching). These are binding; flag conflicts rather than deviating.
 
@@ -51,4 +52,4 @@ These are decided. Do not re-litigate them in implementation; flag explicitly if
 
 - GitHub remote: `rockstoneaidev/travel-companion` (HTTPS). Auth goes through `gh`; the active `gh` account must be **rockstoneaidev** (`gh auth switch --user rockstoneaidev` if pushes 403 as another account).
 - Repo-local `user.email` is `rockstoneaidev@gmail.com` — keep it for commit attribution.
-- Docs style: keep PRD/DATA-SOURCES/ODBL-REVIEW/TAXONOMY cross-references intact when editing any of them; they link to each other's section numbers.
+- Docs style: keep PRD/DATA-SOURCES/ODBL-REVIEW/TAXONOMY/SCORING cross-references intact when editing any of them; they link to each other's section numbers.

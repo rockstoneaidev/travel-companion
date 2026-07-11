@@ -197,6 +197,10 @@ the granularity it needs.
 Onboarding and learning operating on the **same** axis (facets) is the design working as intended:
 the 60-second calibration seeds exactly the representation that behaviour then refines.
 
+The formulas each consumer plugs these axes into — how `personal_fit` reads the facet weights, how
+facet-combination rarity enters `uniqueness`, the `novelty`/`repetition_penalty` decay and
+selection rules — are defined in [SCORING.md](SCORING.md).
+
 ---
 
 ## 6. Implementation

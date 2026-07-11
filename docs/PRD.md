@@ -373,7 +373,7 @@ Personal novelty            User hasn't done something similar recently.
 Detour-to-payoff ratio      Small effort, high memorability.
 ```
 
-A tiny chapel with no reviews but a rare fresco should outrank a famous museum for a user who loves medieval architecture. That is the whole point — and it is computable precisely because taste is expressed over **appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)) rather than place types: the chapel and museum share no type but differ sharply in facets, and `uniqueness` draws partly on how rare a facet combination is for the tile.
+A tiny chapel with no reviews but a rare fresco should outrank a famous museum for a user who loves medieval architecture. That is the whole point — and it is computable precisely because taste is expressed over **appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)) rather than place types: the chapel and museum share no type but differ sharply in facets, and `uniqueness` draws partly on how rare a facet combination is for the tile. How the signals combine into the single 0–1 `uniqueness` value — including which two of the seven live in *other* scoring terms — is defined in [SCORING.md](SCORING.md) §4.2; all signals are tile-relative, so the whole sub-score is user-independent and cached with the tile (§9.3).
 
 ### 9.6 Entity resolution (first-class subsystem)
 
@@ -493,10 +493,11 @@ absent there — not an arbitrary phase rule.
 
 **Rules:**
 
-- Both vectors are v1 heuristics. **All sub-scores are stored per recommendation** (§15) so weights can be fit offline against real acceptance data later. `scoring_model_version` records which vector produced a given score.
-- **`personal_fit` is computed over appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)): roughly the match between the user's learned facet weights and the opportunity's facet set. Learning on ~14 shared facets rather than ~65 place types is what lets a handful of signals generalise to unseen places.
-- **Cold-start handling (required, not optional):** `personal_fit` is undefined for a new user — exactly when we must impress them. Until sufficient signal exists: (a) seed the user's facet weights from onboarding calibration priors (§13.2), (b) re-weight toward `uniqueness + temporal_urgency + confidence`, (c) diversify the served set across facets/types to maximize learning per session.
-- `confidence` reflects source credibility, freshness, and cross-source agreement — never LLM certainty.
+- **Every input above is a defined 0–1 quantity, not an assertion.** The per-sub-score formulas, constants, missing-data behavior, and facet-weight learning updates live in [SCORING.md](SCORING.md), which is authoritative for implementation; the vectors above are the summary.
+- Both vectors are v1 heuristics. **All sub-scores are stored per recommendation** (§15) — together with their *raw inputs* (SCORING.md §2.2), so both the weights and the constants inside sub-scores can be fit offline against real acceptance data later. `scoring_model_version` records which vector produced a given score.
+- **`personal_fit` is computed over appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)): roughly the match between the user's learned facet weights and the opportunity's facet set (SCORING.md §4.1). Learning on ~14 shared facets rather than ~65 place types is what lets a handful of signals generalise to unseen places.
+- **Cold-start handling (required, not optional):** `personal_fit` is undefined for a new user — exactly when we must impress them. Until sufficient signal exists: (a) seed the user's facet weights from onboarding calibration priors (§13.2), (b) re-weight toward `uniqueness + temporal_urgency + confidence` — quantified as the cold/warm weight interpolation in SCORING.md §6, (c) diversify the served set across facets/types to maximize learning per session (the selection rule in SCORING.md §7).
+- `confidence` reflects source credibility, freshness, and cross-source agreement — never LLM certainty (SCORING.md §4.6).
 
 ---
 
@@ -559,7 +560,7 @@ A ~60-second calibration at first launch: the user picks between pairs/sets of c
 
 - **Golden label:** detected/confirmed **visits** (did they actually go?). Everything else is weak evidence.
 - **Ignores are ambiguous** — didn't see vs. saw-and-rejected vs. interested-but-busy. Weight accordingly; provide a one-tap "not my thing" affordance to convert ambiguity into signal.
-- **Phase 1 learner:** **facet-level** preference weights (§6.5, [TAXONOMY.md](TAXONOMY.md)) — the primary taste signal — plus **type/domain-level** habituation for `novelty`/`repetition_penalty`, and simple per-user thresholds (walking tolerance, price band). No embedding-based taste model until facet weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
+- **Phase 1 learner:** **facet-level** preference weights (§6.5, [TAXONOMY.md](TAXONOMY.md)) — the primary taste signal — plus **type/domain-level** habituation for `novelty`/`repetition_penalty`, and simple per-user thresholds (walking tolerance, price band). The concrete update rule and per-signal learning rates are [SCORING.md](SCORING.md) §4.1. No embedding-based taste model until facet weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
 - Delayed reward matters: saves, photos at the location (if permitted), and revisit intent are memorability signals; log them even before they feed the model.
 
 ### 13.4 Phase 2 mobile modules
