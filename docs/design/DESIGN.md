@@ -189,7 +189,7 @@ Ring: 38px, stroke 3, `stroke-linecap="round"`, arc fraction = time remaining / 
 | Primary (`Take me`, `Start exploring`) | filled `terracotta` pill, `on-terracotta` text, Karla 700 |
 | Secondary (`Keep` on detail) | 1px `border-strong` outline pill, ink text |
 | Text action (`Take me` on non-hero cards) | Karla 600 ink, underlined (offset 3px) |
-| Quiet action (`Keep`, `Not for me`) | Karla 500 muted, no underline |
+| Quiet action (`Keep`, `Not for me`) | Karla 500 `meta`, no underline (interactive text is readable text — never `muted`, §5) |
 | Choice pill (calibration) | outline `border-strong` + meta text; **selected = filled ink** (`#3B2F24` / cream text) — selection is ink, not terracotta |
 
 ### `<TabBar>` — floating pill

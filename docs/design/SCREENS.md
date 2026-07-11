@@ -100,7 +100,10 @@ regains focus ≥20 min later within ~150 m of the place, ask **"Were you there?
 golden label; thresholds are the §18.5 tunables). **Its surface:** a quiet card at the **top of
 NOW** on next open — serif italic question ("Did you make it to São Roque?"), two text actions
 (*I was there* / *Didn't go*), dismissible, never a modal. It's the single most valuable tap in the
-learning loop; it must feel like a friend asking, not a survey.
+learning loop; it must feel like a friend asking, not a survey. **Semantics:** *I was there* →
+`visited` (η .30). *Didn't go* (or dismissing the prompt) posts **no taste signal** — the user
+*accepted* this item, so it must never be wired to `dismissed`/η .25; at most log a
+non-learning `metadata` event for funnel analytics.
 
 ## S5 · Empty feed — silence
 
