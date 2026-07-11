@@ -45,12 +45,13 @@ export function OpportunityCard({ title, summary, facets = [], urgency, meta, on
             <div className={cn('mt-3 flex items-center justify-between gap-3 pt-3', !urgent && 'border-border-soft border-t')}>
                 <span className="text-meta-row text-meta font-medium">{meta}</span>
                 <span className="flex items-center gap-4">
+                    {/* Card actions must not bubble into a card-level tap-through (S1). */}
                     {urgent ? (
-                        <PrimaryPill onClick={onTakeMe}>Take me</PrimaryPill>
+                        <PrimaryPill onClick={(e) => (e.stopPropagation(), onTakeMe?.())}>Take me</PrimaryPill>
                     ) : (
                         <>
-                            <TextAction onClick={onTakeMe}>Take me</TextAction>
-                            <QuietAction onClick={onKeep}>Keep</QuietAction>
+                            <TextAction onClick={(e) => (e.stopPropagation(), onTakeMe?.())}>Take me</TextAction>
+                            <QuietAction onClick={(e) => (e.stopPropagation(), onKeep?.())}>Keep</QuietAction>
                         </>
                     )}
                 </span>

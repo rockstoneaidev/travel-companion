@@ -81,7 +81,13 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
                         <div className="space-y-4">
                             {items.map((item) => (
                                 <div key={item.id}>
-                                    <button className="block w-full text-left" onClick={() => router.visit(`/opportunities/${item.id}`)}>
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="block w-full cursor-pointer text-left"
+                                        onClick={() => router.visit(`/opportunities/${item.id}`)}
+                                        onKeyDown={(e) => e.key === 'Enter' && router.visit(`/opportunities/${item.id}`)}
+                                    >
                                         <OpportunityCard
                                             title={item.title ?? item.place.name}
                                             summary={
@@ -93,7 +99,7 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
                                             onTakeMe={() => takeMe(item)}
                                             onKeep={() => feedback(item.recommendation_id, 'saved')}
                                         />
-                                    </button>
+                                    </div>
                                     <div className="mt-1 flex justify-end">
                                         <QuietAction onClick={() => notForMe(item)}>Not for me</QuietAction>
                                     </div>

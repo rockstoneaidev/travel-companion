@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Feedback\Models\RecommendationFeedback;
 use App\Domain\Places\Models\Place;
 use App\Domain\Profiles\Models\UserTasteProfile;
 use App\Domain\Recommendations\Models\Recommendation;
@@ -94,4 +95,27 @@ it('moves facet weights on feedback and rejects other users', function () {
     $this->actingAs(User::factory()->create())
         ->postJson("/api/v1/recommendations/{$recommendation->id}/feedback", ['event' => 'saved'])
         ->assertForbidden();
+});
+
+it('batches ignored feedback for un-interacted cards on session end', function () {
+    $user = User::factory()->create();
+    $session = startSession($user);
+    $this->actingAs($user)->getJson("/api/v1/explore-sessions/{$session->id}/opportunities")->assertOk();
+
+    $recommendations = Recommendation::query()->where('explore_session_id', $session->id)->orderBy('position')->get();
+    expect($recommendations->count())->toBeGreaterThan(1);
+
+    // Interact with the first; leave the rest untouched.
+    $this->actingAs($user)
+        ->postJson("/api/v1/recommendations/{$recommendations->first()->id}/feedback", ['event' => 'saved'])
+        ->assertStatus(201);
+
+    $this->actingAs($user)->postJson("/api/v1/explore-sessions/{$session->id}/end")->assertOk();
+
+    $events = RecommendationFeedback::query()
+        ->whereIn('recommendation_id', $recommendations->pluck('id'))
+        ->pluck('event', 'recommendation_id');
+
+    expect($events[$recommendations->first()->id]->value)->toBe('saved')          // interacted: never overwritten
+        ->and($events[$recommendations->last()->id]->value)->toBe('ignored');     // untouched: batched on end
 });
