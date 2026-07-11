@@ -125,6 +125,9 @@ Onboarding calibration (PRD §13.2): each pair choice applies `(target 1, η 0.2
 side's separating facets and `(target 0, η 0.10)` to the rejected side's — same representation,
 same update rule, immediately overwritable by behavior.
 
+This table belongs to the *learner*, not the scorer: its constants version under
+`profile_model_version`, not `scoring_model_version` (§9.3).
+
 Per-user thresholds (walking tolerance, price band) are **not** part of `personal_fit`; they are
 inputs to `friction_penalty` (§5.1).
 
@@ -340,14 +343,62 @@ mis-anchored — fix the sub-score, don't bend the weights.
 
 ---
 
-## 9. Versioning & fitting discipline
+## 9. Versioning, configurability & fitting discipline
 
-- **One versioned constants object.** Every number in this document lives in a single config
-  (`config/scoring.php`, shaped per [conventions](conventions/)); `scoring_model_version` derives
-  from it and any constant change bumps it. No constant is ever inlined at a call site.
+### 9.1 Constants are code-versioned; config only selects
+
+Every number in this document lives in an **immutable constant set per version** (a
+`ScoringModelV1` value object, or equivalently a `config/scoring.php` array keyed by version —
+shaped per [conventions](conventions/)). `config('scoring.active_version')` selects which set is
+live; that selection is the *only* thing config decides. Changing any constant means minting a new
+version; old versions are never edited or deleted, because the trip replayer (PRD §15.2) must be
+able to reconstruct exactly what any historical `scoring_model_version` computed.
+
+Consequence, stated as a rule: **individual constants are never env-tunable.** A weight tweaked via
+`.env` on one machine makes `scoring_model_version` a lie and silently invalidates gold traces. No
+constant is ever inlined at a call site either — all access goes through the resolved model (§9.2).
+
+### 9.2 One resolution seam — the plan-ahead for per-user configurability
+
+Scoring functions never read `config()` directly. Each scoring run receives a single resolved
+**`ScoringModel`** built by one resolver, and the recommendation trace records that model's
+identity. Today the resolver is trivial — active version, no overrides — but the seam is where all
+future per-user configurability slots in *additively*:
+
+```text
+EffectiveScoringModel = base constant set (scoring_model_version)
+                      + named user overrides (Phase 2+; empty in Phase 1)
+trace records: base version + override set (verbatim or fingerprint)
+```
+
+Two future override kinds, both **named, bounded, and whitelisted** — never free-form constant
+edits:
+
+- **Preference knobs** (product features: "price doesn't matter", a "surprise me" slider,
+  "prioritise food today"): explicit user intent stored as structured profile settings, each
+  mapping to an enumerated override (e.g. `price_c` coefficient → 0; a capped uniqueness weight
+  boost). Distinct from *learned* taste — the user said it, we didn't infer it.
+- **Fitted per-user/segment weight vectors** (the offline-fitting endgame): stored on the profile
+  with their own fit version, applied as a whole-vector override.
+
+The whitelist rule is what keeps offline fitting honest: if every user can be an arbitrary model,
+acceptance data no longer has a shared denominator to fit against. Replay of any historical score
+is always *base version + recorded overrides*, both from the trace.
+
+### 9.3 Learned state is data, not configuration
+
+Facet weights, tolerances, and novelty counters are per-user *by design* — they are profile **data**
+written by the learner, not configuration. Corollary: the learning-rate table in §4.1 (targets and
+η per signal) belongs to the **learner**, not the scorer, and versions under
+**`profile_model_version`** (PRD §15.1), in its own immutable versioned set per §9.1. The scorer
+reads the weights; the learner writes them; the two evolve — and are refit — independently.
+
+### 9.4 Raw inputs in the trace, and fitting order
+
 - **Raw inputs in the trace, not just sub-scores** (§2.2) — so the replayer can refit constants
   inside sub-scores, not only the six top-level weights. Otherwise "weights can be fit offline
   later" (PRD §11) is only a third true.
 - **Fitting order when real acceptance data arrives:** first the ramp anchors (they set sub-score
   distributions), then the weight vectors, then the learning rates in §4.1 — each step against the
-  gold-trace suite, each producing a new `scoring_model_version`.
+  gold-trace suite; the first two each mint a new `scoring_model_version`, the third a new
+  `profile_model_version`.
