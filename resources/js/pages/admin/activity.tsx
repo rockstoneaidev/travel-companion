@@ -49,7 +49,7 @@ export default function AdminActivity({ activity }: { activity: Paginated<Activi
                                 <span className="text-muted-foreground ml-auto text-xs">{new Date(entry.createdAt).toLocaleString()}</span>
                             </div>
                             {Object.keys(entry.properties).length > 0 && (
-                                <pre className="bg-muted text-muted-foreground overflow-x-auto rounded-md px-3 py-2 text-xs">
+                                <pre className="bg-surface-muted text-muted-foreground overflow-x-auto rounded-md px-3 py-2 text-xs">
                                     {JSON.stringify(entry.properties)}
                                 </pre>
                             )}

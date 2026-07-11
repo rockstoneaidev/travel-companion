@@ -1,70 +1,175 @@
 @import 'tailwindcss';
 
+/*
+  Self-hosted fonts (DESIGN.md §2.3). Newsreader carries the voice (optical sizing,
+  roman + italic); Karla carries the practical. No Google/Bunny CDN — the PWA must
+  work offline, and EU/GDPR forbids leaking visitor IPs to a font host.
+*/
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
+@import '@fontsource-variable/karla/wght.css';
+@import '@fontsource-variable/karla/wght-italic.css';
+
 @plugin 'tailwindcss-animate';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-    --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+/* ---------------------------------------------------------------------------
+   Passo design tokens (DESIGN.md §2). Components reference tokens, never hexes.
+   Every token resolves through a `--p-*` raw variable that is redefined under
+   `.dark`, so *every token name exists in both themes*.
+--------------------------------------------------------------------------- */
+@theme inline {
+    /* Type families (DESIGN §2.3) */
+    --font-sans: 'Karla Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-serif: 'Newsreader Variable', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
 
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    /*
+      Colour. `@theme inline` is load-bearing, not a style choice: without it Tailwind
+      emits `--color-paper: var(--p-paper)` on `:root`, where the var() is substituted
+      once and descendants inherit the *resolved light hex*. A scoped `.dark` subtree
+      would then never darken. Inlining makes `bg-paper` compile to `var(--p-paper)`
+      directly, so the token resolves per element and both themes can coexist on one
+      page (which is exactly what the kit gallery does).
+    */
+    --color-paper: var(--p-paper);
+    --color-card: var(--p-card);
+    --color-ink: var(--p-ink);
+    --color-body: var(--p-body);
+    --color-meta: var(--p-meta);
+    --color-muted: var(--p-muted);
+    --color-border: var(--p-border);
+    --color-border-soft: var(--p-border-soft);
+    --color-border-strong: var(--p-border-strong);
+    --color-terracotta: var(--p-terracotta);
+    --color-on-terracotta: var(--p-on-terracotta);
+    --color-urgent: var(--p-urgent);
+    --color-urgent-deep: var(--p-urgent-deep);
+    --color-urgent-track: var(--p-urgent-track);
+    --color-olive: var(--p-olive);
+    --color-map-bg: var(--p-map-bg);
+    --color-map-road: var(--p-map-road);
+    --color-map-green: var(--p-map-green);
 
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
+    /*
+      Type scale (DESIGN §2.3) — authored in rem so OS text scaling works.
+      Size names deliberately avoid `body`/`meta`: those are colour tokens, and
+      Tailwind's `text-*` namespace serves both size and colour.
+    */
+    --text-wordmark: 1.375rem; /* 22px */
+    --text-wordmark--line-height: 1.2;
+    --text-headline: 1.5rem; /* 24px — screen headline (23–26px band) */
+    --text-headline--line-height: 1.25;
+    --text-title-xl: 1.625rem; /* 26px — detail title */
+    --text-title-xl--line-height: 1.15;
+    --text-title-lg: 1.25rem; /* 20px — hero card title */
+    --text-title-lg--line-height: 1.2;
+    --text-title: 1.125rem; /* 18px — standard card title */
+    --text-title--line-height: 1.2;
+    --text-lede: 0.9375rem; /* 15px — editorial lede */
+    --text-lede--line-height: 1.45;
+    --text-copy-lg: 0.875rem; /* 14px — detail body, WhyYou */
+    --text-copy-lg--line-height: 1.55;
+    --text-copy: 0.8125rem; /* 13px — card summary */
+    --text-copy--line-height: 1.5;
+    --text-note: 0.71875rem; /* 11.5px — ring note */
+    --text-note--line-height: 1.35;
+    --text-micro: 0.6875rem; /* 11px — metadata row */
+    --text-micro--line-height: 1.35;
+    --text-tab: 0.6875rem; /* 11px — tab label */
+    --text-tab--line-height: 1.1;
+    --text-gonow: 0.65625rem; /* 10.5px — GO NOW caps label */
+    --text-gonow--line-height: 1.1;
+    --text-facet: 0.625rem; /* 10px — facet caps */
+    --text-facet--line-height: 1.2;
+    --text-stamp: 0.625rem; /* 10px — context stamp */
+    --text-stamp--line-height: 1.2;
+    --text-btn: 0.8125rem; /* 13px — primary button */
+    --text-btn--line-height: 1.1;
+    --text-btn-sm: 0.75rem; /* 12px — text action */
+    --text-btn-sm--line-height: 1.1;
 
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
+    --tracking-facet: 0.12em;
+    --tracking-gonow: 0.18em;
+    --tracking-stamp: 0.14em;
 
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
+    /* Shape (DESIGN §2.4) */
+    --radius-card: 10px;
+    --radius-block: 12px;
+    --radius-sheet: 14px;
+    --radius-pill: 99px;
+    --radius-lg: 0.5rem;
+    --radius-md: calc(0.5rem - 2px);
+    --radius-sm: calc(0.5rem - 4px);
 
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
+    /* Elevation — theme-swapped */
+    --shadow-card: var(--p-shadow-card);
+    --shadow-urgent: var(--p-shadow-urgent);
+    --shadow-sheet: var(--p-shadow-sheet);
 
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
+    /* Motion (DESIGN §2.5) — calm and short; no bounce, no shimmer */
+    --ease-passo: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --animate-settle-in: settle-in 220ms var(--ease-passo) both;
+    --animate-ring-draw: ring-draw 600ms var(--ease-passo) both;
 
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
+    /*
+      The shadcn primitives keep their semantic names but are repointed straight at the
+      Passo palette (SCREENS S10: the auth/settings screens are a restyle, not a
+      redesign). Mapping them onto `--p-*` rather than a second alias layer means they
+      inherit dark mode for free.
+    */
+    --color-background: var(--p-paper);
+    --color-foreground: var(--p-ink);
+    --color-card-foreground: var(--p-ink);
+    --color-popover: var(--p-card);
+    --color-popover-foreground: var(--p-ink);
+    --color-primary: var(--p-terracotta);
+    --color-primary-foreground: var(--p-on-terracotta);
+    --color-secondary: var(--p-border-soft);
+    --color-secondary-foreground: var(--p-ink);
+    /* `--color-muted` is Passo's decorative *text* colour; shadcn's muted *surface* gets
+       its own name so `bg-muted` can never collide with `text-muted`. */
+    --color-surface-muted: var(--p-border-soft);
+    --color-muted-foreground: var(--p-meta);
+    --color-accent: var(--p-border-soft);
+    --color-accent-foreground: var(--p-ink);
+    --color-destructive: var(--p-destructive);
+    --color-destructive-foreground: var(--p-on-terracotta);
+    --color-input: var(--p-border-strong);
+    --color-ring: var(--p-urgent);
 
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
+    --color-sidebar: var(--p-card);
+    --color-sidebar-foreground: var(--p-body);
+    --color-sidebar-primary: var(--p-ink);
+    --color-sidebar-primary-foreground: var(--p-on-terracotta);
+    --color-sidebar-accent: var(--p-border-soft);
+    --color-sidebar-accent-foreground: var(--p-ink);
+    --color-sidebar-border: var(--p-border);
+    --color-sidebar-ring: var(--p-urgent);
+}
 
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
+@keyframes settle-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
 
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
-
-    --color-sidebar: var(--sidebar-background);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-ring: var(--sidebar-ring);
+@keyframes ring-draw {
+    from {
+        stroke-dashoffset: var(--ring-circumference, 100);
+    }
 }
 
 /*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  Tailwind v4 defaults the border colour to `currentColor`; pin it back to the
+  warm hairline token so an un-suffixed `border` is always the Passo hairline.
 */
 @layer base {
     *,
@@ -72,87 +177,147 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--p-border, currentColor);
     }
 }
 
+/* ------------------------- LIGHT — "paper" (DESIGN §2.1) ----------------- */
 :root {
-    --background: hsl(0, 0%, 100%);
-    --foreground: hsl(0, 0%, 3.9%);
-    --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 3.9%);
-    --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 3.9%);
-    --primary: hsl(0, 0%, 9%);
-    --primary-foreground: hsl(0, 0%, 98%);
-    --secondary: hsl(0, 0%, 96.1%);
-    --secondary-foreground: hsl(0, 0%, 9%);
-    --muted: hsl(0, 0%, 96.1%);
-    --muted-foreground: hsl(0, 0%, 45.1%);
-    --accent: hsl(0, 0%, 96.1%);
-    --accent-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84.2%, 60.2%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 92.8%);
-    --input: hsl(0, 0%, 89.8%);
-    --ring: hsl(0, 0%, 3.9%);
-    --chart-1: hsl(12, 76%, 61%);
-    --chart-2: hsl(173, 58%, 39%);
-    --chart-3: hsl(197, 37%, 24%);
-    --chart-4: hsl(43, 74%, 66%);
-    --chart-5: hsl(27, 87%, 67%);
+    --p-paper: #f6f0e4;
+    --p-card: #fcf8ee;
+    --p-ink: #3b2f24;
+    --p-body: #5c5142;
+    --p-meta: #6e6149;
+    --p-muted: #8a7a5f;
+    --p-border: #e4d9c2;
+    --p-border-soft: #efe4cc;
+    --p-border-strong: #cbbb9c;
+    --p-terracotta: #c0603a;
+    --p-on-terracotta: #fcf8ee;
+    --p-urgent: #c9963f;
+    --p-urgent-deep: #a0741f;
+    --p-urgent-track: #efe0c2;
+    --p-olive: #7a7a52;
+    --p-map-bg: #efe8d8;
+    --p-map-road: #e4dac4;
+    --p-map-green: #dce3d6;
+    --p-destructive: hsl(0, 62%, 42%);
+
+    --p-shadow-card: 0 1px 2px rgba(59, 47, 36, 0.06);
+    --p-shadow-urgent: 0 4px 16px rgba(160, 110, 40, 0.14);
+    --p-shadow-sheet: 0 8px 24px rgba(59, 47, 36, 0.18);
+
+    /* Diagonal paper stripe — the designed placeholder (DESIGN §2.4) */
+    --p-stripe-a: #efe7d4;
+    --p-stripe-b: #f6f0e4;
+
+    /* Consumed by shadcn primitives that read the raw var (e.g. Select's popper sizing). */
     --radius: 0.5rem;
-    --sidebar-background: hsl(0, 0%, 98%);
-    --sidebar-foreground: hsl(240, 5.3%, 30%);
-    --sidebar-primary: hsl(0, 0%, 10%);
-    --sidebar-primary-foreground: hsl(0, 0%, 98%);
-    --sidebar-accent: hsl(0, 0%, 94%);
-    --sidebar-accent-foreground: hsl(0, 0%, 30%);
-    --sidebar-border: hsl(0, 0%, 91%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
 }
 
+/* ---------------------- DARK — "night paper" (DESIGN §2.2) --------------- */
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(0, 0%, 98%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
-    --destructive: hsl(0, 84%, 60%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    --p-paper: #221b13;
+    --p-card: #2c241a;
+    --p-ink: #efe6d6;
+    --p-body: #c4b69e;
+    --p-meta: #a08f6f;
+    --p-muted: #a08f6f;
+    --p-border: #3e3323;
+    --p-border-soft: #3e3323;
+    /* DESIGN §2.2 omits dark values for border-strong and the map-* trio; these are
+       derived to hold the same contrast role against `card` as their light twins. */
+    --p-border-strong: #574733;
+    --p-terracotta: #d97d55;
+    --p-on-terracotta: #221b13;
+    --p-urgent: #d9ac5c;
+    --p-urgent-deep: #d9ac5c;
+    --p-urgent-track: #453824;
+    --p-olive: #8f8f68;
+    --p-map-bg: #1e1811;
+    --p-map-road: #2f2618;
+    --p-map-green: #263021;
+    --p-destructive: hsl(0, 60%, 55%);
+
+    --p-shadow-card: 0 6px 22px rgba(0, 0, 0, 0.4);
+    --p-shadow-urgent: 0 6px 22px rgba(0, 0, 0, 0.45);
+    --p-shadow-sheet: 0 10px 28px rgba(0, 0, 0, 0.55);
+
+    --p-stripe-a: #2f2719;
+    --p-stripe-b: #221b13;
 }
 
 @layer base {
-    * {
-        @apply border-border;
+    html {
+        /* Honour the OS text-size setting; the scale is authored in rem. */
+        -webkit-text-size-adjust: 100%;
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-paper text-ink font-sans antialiased;
     }
+
+    .font-serif {
+        font-optical-sizing: auto;
+    }
+
+    /*
+      Focus is always visible (DESIGN §5): 2px urgent outline, offset 2px.
+      On :focus-visible so pointer users never see it.
+    */
+    :focus-visible {
+        outline: 2px solid var(--p-urgent);
+        outline-offset: 2px;
+    }
+}
+
+/*
+  Unlayered on purpose — unlayered rules beat `@layer utilities`, so no stray
+  `text-sm` can drop a form control under 16px. iOS Safari auto-zooms on focus of
+  anything smaller and wrecks the layout every time (DESIGN §2.3).
+*/
+input:not([type='checkbox']):not([type='radio']):not([type='range']),
+select,
+textarea {
+    font-size: 1rem;
+}
+
+/*
+  prefers-reduced-motion (DESIGN §5): kill the card stagger and the ring entry
+  draw. Unlayered so it wins over any animation utility.
+*/
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+@utility paper-stripe {
+    /* The designed placeholder (DESIGN §2.4) — never a shimmer skeleton. */
+    background-image: repeating-linear-gradient(-45deg, var(--p-stripe-a) 0 6px, var(--p-stripe-b) 6px 12px);
+}
+
+@utility photo-warm {
+    /* "Sun-faded 35mm" — a CSS filter is enough for v1 (DESIGN §2.4). */
+    filter: sepia(0.18) saturate(0.92) contrast(1.04) brightness(1.02);
+}
+
+@utility stamp-rotate {
+    /* Never more than one rotated element per screen (DESIGN §2.4). */
+    rotate: -1.5deg;
+}
+
+@utility tap-target {
+    /* Touch targets ≥ 44px despite the small type (DESIGN §4). */
+    min-height: 44px;
+    min-width: 44px;
+}
+
+@utility safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
