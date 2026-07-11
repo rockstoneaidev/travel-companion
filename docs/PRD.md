@@ -275,7 +275,7 @@ surfaces ambition (SCORING.md §7) — but menu size stays 3–5 regardless (sca
 - Embedding-based taste model (category weights first — §13.3; pgvector installed but the taste-embedding pipeline deferred).
 - Voice, chat interface, multi-agent orchestration, bookings.
 
-**Exit criteria:** in the launch region, ≥25% acceptance rate on surfaced opportunities; ≥1 confirmed "would have missed this" per active trip-day across a 20+ user pilot; blind preference test vs. Google Maps "explore" won ≥60/40.
+**Exit criteria:** in the launch region, ≥25% acceptance rate on surfaced opportunities; ≥1 confirmed "would have missed this" per active trip-day across a 20+ user pilot (where "confirmed" is the explicit/self-reported visit signal of §7.1, not passive detection); blind preference test vs. Google Maps "explore" won ≥60/40.
 
 ### 8.2 Phase 2 — Proactive companion ("Trip Mode")
 
@@ -404,7 +404,7 @@ The same place appears in Google (place_id), OSM (node/way), Wikipedia (article)
 - Eager canonicalization per tile: fuzzy name matching + distance + category signals.
 - Persistent **cross-source ID mapping** per canonical place.
 - Conflicts (diverging opening hours, coordinates) resolved by source-credibility ranking; disagreement lowers the place's confidence score.
-- `places` (stable, canonical, deduped, long-TTL) is strictly separated from `opportunities` (ephemeral, context-bound, TTL'd, cheap to discard and regenerate). The opportunities table must never become a junk drawer.
+- `places` (stable, canonical, deduped, long-TTL) is strictly separated from `opportunities` (short-lived, context-bound, TTL'd, cheap to discard and regenerate). The opportunities table must never become a junk drawer. ("Short-lived" is the generic property of the table; do not confuse it with the `ephemeral` value of `OpportunityKind` — §14.2.)
 - **Licensing consequence (see [ODBL-REVIEW.md](ODBL-REVIEW.md)):** because conflation includes OSM data, the conflated geo-core (`places_core`: names, geometry, categories) is an ODbL Derivative Database — it is designed as a publishable open layer from day one, with all proprietary value (curated content, packs, scores, user signals) in separate independent tables keyed by `place_id`. A public dump job and in-app attribution screen are Phase 1 requirements.
 
 ---
@@ -594,6 +594,7 @@ A ~60-second calibration at first launch: the user picks between pairs/sets of c
 - **Ignores are ambiguous** — didn't see vs. saw-and-rejected vs. interested-but-busy. Weight accordingly; provide a one-tap "not my thing" affordance to convert ambiguity into signal.
 - **Phase 1 learner:** **facet-level** preference weights (§6.5, [TAXONOMY.md](TAXONOMY.md)) — the primary taste signal — plus **type/domain-level** habituation for `novelty`/`repetition_penalty`, and simple per-user thresholds (walking tolerance, price band). The concrete update rule and per-signal learning rates are [SCORING.md](SCORING.md) §4.1. No embedding-based taste model until facet weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
 - Delayed reward matters: saves, photos at the location (if permitted), and revisit intent are memorability signals; log them even before they feed the model.
+- **Judgment call — Phase 1 taste learning runs mostly on *weak* signals.** Because the golden visit label is sparse in a foreground-only pilot (§7.1), most facet-weight movement in Phase 1 comes from onboarding priors plus the weak accept/save signals (η 0.08 / 0.15, SCORING.md §4.1), not the golden visit (η 0.30). We accept this deliberately: it means MVP validation Q2 ("can we learn taste from behavior?") is answered on weak-but-abundant signal until Phase 2's passive visit detection makes the golden label dense. Consequence for the pilot: if taste weights aren't moving, the lever is **more explicit affordances** (surface the "not my thing" / save prompts more), not a longer onboarding — onboarding seeds priors, behaviour must still do the refining.
 
 ### 13.4 Phase 2 mobile modules
 
@@ -684,7 +685,7 @@ source_items                  (raw normalized candidates, per source)
 places                        (canonical, deduped — §9.6; carries type + type_domain +
                                facets[] + raw source_tags + taxonomy_version — §6.5, TAXONOMY.md)
 place_source_ids              (cross-source ID mapping)
-opportunities                 (ephemeral, context-bound, TTL'd)
+opportunities                 (short-lived, context-bound, TTL'd; carries a `kind` — §14.2)
 opportunity_evidence
 recommendations               (what was actually served, with full trace;
                                carries explore_session_id + denormalized trip_id — §6.6)
@@ -930,7 +931,7 @@ It is:
 Location/context event
    -> bounded scouting (cached per shared geo-tile)
    -> evidence collection
-   -> canonical places + ephemeral opportunities
+   -> canonical places + short-lived opportunities
    -> personalization
    -> interruption policy (deterministic)
    -> recommendation (evidence-grounded, explained)

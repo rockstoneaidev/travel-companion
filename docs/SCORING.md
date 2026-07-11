@@ -169,7 +169,11 @@ For u1, *measured-low* (tile has review coverage, this place has few) scores hig
 ### 4.3 `temporal_urgency` — one variable does all the work
 
 The driving quantity is **slack until the last feasible start** for this opportunity, given the
-user's remaining time horizon.
+user's remaining time horizon. `last_feasible_start` is read from the opportunity's `time_window`,
+whose shape is set by its `OpportunityKind` (PRD §14.2): `event` → the scheduled `ends_at`;
+`ephemeral` → a short near-term window (closing soon, light/weather now); `seasonal` → the season's
+end; `evergreen` → no inherent window, so slack is bounded only by the horizon below and urgency
+stays low by construction. This is the concrete wiring of "kinds drive scoring."
 
 ```text
 slack            = last_feasible_start − now − travel_time
