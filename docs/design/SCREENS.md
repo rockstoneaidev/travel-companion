@@ -24,6 +24,11 @@ learning (SCORING §4.1):
 | "I was here" confirmation | `visited` | golden label (η .30) |
 | card served, no interaction | `ignored` (batched on session end) | near-zero (η .02) |
 
+**Undo rule:** *Not for me* shows a **~5-second undo snackbar, and the `dismissed` POST is deferred
+until it expires**. At η .25 this is the strongest single signal the Phase 1 learner gets (PRD
+§13.3's weak-signal judgment call), and it's reachable by swipe — one mis-tap must not pollute a
+taste profile learned from sparse data. No undo needed for *Keep* (reversible in KEPT) or *Take me*.
+
 ---
 
 ## S1 · NOW — the feed (home)
@@ -43,7 +48,10 @@ tab bar.
 - End note, italic serif, centered: "That's all for now." — scarcity is the product (PRD §12.1).
 - **No session yet** → S2 as inline start state. **Feed still computing** → serve cached results
   instantly + paper-stripe placeholder card + quiet "still looking" line (PRD §10 latency budget);
-  new cards append below, no reshuffle.
+  new cards append below, no reshuffle. **One exception:** an arriving **urgent** item is the only
+  card permitted to insert at the top (the GO NOW slot) mid-session — with scroll-position anchoring
+  so nothing moves under the reader's thumb. The server guarantees at most one urgent item per feed;
+  if a new one supersedes it, the old card demotes to standard styling in place.
 - Swipe/long-press affordance on cards may expose *Not for me* (also on detail); don't bury it.
 
 ## S2 · Session start — "I'm exploring"
@@ -57,11 +65,19 @@ somewhere?" collapsed row (destination search → `destination_point`), primary 
 exploring**. Geolocation permission is requested *here*, in context — not on app open. Ends with the
 silence promise, italic: "I'll be quiet until something is worth it."
 
+**Permission denied / unavailable (designed state, not an error):** without an origin the product
+is dead, so "no" gets a real fallback — a **manual start point** (place search or map pin-drop →
+`origin`), brand-voice copy ("Tell me where you're starting from and I'll take it from there."),
+and **no permission nagging** (one quiet "use my location" affordance remains on S2 for later).
+The same manual-origin path serves desktop use, where precise geolocation is often absent anyway.
+
 ## S3 · MAP
 
 **Route** `/map` · **Data** session opportunities + `origin`.
 
-Warm paper map style (tokens §2.1; custom-styled tiles to match — never default OSM/Google colors).
+Warm paper map style via **MapLibre GL + vector tiles with a custom Passo style** (stack decision in
+DESIGN.md §3 — raster tiles can't be restyled; bundle lazy-loads on first MAP open). Never default
+OSM/Google colors.
 Pins per `<MapPin>` spec: one ochre GO NOW pin (with caps label chip), ink dots for the rest
 (lowercase chip), olive-ringed "you". Tapping a pin raises the **floating peek sheet** (14px radius,
 GO NOW border when urgent): caps label + walk time, title, one-line practical note, *Take me* pill.
@@ -80,8 +96,11 @@ time — source transparency, PRD §16) → sticky action row: *Take me there* (
 
 "Take me there" opens the platform maps app (`geo:`/Apple Maps/Google Maps URL) with the
 destination, and posts `accepted` with `started_navigation: true`. After a *Take me*, when the app
-regains focus ≥20 min later within ~150 m of the place, show a one-tap "Were you there?" →
-`visited` (the golden label; thresholds are the §18.5 tunables).
+regains focus ≥20 min later within ~150 m of the place, ask **"Were you there?"** → `visited` (the
+golden label; thresholds are the §18.5 tunables). **Its surface:** a quiet card at the **top of
+NOW** on next open — serif italic question ("Did you make it to São Roque?"), two text actions
+(*I was there* / *Didn't go*), dismissible, never a modal. It's the single most valuable tap in the
+learning loop; it must feel like a friend asking, not a survey.
 
 ## S5 · Empty feed — silence
 
@@ -137,6 +156,25 @@ buttons, Karla forms). Settings additions (Phase 1): theme (auto/light/dark) · 
 sensitive zone, PRD §16) · research-consent toggle (full-precision traces — pilot users) · "reset my
 taste profile" · account deletion & data export links. Keep shadcn primitives underneath.
 
+## S11 · Offline & degraded network (designed states — dead zones are the normal condition)
+
+France-corridor dead zones and roaming data are expected, not exceptional (PRD risk #10). Phase 1
+decisions:
+
+- **NOW offline:** show the **last feed from cache** with an honest staleness line in brand voice —
+  "As of 20 minutes ago — I can't check right now." Time-window chips render but urgency never
+  *escalates* offline (a stale GO NOW must not shout). No spinners; the paper-stripe placeholder +
+  the staleness line are the state.
+- **KEPT and JOURNAL are always available offline** (service-worker cached with their data). KEPT
+  is the thing you actually need in a dead zone — it's your list.
+- **Feedback queues offline:** *Take me / Keep / Not for me / Were you there* actions are stored
+  locally and flushed on reconnect (the undo timer runs locally as normal). Losing a golden-label
+  tap to a dead zone is not acceptable.
+- **"Take me there" still works** — it hands off to the platform maps app, which has its own
+  offline story.
+- **Session start offline:** S2 explains plainly ("I need a connection to look around — KEPT still
+  works.") — no retry-hammering.
+
 ---
 
 ## Build notes for the implementing LLM
@@ -150,6 +188,7 @@ taste profile" · account deletion & data export links. Keep shadcn primitives u
 4. Mirror enums crossing the wire (`AppealFacet`, `TravelMode`, feedback event) per conventions/02
    frontend-parity rules.
 5. Every screen must render sensibly with: zero items, one urgent item, slow network (stripe
-   placeholder), and dark mode. These four states are part of "done" for each screen.
+   placeholder), **offline (S11)**, **location permission denied (S2)**, and dark mode. These six
+   states are part of "done" for each screen.
 6. Photo pipeline (real images) is thin in Phase 1: curated/Commons images with per-image
    attribution; the paper-stripe placeholder is the designed fallback, not an error state.

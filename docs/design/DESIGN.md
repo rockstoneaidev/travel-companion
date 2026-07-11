@@ -10,9 +10,11 @@
 
 ## 1. The direction, in one paragraph
 
-**Passo** (Italian: "pace" · working wordmark — the product name may change, so the wordmark must
-stay a single swappable token). The feel is **a warm, analog travel journal**: paper, ink, one
-accent. It is quiet, editorial, and personal — the opposite of a booking app. The companion speaks
+**Passo** (Italian: "pace") is the **permanent internal codename** of this design system — code
+namespaces (`components/passo/`), doc titles, and token prefixes keep it regardless of what the
+product is eventually called. The *market-facing name* is a separate, undecided thing: the wordmark
+string is a single swappable token (shared prop from `APP_NAME`), never hard-coded in a component.
+The feel is **a warm, analog travel journal**: paper, ink, one accent. It is quiet, editorial, and personal — the opposite of a booking app. The companion speaks
 in the first person, in short serif sentences, and promises silence: *"The light in São Roque is
 worth six minutes of your evening. I'll be quiet after this."* The UI's job is to make 3–5 cards
 feel like a considered note from a friend, not a results list.
@@ -46,8 +48,8 @@ token names; components reference tokens, never raw hexes.
 | `--color-card` | `#FCF8EE` | cards, tab bar, sheets |
 | `--color-ink` | `#3B2F24` | headings, primary text, selected states |
 | `--color-body` | `#5C5142` | body text, editorial ledes |
-| `--color-meta` | `#6E6149` | practical metadata (walk · price) |
-| `--color-muted` | `#8A7A5F` | facet labels, inactive tabs, timestamps, tertiary |
+| `--color-meta` | `#6E6149` | **all readable small text**: practical metadata (walk · price), facet labels, inactive tabs, context stamps (5.35:1 — passes AA) |
+| `--color-muted` | `#8A7A5F` | **decorative/redundant text only**: end notes, dashed accents, annotation flourishes (3.7:1 — fails AA at small sizes, §5) |
 | `--color-border` | `#E4D9C2` | card borders (1px) |
 | `--color-border-soft` | `#EFE4CC` | inner hairlines/dividers |
 | `--color-border-strong` | `#CBBB9C` | secondary-button borders, dashed accents |
@@ -74,8 +76,10 @@ Dark is a *warm* night, not gray. Same token names, dark values:
 | `--color-card` | `#2C241A` |
 | `--color-ink` | `#EFE6D6` |
 | `--color-body` | `#C4B69E` |
-| `--color-meta` / `--color-muted` | `#A08F6F` |
-| `--color-border` / `--color-border-soft` | `#3E3323` |
+| `--color-meta` | `#A08F6F` |
+| `--color-muted` | `#A08F6F` (same value — the name still exists) |
+| `--color-border` | `#3E3323` |
+| `--color-border-soft` | `#3E3323` (same value — the name still exists) |
 | `--color-terracotta` | `#D97D55` (text on it: `#221B13`) |
 | `--color-urgent` | `#D9AC5C` |
 | `--color-urgent-deep` | `#D9AC5C` (same in dark) |
@@ -117,6 +121,13 @@ Type scale (mobile base; from the mockups):
 | Button (text) | Karla 600, 12px, underline with `text-underline-offset: 3px` |
 | Tabs | Karla 600 (active) / 500 (inactive), 11px, tracking `.12em`, uppercase |
 
+Two implementation rules on the scale:
+
+- **Author every size in `rem`** (the px values above ÷ 16) so system-level font scaling works —
+  a PWA that ignores the user's text-size setting fails the people most likely to need it.
+- **Form inputs are never under 16px (1rem)** — iOS Safari auto-zooms on focus of any smaller
+  input, which wrecks the layout every time someone taps the destination search or a login field.
+
 ### 2.4 Shape, spacing, texture
 
 - Radii: cards 10px · detail/photo blocks 12px · floating map sheet 14px · **all pills/buttons/tab
@@ -149,7 +160,7 @@ useful). Names below are the component names to use.
 
 ```
 ┌──────────────────────────────────────────┐  bg card · border 1px border · r10
-│ FACET · FACET                    (caps)  │  ← muted caps 10px (max 2 facets)
+│ FACET · FACET                    (caps)  │  ← meta caps 10px (max 2 facets)
 │ Title of the opportunity                 │  ← Newsreader 500 18px ink
 │ One- or two-sentence "why now" summary.  │  ← Karla 13px body
 │ ───────────────────────────────────────  │  ← hairline border-soft
@@ -184,7 +195,7 @@ Ring: 38px, stroke 3, `stroke-linecap="round"`, arc fraction = time remaining / 
 ### `<TabBar>` — floating pill
 
 Fixed bottom (24px inset), `card` bg, 1px border, 99px radius, four tabs: **NOW · MAP · KEPT ·
-JOURNAL**. Active = ink 600; inactive = muted 500. On desktop (§4) it becomes a left rail.
+JOURNAL**. Active = ink 600; inactive = meta 500. On desktop (§4) it becomes a left rail.
 
 ### Other canonical parts
 
@@ -198,8 +209,11 @@ JOURNAL**. Active = ink 600; inactive = muted 500. On desktop (§4) it becomes a
   explanation.
 - **`<MapPin>` set**: GO NOW pin 34px ochre disc + 3px card ring + shadow + caps label chip; standard
   pin 18px ink disc + 2.5px card ring + lowercase label chip; "you" 13px card disc + 3px olive ring.
-  Map canvas uses the paper map tokens (§2.1) — style the tile layer to match (muted warm style),
-  or custom-style OSM tiles.
+  **Map stack (decided):** the paper map look requires **vector tiles + MapLibre GL JS with a custom
+  Passo style** — raster OSM tiles cannot be restyled beyond crude CSS filters. Tile source:
+  OpenFreeMap (free, no key) or self-hosted Protomaps/PMTiles as the fallback/cost lever; both are
+  the cleanest ODbL-attribution path. MapLibre is ~200KB gzipped — **lazy-load the map bundle on
+  first MAP-tab open**, never in the feed's critical path.
 - **`<ProgressSegments>`** (calibration): equal flex segments, 3px tall, r2; done/current =
   terracotta, rest = border.
 - **`<EmptyFeed>`**: 56px dashed circle (`border-strong`) with an 8px `urgent` dot, italic
@@ -218,14 +232,23 @@ JOURNAL**. Active = ink 600; inactive = muted 500. On desktop (§4) it becomes a
   rail (wordmark + NOW/MAP/KEPT/JOURNAL + context stamp) replaces the bottom tab bar, content
   column max-width ~28rem, and the MAP pane persistent to the right of the feed where it adds
   value. Never stretch cards full-width; the column *is* the design.
-- **PWA:** manifest (name = wordmark token, `background_color` paper, `theme_color` paper per
-  scheme), installable, service worker for shell caching. Foreground-only geolocation (PRD §8.1).
+- **PWA:** manifest (name = wordmark token, `background_color` + `theme_color` = light paper —
+  the manifest supports only one; per-scheme theming uses paired
+  `<meta name="theme-color" media="(prefers-color-scheme: …)">` tags), installable, service worker
+  caching the app shell **and the offline data set** (SCREENS.md S11: last feed, KEPT, journal).
+  Foreground-only geolocation (PRD §8.1).
 - Touch targets ≥ 44px despite the small type. Respect safe-area insets (tab bar sits above them).
 
 ## 5. Accessibility notes
 
-- The muted-on-paper combinations (`#8A7A5F` on `#F6F0E4`) pass AA only at large/caps sizes — keep
-  muted for labels ≥ 10px caps or decorative text; body text uses `body`/`ink`.
+- **Measured contrast (light theme):** `meta #6E6149` on paper = 5.35:1 (passes AA at any size);
+  `muted #8A7A5F` on paper = 3.7:1 (**fails AA at small sizes** — WCAG's 3:1 relaxation applies
+  only ≥24px or ≥18.7px bold; there is no "caps" exemption). Rule: anything a user must *read*
+  (facet labels, tabs, timestamps, metadata) uses `meta` or darker; `muted` is reserved for
+  decorative/redundant text whose loss costs nothing.
+- **GO NOW label (`#A0741F` on card ≈ 4:1) is a deliberate exception**, not a claimed pass: the
+  urgent state is triple-encoded (label + ring + 1.5px border + shadow), so the label is never the
+  sole carrier of the information.
 - Urgency is never color-only: the GO NOW label text + ring + border all co-occur.
 - `prefers-reduced-motion`: disable stagger and ring entry animation.
 - All tap-targets have visible focus states (2px `urgent` outline offset 2px) for keyboard/desktop.
@@ -240,3 +263,7 @@ JOURNAL**. Active = ink 600; inactive = muted 500. On desktop (§4) it becomes a
 - Empty states are confident, not apologetic: "Nothing worth interrupting you for."
 - Every proactive-feeling sentence reinforces the silence contract ("Quiet until morning, unless
   something can't wait.").
+- **Language (decided): the pilot is English-only** — UI chrome and the companion voice — even
+  though the pilot regions are Sweden and France. Localization later is a **per-language voice
+  re-derivation, not translation**: a first-person italic-serif voice does not survive machine
+  translation. Do not bolt on i18n scaffolding in Phase 1.
