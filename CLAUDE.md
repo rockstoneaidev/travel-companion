@@ -11,6 +11,7 @@ Read before designing or implementing anything:
 - `docs/ODBL-REVIEW.md` — ODbL analysis; defines the `places_core` database boundary.
 - `docs/TAXONOMY.md` — the categorisation taxonomy (Type axis + appeal facets); load-bearing for onboarding, scoring, and learning. Implemented as enums per `conventions/02`.
 - `docs/SCORING.md` — the scoring model: every PRD §11 sub-score's v1 formula, constants, penalties, cold-start weight interpolation, and feed selection. Authoritative for implementing ranking.
+- `docs/ADMIN.md` — the admin & operations console: roles/permissions model, the `app/Admin/` platform namespace, section map, position-emulation design. Authoritative for anything under `/admin`.
 - `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
 - `docs/conventions/` — **how the code is shaped.** Read `docs/conventions/01-domain-modules.md` before writing any code, then the document matching what you're touching (enums, migrations, controllers, jobs, source adapters, LLM calls, testing, caching). These are binding; flag conflicts rather than deviating.
 

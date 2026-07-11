@@ -154,6 +154,63 @@ arch('domain classes declare strict types')
 
 /*
 |--------------------------------------------------------------------------
+| docs/ADMIN.md §4 — the App\Admin platform namespace
+|--------------------------------------------------------------------------
+|
+| Admin platform code (user/role management, audit reading, dashboard
+| composition) follows the same layering discipline as a domain module: it is
+| transport-agnostic, and the dependency on the domain is one-way — App\Admin
+| may consume domain contracts, App\Domain never references App\Admin.
+|
+*/
+
+arch('admin platform code is transport-agnostic')
+    ->expect('App\Admin')
+    ->not->toUse([
+        'Illuminate\Http\Request',
+        'Illuminate\Http\Response',
+        'Illuminate\Http\JsonResponse',
+        'Illuminate\Http\RedirectResponse',
+        'Inertia\Inertia',
+        'Illuminate\Support\Facades\Route',
+        'App\Http\Resources',
+        'App\Http\Requests',
+        'App\Http\Controllers',
+    ]);
+
+arch('admin platform code does not abort or build responses')
+    ->expect('App\Admin')
+    ->not->toUse(['abort', 'abort_if', 'abort_unless', 'response', 'request', 'redirect', 'to_route']);
+
+arch('the domain never depends on the admin platform')
+    ->expect('App\Domain')
+    ->not->toUse('App\Admin');
+
+arch('the admin platform does not reach into module internals')
+    ->expect('App\Admin')
+    ->not->toUse(array_merge(...array_map(
+        fn (string $module): array => [
+            "App\\Domain\\{$module}\\Models",
+            "App\\Domain\\{$module}\\Actions",
+            "App\\Domain\\{$module}\\Queries",
+        ],
+        MODULES,
+    )));
+
+arch('admin DTOs are readonly')
+    ->expect('App\Admin\Data')
+    ->toBeReadonly();
+
+arch('admin contracts are interfaces')
+    ->expect('App\Admin\Contracts')
+    ->toBeInterfaces();
+
+arch('admin platform code declares strict types')
+    ->expect('App\Admin')
+    ->toUseStrictTypes();
+
+/*
+|--------------------------------------------------------------------------
 | Hygiene
 |--------------------------------------------------------------------------
 */

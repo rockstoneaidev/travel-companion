@@ -1,5 +1,6 @@
 <?php
 
+use App\Admin\Exceptions\OperatorCannotModifyOwnRoles;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,5 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Domain/platform exceptions map to HTTP once, here (conventions/01).
+        $exceptions->render(function (OperatorCannotModifyOwnRoles $e) {
+            return back()->withErrors(['roles' => $e->getMessage()]);
+        });
     })->create();

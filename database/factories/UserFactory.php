@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -41,5 +42,21 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Grant the admin role. Requires RolesAndPermissionsSeeder to have run.
+     */
+    public function admin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole(Role::Admin->value));
+    }
+
+    /**
+     * Grant the superadmin role. Requires RolesAndPermissionsSeeder to have run.
+     */
+    public function superadmin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole(Role::Superadmin->value));
     }
 }

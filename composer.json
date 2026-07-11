@@ -16,9 +16,12 @@
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^13.8",
         "laravel/horizon": "^5.47",
+        "laravel/pulse": "^1.7",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "predis/predis": "^3.4",
+        "spatie/laravel-activitylog": "^5.0",
+        "spatie/laravel-permission": "^8.3",
         "tightenco/ziggy": "^2.4"
     },
     "require-dev": {
