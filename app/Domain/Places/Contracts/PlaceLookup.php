@@ -27,4 +27,10 @@ interface PlaceLookup
      * @return array<string, PlaceData> keyed by place id
      */
     public function findMany(array $ids): array;
+
+    /**
+     * Best canonical match for a name (trigram similarity ≥ 0.4), optionally
+     * biased to a region's cells — the grounding step's search (CURATION §3).
+     */
+    public function searchByName(string $name, ?string $regionSlug = null): ?PlaceData;
 }

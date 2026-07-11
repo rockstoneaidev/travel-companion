@@ -71,6 +71,17 @@ final class LookupPlaces implements PlaceLookup
         return $out;
     }
 
+    public function searchByName(string $name, ?string $regionSlug = null): ?PlaceData
+    {
+        $place = Place::query()
+            ->whereRaw('similarity(name, ?) >= 0.4', [$name])
+            ->orderByRaw('similarity(name, ?) DESC', [$name])
+            ->orderBy('id')
+            ->first();
+
+        return $place === null ? null : self::toData($place);
+    }
+
     private static function toData(Place $place, ?int $distanceMeters = null): PlaceData
     {
         /** @var list<AppealFacet> $facets */

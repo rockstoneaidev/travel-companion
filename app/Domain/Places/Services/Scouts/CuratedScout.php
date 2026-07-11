@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Domain\Places\Services\Scouts;
 
+use App\Domain\Curation\Services\ApprovedCuratedItems;
 use App\Domain\Sources\Enums\ScoutRange;
 
 /**
- * The curated layer — the actual moat (PRD §9.4). Registered from day one so
- * the runner, cache keys, and hit-rate metrics are already wired when E11
- * lands the curated tables; until then every tile is honestly empty.
+ * The curated layer — the actual moat (PRD §9.4). Serves ONLY approved items
+ * through Curation's public read API; the review gate lives there, so an
+ * unreviewed draft cannot reach a feed through any path.
  */
 final class CuratedScout extends DbScout
 {
+    public function __construct(
+        private readonly ApprovedCuratedItems $items,
+    ) {}
+
     public function key(): string
     {
         return 'curated';
@@ -20,7 +25,7 @@ final class CuratedScout extends DbScout
 
     public function version(): string
     {
-        return 'v0'; // bumps to v1 when E11's curated tables land
+        return 'v1'; // E11: the curated tables are live
     }
 
     public function range(): ScoutRange
@@ -30,6 +35,6 @@ final class CuratedScout extends DbScout
 
     public function candidatesForTile(string $h3Index): array
     {
-        return [];
+        return $this->items->forTile($h3Index);
     }
 }

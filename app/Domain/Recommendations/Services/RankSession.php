@@ -128,6 +128,7 @@ final class RankSession
         $opportunities = ($this->materialize)(array_map(static fn (array $c): array => [
             'place_id' => $c['place_id'], 'name' => $c['name'], 'h3_index' => $c['h3_index'],
             'walk_minutes' => $c['reachability']['travel_min'],
+            'summary' => $c['curated_claim'] ?? null,   // a reviewed human/curated claim may speak (conventions/10)
         ], $picked));
 
         $recommendations = [];

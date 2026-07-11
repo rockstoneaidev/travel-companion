@@ -41,6 +41,7 @@ final class MaterializeEvergreenOpportunities
                     'kind' => OpportunityKind::Evergreen,
                     'status' => OpportunityStatus::Scored,
                     'title' => $candidate['name'],       // LLM/template title arrives with E12
+                    'summary' => $candidate['summary'] ?? null,   // reviewed curated claim, when one exists
                     'friction' => ['walk_minutes' => $candidate['walk_minutes'] ?? null],
                     'h3_index' => $candidate['h3_index'],
                     'expires_at' => now()->addDay(),
