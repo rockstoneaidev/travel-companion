@@ -21,9 +21,16 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
     progress: {
-        color: '#4B5563',
+        color: '#C0603A',
     },
 });
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// PWA shell worker — production only, so it never interferes with Vite HMR.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        void navigator.serviceWorker.register('/sw.js');
+    });
+}

@@ -6,8 +6,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+        {{-- Fonts are self-hosted via Fontsource (GDPR — no font CDN); loaded through app.css --}}
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F0E4">
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#221B13">
+        <link rel="manifest" href="/manifest.webmanifest">
 
         @routes
         @viteReactRefresh

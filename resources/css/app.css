@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+@import '@fontsource-variable/karla';
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/newsreader/opsz-italic.css';
+
 @plugin 'tailwindcss-animate';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -7,13 +11,61 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Passo type pairing (DESIGN.md §2.3). Self-hosted via Fontsource — no font CDN (GDPR). */
+    --font-sans: 'Karla Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+    /* Passo shape scale (DESIGN.md §2.4): cards 10px, photo/detail 12px, map sheet 14px, pills full. */
+    --radius-card: 0.625rem;
+    --radius-photo: 0.75rem;
+    --radius-sheet: 0.875rem;
 
+    /* Passo type scale (DESIGN.md §2.3), rem-based so system font scaling works. */
+    --text-wordmark: 1.375rem;
+    --text-wordmark--line-height: 1;
+    --text-headline: 1.5rem;
+    --text-headline--line-height: 1.25;
+    --text-title-hero: 1.25rem;
+    --text-title-hero--line-height: 1.2;
+    --text-title: 1.125rem;
+    --text-title--line-height: 1.2;
+    --text-title-detail: 1.625rem;
+    --text-title-detail--line-height: 1.15;
+    --text-lede: 0.9375rem;
+    --text-lede--line-height: 1.45;
+    --text-body-card: 0.8125rem;
+    --text-body-card--line-height: 1.5;
+    --text-body-detail: 0.875rem;
+    --text-body-detail--line-height: 1.55;
+    --text-meta-row: 0.6875rem; /* not --text-meta: it would collide with --color-meta in the text-* utility */
+    --text-meta-row--line-height: 1.4;
+    --text-facet: 0.625rem;
+    --text-facet--line-height: 1.3;
+    --text-gonow: 0.65625rem;
+    --text-gonow--line-height: 1.3;
+
+    /* Passo palette (DESIGN.md §2.1–2.2) — components reference tokens, never raw hexes. */
+    --color-paper: var(--paper);
+    --color-ink: var(--ink);
+    --color-body: var(--body);
+    --color-meta: var(--meta);
+    --color-quiet: var(--quiet); /* DESIGN's `muted` — renamed to avoid colliding with shadcn --color-muted */
+    --color-border-soft: var(--border-soft);
+    --color-border-strong: var(--border-strong);
+    --color-terracotta: var(--terracotta);
+    --color-on-terracotta: var(--on-terracotta);
+    --color-urgent: var(--urgent);
+    --color-urgent-deep: var(--urgent-deep);
+    --color-urgent-track: var(--urgent-track);
+    --color-olive: var(--olive);
+    --color-map-bg: var(--map-bg);
+    --color-map-road: var(--map-road);
+    --color-map-green: var(--map-green);
+
+    /* shadcn semantic tokens, mapped onto Passo so starter components inherit the theme. */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
 
@@ -56,6 +108,11 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Passo shadows (DESIGN.md §2.1) */
+    --shadow-card: 0 1px 2px rgba(59, 47, 36, 0.06);
+    --shadow-urgent: 0 4px 16px rgba(160, 110, 40, 0.14);
+    --shadow-sheet: 0 8px 24px rgba(59, 47, 36, 0.18);
 }
 
 /*
@@ -72,79 +129,117 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--border, currentColor);
     }
 }
 
 :root {
-    --background: hsl(0, 0%, 100%);
-    --foreground: hsl(0, 0%, 3.9%);
-    --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 3.9%);
-    --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 3.9%);
-    --primary: hsl(0, 0%, 9%);
-    --primary-foreground: hsl(0, 0%, 98%);
-    --secondary: hsl(0, 0%, 96.1%);
-    --secondary-foreground: hsl(0, 0%, 9%);
-    --muted: hsl(0, 0%, 96.1%);
-    --muted-foreground: hsl(0, 0%, 45.1%);
-    --accent: hsl(0, 0%, 96.1%);
-    --accent-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84.2%, 60.2%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 92.8%);
-    --input: hsl(0, 0%, 89.8%);
-    --ring: hsl(0, 0%, 3.9%);
-    --chart-1: hsl(12, 76%, 61%);
-    --chart-2: hsl(173, 58%, 39%);
-    --chart-3: hsl(197, 37%, 24%);
-    --chart-4: hsl(43, 74%, 66%);
-    --chart-5: hsl(27, 87%, 67%);
-    --radius: 0.5rem;
-    --sidebar-background: hsl(0, 0%, 98%);
-    --sidebar-foreground: hsl(240, 5.3%, 30%);
-    --sidebar-primary: hsl(0, 0%, 10%);
-    --sidebar-primary-foreground: hsl(0, 0%, 98%);
-    --sidebar-accent: hsl(0, 0%, 94%);
-    --sidebar-accent-foreground: hsl(0, 0%, 30%);
-    --sidebar-border: hsl(0, 0%, 91%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    /* Passo — light ("paper"), DESIGN.md §2.1 */
+    --paper: #f6f0e4;
+    --ink: #3b2f24;
+    --body: #5c5142;
+    --meta: #6e6149; /* all readable small text — 5.35:1 on paper */
+    --quiet: #8a7a5f; /* decorative/redundant text ONLY — fails AA at small sizes */
+    --border-soft: #efe4cc;
+    --border-strong: #cbbb9c;
+    --terracotta: #c0603a; /* primary action only */
+    --on-terracotta: #fcf8ee;
+    --urgent: #c9963f; /* GO NOW border, ring, pin */
+    --urgent-deep: #a0741f; /* GO NOW label text */
+    --urgent-track: #efe0c2;
+    --olive: #7a7a52;
+    --map-bg: #efe8d8;
+    --map-road: #e4dac4;
+    --map-green: #dce3d6;
+
+    /* shadcn semantics → Passo */
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: #fcf8ee;
+    --card-foreground: var(--ink);
+    --popover: #fcf8ee;
+    --popover-foreground: var(--ink);
+    --primary: var(--terracotta);
+    --primary-foreground: var(--on-terracotta);
+    --secondary: var(--border-soft);
+    --secondary-foreground: var(--ink);
+    --muted: var(--border-soft);
+    --muted-foreground: var(--meta);
+    --accent: var(--border-soft);
+    --accent-foreground: var(--ink);
+    --destructive: hsl(9, 52%, 43%);
+    --destructive-foreground: #fcf8ee;
+    --border: #e4d9c2;
+    --input: var(--border-strong);
+    --ring: var(--urgent);
+    --chart-1: var(--terracotta);
+    --chart-2: var(--olive);
+    --chart-3: var(--urgent);
+    --chart-4: var(--meta);
+    --chart-5: var(--ink);
+    --radius: 0.625rem;
+    --sidebar-background: #fcf8ee;
+    --sidebar-foreground: var(--body);
+    --sidebar-primary: var(--ink);
+    --sidebar-primary-foreground: #fcf8ee;
+    --sidebar-accent: var(--border-soft);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: #e4d9c2;
+    --sidebar-ring: var(--urgent);
 }
 
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(0, 0%, 98%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
-    --destructive: hsl(0, 84%, 60%);
-    --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+    /* Passo — dark ("night paper"), DESIGN.md §2.2. Warm night, not gray.
+       Every light token name exists here too (same value where the spec collapses them). */
+    --paper: #221b13;
+    --ink: #efe6d6;
+    --body: #c4b69e;
+    --meta: #a08f6f;
+    --quiet: #a08f6f;
+    --border-soft: #3e3323;
+    --border-strong: #56482f;
+    --terracotta: #d97d55;
+    --on-terracotta: #221b13;
+    --urgent: #d9ac5c;
+    --urgent-deep: #d9ac5c;
+    --urgent-track: #453824;
+    --olive: #8f8f68;
+    --map-bg: #2a2318;
+    --map-road: #3a3122;
+    --map-green: #2e332a;
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: #2c241a;
+    --card-foreground: var(--ink);
+    --popover: #2c241a;
+    --popover-foreground: var(--ink);
+    --primary: var(--terracotta);
+    --primary-foreground: var(--on-terracotta);
+    --secondary: var(--border-soft);
+    --secondary-foreground: var(--ink);
+    --muted: var(--border-soft);
+    --muted-foreground: var(--meta);
+    --accent: var(--border-soft);
+    --accent-foreground: var(--ink);
+    --destructive: hsl(9, 60%, 58%);
+    --destructive-foreground: #221b13;
+    --border: #3e3323;
+    --input: #56482f;
+    --ring: var(--urgent);
+    --chart-1: var(--terracotta);
+    --chart-2: var(--olive);
+    --chart-3: var(--urgent);
+    --chart-4: var(--meta);
+    --chart-5: var(--ink);
+    --sidebar-background: #2c241a;
+    --sidebar-foreground: var(--body);
+    --sidebar-primary: var(--ink);
+    --sidebar-primary-foreground: #221b13;
+    --sidebar-accent: var(--border-soft);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: #3e3323;
+    --sidebar-ring: var(--urgent);
 }
 
 @layer base {
@@ -153,6 +248,50 @@
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground font-sans antialiased;
+    }
+
+    /* Form fields never render below 1rem: smaller triggers iOS Safari focus auto-zoom
+       (DESIGN.md §2.3). */
+    input,
+    select,
+    textarea {
+        font-size: max(1rem, 1em);
+    }
+
+    /* Visible focus for keyboard/desktop (DESIGN.md §5). */
+    :focus-visible {
+        outline: 2px solid var(--urgent);
+        outline-offset: 2px;
+    }
+
+    /* Calm under prefers-reduced-motion: no entry animations, no ring arc (DESIGN.md §5). */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
+/* GO NOW ring entry: draws the arc once, then static (DESIGN §2.5 — never pulses or spins). */
+@keyframes go-now-arc {
+    from {
+        stroke-dashoffset: var(--go-now-circumference);
+    }
+}
+
+@utility paper-stripe {
+    /* The designed placeholder (DESIGN.md §2.4) — used instead of skeleton shimmer. */
+    background: repeating-linear-gradient(-45deg, #efe7d4 0 6px, #f6f0e4 6px 12px);
+}
+
+.dark {
+    & .paper-stripe,
+    &.paper-stripe {
+        background: repeating-linear-gradient(-45deg, #2c241a 0 6px, #221b13 6px 12px);
     }
 }
