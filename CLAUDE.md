@@ -21,6 +21,7 @@ Read before designing or implementing anything:
 - **Frontend:** React 19 + TypeScript, Inertia 2, Vite 8, Tailwind 4, shadcn/ui (in `resources/js/components/ui`). Lint: ESLint; format: Prettier.
 - **Data:** PostgreSQL 18 + PostGIS + pgvector (custom image, `deployment/docker/postgres/`). Redis (shared on staging — keys are prefixed `travel_`).
 - **Commands:** `composer run dev` (all-in-one local), `composer test`, `npm run {lint,typecheck,format:check}`, `docker compose up --build`.
+- **Local dev runs in Docker — run artisan in the container.** `docker-compose.yml` runs the stack: `app` (PHP + Vite, ports 80/5173), `postgres`, `redis`, `adminer` (8080). Host PHP has **no phpredis extension** and `.env` points cache/queue/session at Redis, so any artisan or composer command that touches Redis or the runtime app state (`migrate`, `db:seed`, `tinker`, `horizon`, `cache:*`, `queue:*`) must run inside the container: `./vendor/bin/sail artisan migrate` or equivalently `docker compose exec app php artisan migrate`. Sail targets this custom compose file because `.env` sets `APP_SERVICE=app` and `APP_USER=root` — keep both. Fine on the host: `composer test` (phpunit.xml forces array cache + sync queue; the pgsql driver is present), Pint, and all `npm run` scripts. Tests also run in-container via `./vendor/bin/sail pest`.
 
 ## Conventions & rules specific to this repo
 
