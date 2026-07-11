@@ -60,6 +60,12 @@ Rule: a Tier-D claim ("locals say the back room is the real experience") can *bo
 
 ## 2. Layer 1 — Global foundation (the canonical core)
 
+> **These three sources also define the place taxonomy.** The **Type** axis (`PlaceType` /
+> `PlaceTypeDomain`) is a normalisation of Overture categories, OSM primary tags, and Wikidata
+> `instance-of` — assigned during entity resolution and stored alongside the raw source tags (which
+> are never discarded). See [TAXONOMY.md](TAXONOMY.md) §3. Appeal facets are assigned from the
+> evidence bundle on top of Type.
+
 | Source | Strengths | Weaknesses | License / access | Phase |
 |---|---|---|---|---|
 | **OpenStreetMap** (via regional **Geofabrik extracts** → own PostGIS via osm2pgsql; public Overpass only for ad-hoc dev queries) | Viewpoints, ruins, fountains, monuments, waterfalls, shelters, caves, picnic sites, old city gates — things Google doesn't have. Community-driven, incredibly underrated. | Variable completeness, no narrative, tag inconsistency | ODbL (share-alike on derived DB — review once) | **P1** |

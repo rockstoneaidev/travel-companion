@@ -127,6 +127,28 @@ Learn    -> Did the user accept, ignore, save, detour, dismiss, visit?
 
 The "agent" is a **structured decision system**, not a free-floating chatbot. Long-term, specialized perspectives (historian, food expert, photographer, nature guide, architecture expert, budget optimizer, local-culture specialist) are implemented as prompts and pipeline stages within this structure — not as autonomous free agents.
 
+### 6.5 Categorisation: two orthogonal axes
+
+Onboarding, `personal_fit`, `novelty`, `repetition_penalty`, and `uniqueness` all depend on a
+categorisation scheme. It is **not one category tree** — a single tree cannot express the product's
+own thesis, that a tiny fresco chapel and a grand museum are *different opportunities for different
+people* even though both are, categorically, a religious building and a museum. Instead, two
+orthogonal axes (full design: [TAXONOMY.md](TAXONOMY.md)):
+
+- **Type** (the noun — what a place *is*): a shallow 2-level hierarchy, ~10 domains → ~65 leaf
+  types, normalised from OSM/Overture/Wikidata. Drives dedup, `novelty`, and `repetition_penalty`.
+- **Appeal facets** (the adjective — why it is *worth changing behaviour for*): a small orthogonal
+  tag set (~14: history, architecture, nature, scenic, food & drink, art, craft, spiritual,
+  local-life, family, active, offbeat, romantic, educational). A place carries a *set*.
+
+**Taste is learned on facets, not types** — this is the load-bearing choice. Facets are dense and
+generalising: a user who accepts a fresco chapel, a Roman ruin, and a medieval gate has revealed
+`history + architecture`, which transfers to a place they have never seen an instance of. ~14 facet
+weights converge from a handful of signals; ~65 type weights never would — which is what makes cold
+start (§11) tractable. The facets deliberately mirror the Phase 3 specialist lenses above, so each
+specialist later becomes a facet scorer. Implemented as PHP backed enums (`PlaceType`,
+`PlaceTypeDomain`, `AppealFacet`) per [conventions/02-enums.md](conventions/02-enums.md).
+
 ---
 
 ## 7. Success metrics
@@ -307,7 +329,7 @@ Personal novelty            User hasn't done something similar recently.
 Detour-to-payoff ratio      Small effort, high memorability.
 ```
 
-A tiny chapel with no reviews but a rare fresco should outrank a famous museum for a user who loves medieval architecture. That is the whole point.
+A tiny chapel with no reviews but a rare fresco should outrank a famous museum for a user who loves medieval architecture. That is the whole point — and it is computable precisely because taste is expressed over **appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)) rather than place types: the chapel and museum share no type but differ sharply in facets, and `uniqueness` draws partly on how rare a facet combination is for the tile.
 
 ### 9.6 Entity resolution (first-class subsystem)
 
@@ -389,7 +411,8 @@ OpportunityScore =
 **Rules:**
 
 - Weights are v1 heuristics. **All sub-scores are stored per recommendation** (§15) so weights can be fit offline against real acceptance data later. `scoring_model_version` is recorded on every score.
-- **Cold-start handling (required, not optional):** `personal_fit` is undefined for a new user — exactly when we must impress them. Until sufficient signal exists: (a) seed `personal_fit` from onboarding calibration priors (§13.2), (b) re-weight toward `uniqueness + temporal_urgency + confidence`, (c) diversify the served set across categories to maximize learning per session.
+- **`personal_fit` is computed over appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)): roughly the match between the user's learned facet weights and the opportunity's facet set. Learning on ~14 shared facets rather than ~65 place types is what lets a handful of signals generalise to unseen places.
+- **Cold-start handling (required, not optional):** `personal_fit` is undefined for a new user — exactly when we must impress them. Until sufficient signal exists: (a) seed the user's facet weights from onboarding calibration priors (§13.2), (b) re-weight toward `uniqueness + temporal_urgency + confidence`, (c) diversify the served set across facets/types to maximize learning per session.
 - `confidence` reflects source credibility, freshness, and cross-source agreement — never LLM certainty.
 
 ---
@@ -447,13 +470,13 @@ Opportunities that don't clear the push/feed bar don't die — they surface in a
 
 ### 13.2 Onboarding taste calibration (cold start)
 
-A ~60-second calibration at first launch: the user picks between pairs/sets of concrete example experiences (photo + one line — "tiny fresco chapel" vs. "grand art museum"; "market food stall" vs. "starred tasting menu"), *never* abstract questions ("do you like museums?"). Output: category-level prior weights that seed `personal_fit` and are rapidly overwritten by behavior.
+A ~60-second calibration at first launch: the user picks between pairs/sets of concrete example experiences (photo + one line — "tiny fresco chapel" vs. "grand art museum"; "market food stall" vs. "starred tasting menu"), *never* abstract questions ("do you like museums?"). Each pair is constructed to separate **appeal facets** (§6.5), so the output is a set of **facet prior weights** that seed `personal_fit` and are rapidly overwritten by behavior. Onboarding and behavioural learning therefore operate on the same representation.
 
 ### 13.3 Learning from behavior (honest about signal quality)
 
 - **Golden label:** detected/confirmed **visits** (did they actually go?). Everything else is weak evidence.
 - **Ignores are ambiguous** — didn't see vs. saw-and-rejected vs. interested-but-busy. Weight accordingly; provide a one-tap "not my thing" affordance to convert ambiguity into signal.
-- **Phase 1 learner:** category/tag-level preference weights + simple per-user thresholds (walking tolerance, price band). No embedding-based taste model until category weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
+- **Phase 1 learner:** **facet-level** preference weights (§6.5, [TAXONOMY.md](TAXONOMY.md)) — the primary taste signal — plus **type/domain-level** habituation for `novelty`/`repetition_penalty`, and simple per-user thresholds (walking tolerance, price band). No embedding-based taste model until facet weights demonstrably plateau (expected: not before Phase 2). pgvector is installed from day one (cheap) and already used for dedup/distinctiveness; taste-matching is a flag flip later, not a migration.
 - Delayed reward matters: saves, photos at the location (if permitted), and revisit intent are memorability signals; log them even before they feed the model.
 
 ### 13.4 Phase 2 mobile modules
@@ -540,7 +563,8 @@ users, profiles, profile_signals
 trips, trip_segments
 context_events, context_snapshots
 source_items                  (raw normalized candidates, per source)
-places                        (canonical, deduped — §9.6)
+places                        (canonical, deduped — §9.6; carries type + type_domain +
+                               facets[] + raw source_tags + taxonomy_version — §6.5, TAXONOMY.md)
 place_source_ids              (cross-source ID mapping)
 opportunities                 (ephemeral, context-bound, TTL'd)
 opportunity_evidence
