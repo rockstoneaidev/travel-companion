@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Opportunities\Enums\OpportunityStatus;
-use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Places\Models\Place;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Enums\TripSource;
@@ -101,28 +99,23 @@ it('runs the whole session round-trip: start → feed → context event → end'
         ->and($session->trip->status)->toBe(TripStatus::Active);
 });
 
-it('serves the opportunities the world model can currently supply, nearest first', function () {
+it('serves the ranked feed: reachable places in, unreachable excluded (E7)', function () {
     Sanctum::actingAs(User::factory()->create());
 
-    // Two places inside a walking session's reach, one far outside it.
-    $near = Place::factory()->create(['location' => DB::raw("ST_GeogFromText('POINT(18.0210 59.3105)')")]);
-    $further = Place::factory()->create(['location' => DB::raw("ST_GeogFromText('POINT(18.0300 59.3160)')")]);
-    $unreachable = Place::factory()->create(['location' => DB::raw("ST_GeogFromText('POINT(11.9746 57.7089)')")]); // Gothenburg
+    // Two places inside a walking session's reach, one far outside it. The
+    // scouts read by h3_index, so seed the real cell for each point.
+    $seed = function (float $lat, float $lng): Place {
+        $cell = DB::selectOne('SELECT h3_lat_lng_to_cell(POINT(?, ?), 8)::text AS c', [$lng, $lat])->c;
 
-    foreach ([$near, $further, $unreachable] as $place) {
-        Opportunity::factory()->create([
-            'place_id' => $place->id,
-            'status' => OpportunityStatus::Scored,
-            'expires_at' => now()->addHours(3),
+        return Place::factory()->create([
+            'location' => DB::raw(sprintf("ST_GeogFromText('POINT(%F %F)')", $lng, $lat)),
+            'h3_index' => $cell,
         ]);
-    }
+    };
 
-    // An expired one at the nearest place must not be served.
-    Opportunity::factory()->create([
-        'place_id' => $near->id,
-        'status' => OpportunityStatus::Scored,
-        'expires_at' => now()->subMinute(),
-    ]);
+    $near = $seed(59.3105, 18.0210);
+    $further = $seed(59.3160, 18.0300);
+    $unreachable = $seed(57.7089, 11.9746); // Gothenburg
 
     $sessionId = $this->postJson('/api/v1/explore-sessions', [
         'origin' => stockholmOrigin(),
@@ -132,9 +125,13 @@ it('serves the opportunities the world model can currently supply, nearest first
 
     $response = $this->getJson("/api/v1/explore-sessions/{$sessionId}/opportunities")->assertOk();
 
-    expect($response->json('data.*.place.id'))->toBe([$near->id, $further->id]);
-    expect($response->json('data.0.distance_meters'))->toBeLessThan($response->json('data.1.distance_meters'));
-    expect($response->json('data.0'))->not->toHaveKey('scores');   // E7 adds scores; nothing fakes them now
+    $served = $response->json('data.*.place.id');
+
+    // Server order is the ranked order (SCREENS S1) — membership is what this
+    // test pins: both reachable places served, Gothenburg gated out.
+    expect($served)->toContain($near->id)
+        ->and($served)->toContain($further->id)
+        ->and($served)->not->toContain($unreachable->id);
 });
 
 it('refuses a context event on a session that is over', function () {

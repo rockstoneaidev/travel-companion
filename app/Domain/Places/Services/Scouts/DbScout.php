@@ -17,7 +17,7 @@ abstract class DbScout implements TileScout
 {
     public function version(): string
     {
-        return 'v1';
+        return 'v2'; // v2: candidates carry confidence inputs (sources, conflicts, freshness)
     }
 
     public function ttl(): DateInterval
@@ -31,7 +31,7 @@ abstract class DbScout implements TileScout
     protected function placesWhere(string $h3Index, ?array $domains = null): array
     {
         return Place::query()
-            ->select(['id', 'name', 'type', 'type_domain', 'facets', 'h3_index'])
+            ->select(['id', 'name', 'type', 'type_domain', 'facets', 'h3_index', 'source_tags', 'attribute_sources', 'updated_at'])
             ->selectRaw('ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng')
             ->where('h3_index', $h3Index)
             ->when($domains !== null, fn ($q) => $q->whereIn('type_domain', $domains))
@@ -47,6 +47,10 @@ abstract class DbScout implements TileScout
                 'lng' => (float) $p->getAttribute('lng'),
                 'h3_index' => $p->h3_index,
                 'scout' => $this->key(),
+                // Confidence inputs (SCORING §4.6), tile-scoped by design:
+                'sources' => array_keys($p->source_tags),
+                'conflict_groups' => count(($p->attribute_sources ?? [])['conflicts'] ?? []),
+                'age_days' => max(0, (int) $p->updated_at?->diffInDays(now())),
             ])
             ->all();
     }

@@ -14,6 +14,10 @@ declare(strict_types=1);
 
 return [
 
+    // The ONLY thing config decides (SCORING §9.1): which immutable constant
+    // set is live. The sets themselves are code (ScoringModel::v1()).
+    'active_version' => 'v1',
+
     'version' => 'v1',
 
     // PRD §10 Stage A: crow-flies distance × mode speed × path factor.

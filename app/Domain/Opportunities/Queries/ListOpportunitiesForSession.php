@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Domain\Opportunities\Queries;
 
 use App\Domain\Opportunities\Data\SessionOpportunityData;
-use App\Domain\Opportunities\Enums\OpportunityStatus;
 use App\Domain\Opportunities\Models\Opportunity;
-use App\Domain\Places\Contracts\PlaceLookup;
+use App\Domain\Places\Data\Coordinates;
 use App\Domain\Places\Data\PlaceData;
+use App\Domain\Places\Enums\PlaceType;
+use App\Domain\Places\Enums\PlaceTypeDomain;
+use App\Domain\Recommendations\Services\RankSession;
 use App\Domain\Trips\Data\ExploreSessionData;
+use App\Enums\AppealFacet;
 
 /**
  * ===========================================================================
@@ -45,7 +48,7 @@ use App\Domain\Trips\Data\ExploreSessionData;
  */
 final class ListOpportunitiesForSession
 {
-    public function __construct(private readonly PlaceLookup $places) {}
+    public function __construct(private readonly RankSession $rank) {}
 
     /** @return list<SessionOpportunityData> */
     public function __invoke(ExploreSessionData $session): array
@@ -54,48 +57,54 @@ final class ListOpportunitiesForSession
             return [];   // location history erased (PRD §16) — nothing to scout from
         }
 
-        $feedSize = (int) config('trips.session.feed_size');
+        // E7 landed: rank (or replay) the session feed, then dress the stored
+        // candidate snapshots as the API shape. Server order is the order.
+        $recommendations = $this->rank->feedFor($session);
 
-        $places = $this->places->withinRadius($session->origin, $session->reachMeters());
-
-        if ($places === []) {
+        if ($recommendations === []) {
             return [];
         }
 
-        /** @var array<string, PlaceData> $byPlaceId */
-        $byPlaceId = [];
-        $order = [];
-
-        foreach ($places as $index => $place) {
-            $byPlaceId[$place->id] = $place;
-            $order[$place->id] = $index;      // Places returned them nearest-first
-        }
-
         $opportunities = Opportunity::query()
-            ->whereIn('place_id', array_keys($byPlaceId))
-            ->whereNotIn('status', array_map(
-                fn (OpportunityStatus $status): string => $status->value,
-                OpportunityStatus::terminal(),
-            ))
-            ->where('expires_at', '>', now())
+            ->whereIn('id', array_map(static fn ($r) => $r->opportunity_id, $recommendations))
             ->get()
-            ->sortBy(fn (Opportunity $opportunity): int => $order[$opportunity->place_id])
-            ->take($feedSize)
-            ->values();
+            ->keyBy('id');
 
-        return $opportunities
-            ->map(fn (Opportunity $opportunity): SessionOpportunityData => new SessionOpportunityData(
+        $out = [];
+        foreach ($recommendations as $recommendation) {
+            $opportunity = $opportunities->get($recommendation->opportunity_id);
+            $candidate = $recommendation->score_inputs['candidate'] ?? null;
+            if ($opportunity === null || $candidate === null) {
+                continue;
+            }
+
+            $place = new PlaceData(
+                id: $candidate['place_id'],
+                name: $candidate['name'],
+                coordinates: new Coordinates($candidate['lat'], $candidate['lng']),
+                type: $candidate['type'] !== null ? PlaceType::from($candidate['type']) : null,
+                typeDomain: $candidate['type_domain'] !== null ? PlaceTypeDomain::from($candidate['type_domain']) : null,
+                facets: array_map(static fn (string $f) => AppealFacet::from($f), $candidate['facets']),
+                source: $candidate['scouts'][0] ?? 'scout',
+                distanceMeters: isset($recommendation->score_inputs['reachability']['travel_min'])
+                    ? (int) round((float) $recommendation->score_inputs['reachability']['travel_min'] * 60)
+                    : null,
+            );
+
+            $out[] = new SessionOpportunityData(
                 id: $opportunity->id,
                 kind: $opportunity->kind,
                 status: $opportunity->status,
-                title: $opportunity->title ?? $byPlaceId[$opportunity->place_id]->name,
+                title: $opportunity->title ?? $candidate['name'],
                 summary: $opportunity->summary,
-                place: $byPlaceId[$opportunity->place_id],
-                distanceMeters: $byPlaceId[$opportunity->place_id]->distanceMeters,
+                place: $place,
+                distanceMeters: $place->distanceMeters,
                 windowStartsAt: $opportunity->window_starts_at,
                 windowEndsAt: $opportunity->window_ends_at,
                 expiresAt: $opportunity->expires_at,
-            ))
-            ->all();
+            );
+        }
+
+        return $out;
     }
 }
