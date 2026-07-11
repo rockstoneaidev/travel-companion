@@ -1,0 +1,1742 @@
+{
+ "results": {
+  "bindings": [
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q147009"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071388888 59.325833333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q23413"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Tre Kronor"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Tre Kronor Castle"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Tre_Kronor_(byggnad)"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q278367"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0725 59.326388888)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q46865913"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stockholms kommuns geografi"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "geography of Stockholm"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stockholms_kommuns_geografi"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q278812"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07475 59.32533333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Kråkgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Kråkgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Kr%C3%A5kgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q288166"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.069527777 59.328)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q959782"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Riksgropen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Riksgropen"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Riksgropen"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q500533"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072354 59.32554)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q860861"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Järnpojke"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Järnpojke"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/J%C3%A4rnpojke"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q750444"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071666666 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q33506"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stockholms slott"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Stockholm Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q750444"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071666666 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1497375"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stockholms slott"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Stockholm Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q750444"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071666666 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2065736"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stockholms slott"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Stockholm Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q750444"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071666666 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q53536964"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stockholms slott"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Stockholm Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q783848"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072777777 59.325833333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q16560"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Tessinska palatset"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Tessin Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Tessinska_palatset"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q783848"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072777777 59.325833333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1497375"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Tessinska palatset"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Tessin Palace"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Tessinska_palatset"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q916039"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0697 59.3279)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q23442"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Helgeandsholmen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Helgeandsholmen"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Helgeandsholmen"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q928901"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07233333 59.32508333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Köpmangatan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Köpmangatan"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/K%C3%B6pmangatan,_Stockholm"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1344500"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072777777 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q298742"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Sveriges riksregalier"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Regalia of Sweden"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Sveriges_riksregalier"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1344500"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072777777 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2668072"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Sveriges riksregalier"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Regalia of Sweden"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Sveriges_riksregalier"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1636176"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073055555 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2065736"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Livrustkammaren"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Armoury"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1636176"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073055555 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2668072"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Livrustkammaren"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Armoury"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1636176"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073055555 59.326666666)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2772772"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Livrustkammaren"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Armoury"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q3439847"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073555555 59.325138888)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q174782"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Köpmantorget"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Köpmantorget"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/K%C3%B6pmantorget"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4357115"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072222222 59.325555555)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q16970"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Finska kyrkan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Finnish Church"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Finska_kyrkan"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4566017"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07305556 59.32444444)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Själagårdsgatan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Själagårdsgatan"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Sj%C3%A4lag%C3%A5rdsgatan"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4566192"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07213889 59.32452778)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Kindstugatan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Kindstugatan"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Kindstugatan"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4566595"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07341667 59.32441667)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Baggensgatan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Baggensgatan"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Baggensgatan"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4566657"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072972222 59.324833333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q174782"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Brända tomten"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Brända tomten"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Br%C3%A4nda_tomten"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4939771"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07216667 59.3255)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q174782"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bollhustäppan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bollhustäppan"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4939768"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07222222 59.32583333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q24354"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stora Bollhuset"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bollhuset"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4939768"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07222222 59.32583333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q805248"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stora Bollhuset"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bollhuset"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4939768"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07222222 59.32583333)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q19860854"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stora Bollhuset"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bollhuset"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4939772"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07325 59.32566667)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bollhusgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bollhusgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bollhusgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4960137"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07480556 59.32552778)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bredgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bredgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bredgr%C3%A4nd,_Stockholm"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4979107"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07486111 59.32502778)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Brunnsgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Brunnsgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Brunnsgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5305649"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07475 59.32444444)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Drakens gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Drakens gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Drakens_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5444341"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07472222 59.32425)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Ferkens gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Ferkens gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Ferkens_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5450942"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07258333 59.32563889)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Finska kyrkogränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Finska Kyrkogränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Finska_kyrkogr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5455200"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.074722222 59.325138888)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q174782"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Fiskartorget"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fisketorget"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Fiskartorget"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q6338017"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.071667 59.326944)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q17146103"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Kungliga Hovstaterna"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Royal Court of Sweden"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Kungliga_Hovstaterna"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q6520524"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07108333 59.32730556)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Lejonbacken"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Lejonbacken"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Lejonbacken"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7071087"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07477778 59.32502778)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Nygränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Nygränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Nygr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7074706"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0715 59.325875)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q860861"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Obelisken i Stockholm"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Obelisk at Slottsbacken"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Obelisken_i_Stockholm"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7159090"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07283333 59.32519444)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q12731"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Peder Fredags gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Peder Fredags gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Peder_Fredags_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7159090"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07283333 59.32519444)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Peder Fredags gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Peder Fredags gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Peder_Fredags_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7534638"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07263889 59.32527778)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Skeppar Olofs gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Skeppar Olofs gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Skeppar_Olofs_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7534640"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07472222 59.32575)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Skeppar Karls gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Skeppar Karls gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Skeppar_Karls_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7536467"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07458333 59.32488889)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Skottgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Skottgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Skottgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7541447"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07055556 59.3275)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Slottskajen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Slottskajen"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Slottskajen"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7541445"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.072777777 59.326194444)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q79007"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Slottsbacken"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Slottsbacken"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Slottsbacken"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7596578"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0733 59.3253)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q12731"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Staffan Sasses gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Staffan Sasses gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Staffan_Sasses_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7596578"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0733 59.3253)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Staffan Sasses gränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Staffan Sasses gränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Staffan_Sasses_gr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7619888"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.075 59.3247)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Stora Hoparegränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Stora Hoparegränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Stora_Hoparegr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7696196"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0744 59.326)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Telegrafgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Telegrafgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Telegrafgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7849103"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0719 59.3254)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Trädgårdsgatan"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Trädgårdsgatan"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Tr%C3%A4dg%C3%A5rdsgatan,_Stockholm"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7849105"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0722 59.3253)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1251403"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Trädgårdstvärgränd"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Trädgårdstvärgränd"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Tr%C3%A4dg%C3%A5rdstv%C3%A4rgr%C3%A4nd"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9282793"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0711 59.3269)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q207694"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Gustav III:s antikmuseum"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Gustav III's museum of antiquities"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Gustav_III:s_antikmuseum"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9282793"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0711 59.3269)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2065736"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Gustav III:s antikmuseum"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Gustav III's museum of antiquities"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Gustav_III:s_antikmuseum"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9337727"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.0722 59.3261)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q33506"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Skattkammaren"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Treasury of Sweden"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Skattkammaren"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q10411497"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07319 59.3249)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q41176"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Andromeda 7"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Andromeda 7"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Andromeda_7"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q10426679"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073 59.325)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q41176"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bartelska och Törneska husen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Cepheus 25"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bartelska_och_T%C3%B6rneska_husen"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q10426679"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.073 59.325)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1497375"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bartelska och Törneska husen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Cepheus 25"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bartelska_och_T%C3%B6rneska_husen"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q10428694"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07269444 59.32763889)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q20655472"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bernadottebiblioteket"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bernadotte Library"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bernadottebiblioteket"
+    }
+   },
+   {
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q10428698"
+    },
+    "coord": {
+     "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+     "type": "literal",
+     "value": "Point(18.07118056 59.32720278)"
+    },
+    "class": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q188507"
+    },
+    "labelSv": {
+     "xml:lang": "sv",
+     "type": "literal",
+     "value": "Bernadottevåningen"
+    },
+    "labelEn": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Bernadotte Floor"
+    },
+    "svArticle": {
+     "type": "uri",
+     "value": "https://sv.wikipedia.org/wiki/Bernadottev%C3%A5ningen"
+    }
+   }
+  ]
+ }
+}

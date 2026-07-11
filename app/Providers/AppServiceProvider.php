@@ -15,7 +15,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(
+            \App\Domain\Places\Contracts\TileIndexer::class,
+            \App\Domain\Places\Services\PostgresTileIndexer::class,
+        );
     }
 
     /**

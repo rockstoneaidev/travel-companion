@@ -1,0 +1,353 @@
+{
+ "version": 0.6,
+ "elements": [
+  {
+   "type": "node",
+   "id": 60191130,
+   "lat": 59.3267344,
+   "lon": 18.0749661,
+   "tags": {
+    "artist:wikidata": "Q924618",
+    "artist_name": "Johan Tobias Sergel",
+    "historic": "memorial",
+    "material": "bronze",
+    "memorial": "statue",
+    "name": "Gustav III",
+    "name:ru": "Памятник Густаву III",
+    "start_date": "1808",
+    "subject:wikidata": "Q52930",
+    "subject:wikipedia": "sv:Gustav III",
+    "wikidata": "Q10511146",
+    "wikimedia_commons": "Category:Gustav III:s staty",
+    "wikipedia": "sv:Gustav III (staty)"
+   }
+  },
+  {
+   "type": "node",
+   "id": 300162703,
+   "lat": 59.3258668,
+   "lon": 18.0715057,
+   "tags": {
+    "height": "22",
+    "historic": "monument",
+    "man_made": "obelisk",
+    "name": "Obelisken",
+    "wikidata": "Q7074706",
+    "wikimedia_commons": "Category:Obelisken i Stockholm",
+    "wikipedia": "sv:Obelisken i Stockholm"
+   }
+  },
+  {
+   "type": "node",
+   "id": 304577359,
+   "lat": 59.3238321,
+   "lon": 18.0730173,
+   "tags": {
+    "changing_table": "yes",
+    "check_date": "2026-05-29",
+    "contact:phone": "+468301500",
+    "contact:website": "https://judiskamuseet.se/",
+    "description": "Jewish life, heritage and traditions in Sweden",
+    "fee": "yes",
+    "museum": "history",
+    "name": "Judiska muséet",
+    "name:de": "Jüdisches Museum",
+    "name:en": "Jewish Museum",
+    "name:fi": "Juutalainen museo",
+    "name:he": "המוזיאון היהודי בסטוקהולם",
+    "name:sv": "Judiska muséet",
+    "opening_hours": "Mo off; Tu-We 11:00-17:00; Th 11:00-20:00; Fr 11:00-16:00; Sa-Su 11:00-17:00",
+    "toilets:wheelchair": "yes",
+    "tourism": "museum",
+    "wheelchair": "yes",
+    "wikidata": "Q684827",
+    "wikimedia_commons": "Category:Jewish Museum of Sweden",
+    "wikipedia": "sv:Judiska museet"
+   }
+  },
+  {
+   "type": "node",
+   "id": 304603696,
+   "lat": 59.3240854,
+   "lon": 18.0680012,
+   "tags": {
+    "check_date": "2025-11-14",
+    "contact:email": "postmuseum@postnord.com",
+    "contact:phone": "+46104364439",
+    "contact:website": "https://www.postmuseum.se/",
+    "description": "History of the Swedish postal service, postcards and stamps",
+    "fee": "yes",
+    "name": "Postmuseum",
+    "name:en": "Post Museum",
+    "name:fi": "Postimuseo",
+    "name:ru": "Почтовый музей",
+    "name:sv": "Postmuseum",
+    "name:zh": "郵政博物館",
+    "opening_hours": "Mo off; Tu-Fr 11:00-17:00; Sa-Su 10:00-16:00",
+    "toilets": "yes",
+    "tourism": "museum",
+    "wikidata": "Q712309",
+    "wikimedia_commons": "Category:Postmuseum",
+    "wikipedia": "sv:Postmuseum"
+   }
+  },
+  {
+   "type": "node",
+   "id": 304603697,
+   "lat": 59.32496,
+   "lon": 18.0678712,
+   "tags": {
+    "check_date": "2025-07-09",
+    "contact:email": "info@levandehistoria.se",
+    "contact:phone": "+4687238750",
+    "contact:website": "https://www.levandehistoria.se/",
+    "description": "\"An exhibition about the bystander.\"",
+    "fee": "no",
+    "name": "Forum för levande historia",
+    "name:en": "Living history forum",
+    "name:ru": "Форум \"Живая история\"",
+    "opening_hours": "Mo-Fr 12:00-17:00; Sa 12:00-16:00; Su off",
+    "tourism": "museum",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 418238323,
+   "lat": 59.3254655,
+   "lon": 18.0688309,
+   "tags": {
+    "amenity": "cafe",
+    "name": "Café Valvet"
+   }
+  },
+  {
+   "type": "node",
+   "id": 418249649,
+   "lat": 59.3252765,
+   "lon": 18.0700617,
+   "tags": {
+    "amenity": "cafe",
+    "check_date": "2023-03-22",
+    "contact:phone": "+468200650",
+    "contact:website": "https://cafestensture.se/",
+    "name": "Sten Sture",
+    "opening_hours": "Mo-Su 10:00-21:00",
+    "source": "survey",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 418260300,
+   "lat": 59.324956,
+   "lon": 18.0703012,
+   "tags": {
+    "amenity": "cafe",
+    "check_date": "2025-11-13",
+    "contact:email": "info@chokladkoppen.se",
+    "contact:phone": "+468203170",
+    "contact:website": "https://chokladkoppen.se/",
+    "diet:vegetarian": "yes",
+    "lgbtq:signed": "yes",
+    "name": "Chokladkoppen",
+    "opening_hours": "Mo-Su 10:00-22:00",
+    "payment:cash": "yes",
+    "start_date": "1997",
+    "wheelchair": "limited"
+   }
+  },
+  {
+   "type": "node",
+   "id": 927383042,
+   "lat": 59.3261171,
+   "lon": 18.0725027,
+   "tags": {
+    "artist:wikidata": "Q725846",
+    "artist_name": "Bengt Fogelberg",
+    "historic": "memorial",
+    "material": "bronze",
+    "memorial": "statue",
+    "name": "Karl XIV Johan",
+    "statue": "equestrian",
+    "subject:wikidata": "Q52927",
+    "subject:wikipedia": "sv:Karl XIV Johan",
+    "wikidata": "Q10543746",
+    "wikimedia_commons": "Category:Carl XIV John statue, Stockholm",
+    "wikipedia": "sv:Karl XIV Johans staty, Stockholm"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1243683380,
+   "lat": 59.3264792,
+   "lon": 18.0723766,
+   "tags": {
+    "amenity": "place_of_worship",
+    "architect": "Nicodemus Tessin, Carl Hårleman",
+    "building:architecture": "baroque",
+    "denomination": "lutheran",
+    "name": "Slottskyrkan",
+    "name:de": "Schlosskirche",
+    "name:en": "The Royal Chapel",
+    "opening_hours": "Mo-Su 10:00-17:00",
+    "operator": "H.M. Konungens Hovmarskalksämbete",
+    "phone": "+46 8 402 61 30",
+    "religion": "christian",
+    "start_date": "1754-12-08",
+    "website": "https://www.kungahuset.se/royalcourt/visittheroyalpalaces/theroyalchapel.4.396160511584257f2180001284.html",
+    "wikidata": "Q10671642",
+    "wikimedia_commons": "Category:Slottskyrkan",
+    "wikipedia": "sv:Slottskyrkan"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1949938879,
+   "lat": 59.3247259,
+   "lon": 18.0699988,
+   "tags": {
+    "historic": "rune_stone",
+    "inscription": "ᚦᚬᚱ[..]ᛅᛁᚾ ᛫ ᛅᚢᚴ ᛫ ᚠᚱᛅᚤᚴᚢᚾ ᛫ ᚦᛅᚢ[...] ᛫ ᛋᛏᛅᛁᚾ ᛫ ᛁᚠᛏᛁᛦ [...] ᛋᚢᚾ ᛋᛁᚾ",
+    "name": "Upplands runinskrifter 53",
+    "name:en": "Uppland Runic Inscription",
+    "name:sv": "Upplands runinskrifter 53",
+    "ref": "U 53",
+    "wikidata": "Q7899119",
+    "wikimedia_commons": "Category:Upplands runinskrifter 53",
+    "wikipedia": "sv:Upplands runinskrifter 53"
+   }
+  },
+  {
+   "type": "node",
+   "id": 3201162197,
+   "lat": 59.3231987,
+   "lon": 18.0734517,
+   "tags": {
+    "historic": "monastery",
+    "name": "Svartbrödraklostret i Stockholm",
+    "name:en": "Black Friars' Monastery of Stockholm",
+    "operator": "Medieval Museum",
+    "ruins": "yes",
+    "wikidata": "Q4920798",
+    "wikimedia_commons": "Category:Svartbrödraklostret",
+    "wikipedia": "sv:Svartbrödraklostret i Stockholm"
+   }
+  },
+  {
+   "type": "node",
+   "id": 4396148482,
+   "lat": 59.3258578,
+   "lon": 18.0709671,
+   "tags": {
+    "artist:wikidata": "Q6150874",
+    "artist_name": "Theodor Lundberg",
+    "historic": "memorial",
+    "material": "bronze",
+    "memorial": "statue",
+    "name": "Olaus Petri",
+    "subject:wikidata": "Q381010",
+    "subject:wikipedia": "sv:Olaus Petri",
+    "wikidata": "Q21064898",
+    "wikipedia": "sv:Olaus Petri (staty)"
+   }
+  },
+  {
+   "type": "node",
+   "id": 12856715558,
+   "lat": 59.3261852,
+   "lon": 18.0726558,
+   "tags": {
+    "tourism": "viewpoint"
+   }
+  },
+  {
+   "type": "way",
+   "id": 8049504,
+   "center": {
+    "lat": 59.3257708,
+    "lon": 18.0703866
+   },
+   "tags": {
+    "alt_name": "Sankt Nicolai kyrka",
+    "amenity": "place_of_worship",
+    "building": "church",
+    "building:architecture": "gothic, baroque",
+    "building:colour": "#F9DEC9",
+    "charge": "120 SEK",
+    "charge:conditional": "90 SEK @ senior; 0 SEK @ <19 years",
+    "denomination": "lutheran",
+    "description:en": "Stockholm's main cathedral. Royal weddings occur here.",
+    "diocese": "Stockholms stift",
+    "fee": "yes",
+    "heritage": "4",
+    "heritage:operator": "raa",
+    "heritage:website": "https://bebyggelseregistret.raa.se/bbr2/byggnad/visaHistorik.raa?byggnadId=21400000323922&page=historik",
+    "name": "Storkyrkan",
+    "name:de": "Große Kirche",
+    "name:en": "Great Church",
+    "name:fi": "Suurkirkko",
+    "name:ko": "스톡홀름 대성당",
+    "name:pl": "Kościół św. Mikołaja w Sztokholmie",
+    "name:pt": "Catedral de Estocolmo",
+    "name:ru": "Церковь Святого Николая",
+    "name:zh": "斯德哥尔摩大教堂",
+    "payment:cash": "no",
+    "payment:mastercard": "yes",
+    "payment:visa": "yes",
+    "ref:SE:raa": "21400000323922",
+    "religion": "christian",
+    "roof:material": "copper",
+    "roof:shape": "gabled",
+    "start_date": "1200",
+    "tourism": "attraction",
+    "website": "https://www.svenskakyrkan.se/stockholmsdomkyrkoforsamling/visitors",
+    "wikidata": "Q1133075",
+    "wikimedia_commons": "Category:Storkyrkan, Stockholm",
+    "wikipedia": "sv:Storkyrkan"
+   }
+  },
+  {
+   "type": "way",
+   "id": 8049509,
+   "center": {
+    "lat": 59.324139,
+    "lon": 18.0717171
+   },
+   "tags": {
+    "addr:city": "Stockholm",
+    "alt_name": "Sankta Gertruds kyrka",
+    "amenity": "place_of_worship",
+    "basilica": "minor",
+    "building": "church",
+    "building:material": "brick",
+    "check_date": "2024-08-15",
+    "denomination": "lutheran",
+    "description:en": "Church historically serving the large German merchant population in Gamla Stan. Parts date from the 1580s. (Source: Wikipedia:en)",
+    "diocese": "Stockholms stift",
+    "heritage": "2",
+    "heritage:operator": "raa",
+    "heritage:website": "https://bebyggelseregistret.raa.se/bbr2/anlaggning/visaHistorik.raa?page=historik&visaHistorik=true&anlaggningId=21300000011481",
+    "name": "Tyska kyrkan",
+    "name:de": "Deutsche Kirche",
+    "name:en": "German Church",
+    "name:es": "Iglesia Alemana",
+    "name:fi": "Saksalainen kirkko",
+    "name:fr": "Église allemande",
+    "name:pl": "Kościół niemiecki w Sztokholmie",
+    "name:ru": "Немецкая церковь",
+    "name:sv": "Tyska kyrkan",
+    "opening_hours": "10:30-16:30",
+    "ref:SE:raa": "21300000011481",
+    "religion": "christian",
+    "service_language": "de",
+    "service_times": "Su 11:00",
+    "start_date": "1642",
+    "tourism": "attraction",
+    "wikidata": "Q2164087",
+    "wikipedia": "sv:Tyska kyrkan, Stockholm",
+    "year_of_construction": "1637 - 1643"
+   }
+  }
+ ]
+}

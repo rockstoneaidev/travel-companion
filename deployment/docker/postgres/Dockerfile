@@ -14,6 +14,7 @@ RUN apt-get update \
         postgresql-18-postgis-3 \
         postgresql-18-postgis-3-scripts \
         postgresql-18-pgvector \
+        postgresql-18-h3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable both extensions in every new database created from template1.

@@ -1,0 +1,123 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": "08f2a1072992d4c3035f5e2fd9e5a9e1",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     18.071,
+     59.3251
+    ]
+   },
+   "properties": {
+    "id": "08f2a1072992d4c3035f5e2fd9e5a9e1",
+    "names": {
+     "primary": "Under Kastanjen",
+     "common": {
+      "sv": "Under Kastanjen"
+     }
+    },
+    "categories": {
+     "primary": "cafe",
+     "alternate": [
+      "coffee_shop"
+     ]
+    },
+    "confidence": 0.92
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "08f2a10729ffff00035f5e2fd9e5ffff",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     18.0686,
+     59.3257
+    ]
+   },
+   "properties": {
+    "id": "08f2a10729ffff00035f5e2fd9e5ffff",
+    "names": {
+     "primary": "Nobel Prize Museum",
+     "common": {
+      "sv": "Nobelprismuseet",
+      "en": "Nobel Prize Museum"
+     }
+    },
+    "categories": {
+     "primary": "museum",
+     "alternate": [
+      "tourist_attraction"
+     ]
+    },
+    "confidence": 0.97
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "08f2a1072aaaa000035f5e2fd9e5aaaa",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     18.0703,
+     59.3245
+    ]
+   },
+   "properties": {
+    "id": "08f2a1072aaaa000035f5e2fd9e5aaaa",
+    "names": {
+     "primary": "Mårten Trotzigs Gränd"
+    },
+    "categories": {
+     "primary": "landmark_and_historical_building"
+    },
+    "confidence": 0.81
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "08f2a1072bbbb000035f5e2fd9e5bbbb",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     18.067,
+     59.326
+    ]
+   },
+   "properties": {
+    "id": "08f2a1072bbbb000035f5e2fd9e5bbbb",
+    "names": {
+     "primary": "Some Insurance Office"
+    },
+    "categories": {
+     "primary": "insurance_agency"
+    },
+    "confidence": 0.88
+   }
+  },
+  {
+   "type": "Feature",
+   "id": "08f2a1072cccc000035f5e2fd9e5cccc",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     18.069,
+     59.3248
+    ]
+   },
+   "properties": {
+    "id": "08f2a1072cccc000035f5e2fd9e5cccc",
+    "names": {
+     "primary": null
+    },
+    "categories": {
+     "primary": "restaurant"
+    },
+    "confidence": 0.55
+   }
+  }
+ ]
+}
