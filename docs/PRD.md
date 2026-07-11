@@ -155,9 +155,10 @@ The three terms operate at different layers and different phases — conflating 
 error. The rule:
 
 - **Explore Session** — the atomic Phase 1 unit, and the *only* one the user initiates. "I have 3
-  hours from here (optionally heading that way) — find me something." An origin, a time budget, an
-  optional direction/destination, a 3–5 item feed, accumulated feedback, and an end. This is the
-  spine of the pull-only MVP.
+  hours from here (optionally heading that way) — find me something." An origin, a time budget, a
+  travel mode (walk / bike / drive — `TravelMode`, drives reach, coverage shape, and speed constants:
+  §9.2, §10), an optional direction/destination, a 3–5 item feed, accumulated feedback, and an end.
+  This is the spine of the pull-only MVP.
 - **Trip** — a container providing cross-session continuity (novelty, the trip model, the digest,
   privacy deletion, and the seed of Phase 3 cross-trip memory). **Implicit-first:** it materialises
   around sessions — a new session attaches to the user's current active trip when it is close in
@@ -362,10 +363,22 @@ A naive design ("every ping: search everything, call every API, call the LLM") i
 ```text
 When trip starts:        scout hotel area, planned cities, next route segment.
 When user enters region: scout the current H3 tile + neighbors.
-When route is known:     scout the corridor around the route. (Phase 2)
+When a session declares a heading/destination: scout an ahead-weighted cone/corridor, not a disc.
+When route is known:     scout the corridor around the full route. (Phase 2 — continuous re-aiming)
 When a free window appears: scout options fitting that window.
 When weather/time changes:  RESCORE existing opportunities before fetching new ones.
 ```
+
+**Mode-aware, anisotropic coverage (v1 decision).** Travel mode (walk / bike / drive) never changes
+the tile size — one canonical H3 resolution keeps the cache shared, the uniqueness signal meaningful,
+and costs accountable (conventions/12). Mode changes **coverage**: how far (reach from
+`time_budget × mode speed`), what shape (disc when wandering; cone/corridor when the session has a
+heading or destination — full reach ahead, ~40% behind), and **which scouts run at range** — with
+distance, only high-payoff scouts (Curated, History, Nature, Unusualness) keep running; food/café
+scouting stays near. A café is worth a 300 m detour, a ruined castle 20 km. Per-scout ranges live in
+the `SourceDescriptor` (conventions/09); the coverage geometry and mode table live in conventions/12.
+Phase 1 covers the road-trip case via the session-declared destination; *continuously* re-aiming the
+cone as the user moves is Phase 2.
 
 ### 9.3 Shared geo-tile caching (core design principle)
 
@@ -475,8 +488,10 @@ in scope; per-candidate routing calls would blow the cost model (§14.3). So:
 
 - **Stage A (gate + friction, all candidates):** estimator, free and in-DB — PostGIS distance ×
   mode speed × a path factor. v1 constants (in `config/scoring.php`): walking 4.5 km/h × 1.30;
-  driving ~40 km/h effective urban / faster rural × 1.35. Session mode is declared (walk default;
-  drive selectable — Burgundy vineyards aren't walkable).
+  cycling 14 km/h × 1.30; driving ~40 km/h effective urban / faster rural × 1.35. Session mode is
+  declared (`TravelMode` enum: walk default; bike and drive selectable — Burgundy vineyards aren't
+  walkable, Stockholm has city bikes). Mode also drives scout coverage — reach, cone/corridor shape,
+  and which sources run at range (§9.2, conventions/12).
 - **Stage B (precision where it's shown):** real routing **only** for the 3–5 served items'
   displayed `walk_minutes` and for destination-mode `detour_minutes` — ≤ ~6 Google Routes calls per
   session, edge-only (conventions/09), cached per (place, origin res-9 tile, mode) with short TTL.

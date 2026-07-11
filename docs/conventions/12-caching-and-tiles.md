@@ -31,6 +31,33 @@ Two consequences that must be respected everywhere:
 - Constants live in `config/tiles.php`, versioned like everything else. Store the index as string
   (`h3_index`, [03](03-migrations-and-schema.md)).
 
+## Coverage: mode-aware and anisotropic (DECIDED 2026-07-11)
+
+**Resolution is fixed; travel mode changes coverage.** Per-mode tile sizes would fragment the shared
+cache into mode silos (a driver's scouting would never warm a walker's tiles) and make "unusual
+*here*" depend on the visitor's vehicle. H3's hierarchy makes variable size unnecessary anyway: a
+res-6 cell is exactly 49 res-8 descendants — coarse coverage is *more fine tiles*, never bigger ones.
+
+What mode does change (constants in `config/tiles.php`):
+
+| Mode | Effective speed | 3 h session reach | Shape | Scouts at far range |
+|---|---|---|---|---|
+| `walk` | 4.5 km/h × 1.30 | ~3–4 km (k≈4–5) | disc; mild cone if heading set | all (area is small) |
+| `bike` | 14 km/h × 1.30 | ~10–12 km | cone when heading/destination set | food/practical near-only; rest full |
+| `drive` | ~40 km/h × 1.35 | 40+ km | **cone/corridor required** — never a disc | far ring: Curated, History, Nature, Unusualness only |
+
+- **Shape:** no direction → disc. `heading` → pear/cone: full reach within ±60° ahead, ~40% reach
+  behind. `destination_point` → corridor along the origin→destination line. (PRD §9.2; Phase 2 adds
+  continuous re-aiming.)
+- **Payoff gradient:** "scout farther when driving" never means "scout *everything* farther." Each
+  source declares near/far ranges per mode in its `SourceDescriptor` ([09](09-source-adapters.md)) —
+  a café 30 km ahead is noise; a castle is not.
+- **Fetch unit ≠ cache unit.** A driving corridor is thousands of res-8 tiles; never issue per-tile
+  API calls for it. Run **one corridor-polygon query per source**, then bucket results into res-8
+  tiles on write. The tile is the cache and accounting unit, not the fetch unit.
+- **Hierarchical prefilter:** keep per-res-6 aggregate place counts (from our own `places` table,
+  free) and descend only into res-6 cells that contain candidates — empty countryside costs nothing.
+
 ## Redis
 
 Redis is **shared infrastructure on staging** (`docs/SERVER-DEPLOYMENT.md`), so all keys are

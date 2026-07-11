@@ -47,8 +47,24 @@ new SourceDescriptor(
     adapterVersion:      'v1',
     rateLimit:           new RateLimit(perMinute: 60),
     credibilityTier:     CredibilityTier::Open,        // DATA-SOURCES §1.2
+    scoutRange:          ScoutRange::Full,             // payoff gradient — see below
 );
 ```
+
+### Mode-aware scout ranges (the payoff gradient)
+
+Coverage is mode-aware and anisotropic ([12](12-caching-and-tiles.md)): a driving session scouts a
+40 km corridor, a walking session a ~4 km disc. **Not every source deserves the full range** — a
+café 30 km ahead is noise; a ruined castle or a curated gem is worth the drive. Each descriptor
+declares a `ScoutRange` (enum, [02](02-enums.md)):
+
+| `ScoutRange` | Meaning | Typical sources |
+|---|---|---|
+| `Full` | queried across the session's entire coverage, all modes | curated layer, heritage/history (Mérimée, Wikidata), nature/viewpoints, unusualness |
+| `Near` | queried only in the near ring (walking-scale radius around origin and destination, regardless of mode) | food/café/practical sources, generic nearby-POI sweeps |
+
+The scout runner combines the coverage geometry from [12](12-caching-and-tiles.md) with the range
+class here; a `Near` source is simply never queried for far corridor tiles.
 
 The `StoragePolicy` enum is the mechanism that makes the ODbL boundary enforceable in code rather
 than in reviewer memory:
