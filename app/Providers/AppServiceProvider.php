@@ -5,6 +5,13 @@ namespace App\Providers;
 use App\Domain\Places\Contracts\ResolvableItems;
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Places\Services\PostgresTileIndexer;
+use App\Domain\Places\Services\ScoutRunner;
+use App\Domain\Places\Services\Scouts\CuratedScout;
+use App\Domain\Places\Services\Scouts\HistoryScout;
+use App\Domain\Places\Services\Scouts\NatureScout;
+use App\Domain\Places\Services\Scouts\NearbyPlaceScout;
+use App\Domain\Places\Services\Scouts\UnusualnessScout;
+use App\Domain\Places\Services\TileCache;
 use App\Domain\Sources\Services\ProvideResolvableItems;
 use App\Enums\Permission;
 use App\Enums\Role;
@@ -30,6 +37,23 @@ class AppServiceProvider extends ServiceProvider
             ResolvableItems::class,
             ProvideResolvableItems::class,
         );
+
+        // The M1 scouts (E5). Order is presentation-neutral; the cache key is
+        // per scout, so adding one never invalidates another.
+        $this->app->tag([
+            NearbyPlaceScout::class,
+            HistoryScout::class,
+            NatureScout::class,
+            UnusualnessScout::class,
+            CuratedScout::class,
+        ], 'tile-scouts');
+
+        $this->app->singleton(ScoutRunner::class, function ($app) {
+            return new ScoutRunner(
+                $app->make(TileCache::class),
+                $app->tagged('tile-scouts'),
+            );
+        });
     }
 
     /**
