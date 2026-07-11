@@ -1,22 +1,14 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { ChoicePill, EditorialLede, PassoAppHeader, PrimaryPill } from '@/components/passo';
 import { type TravelMode } from '@/types/enums';
 import { type ExploreSession } from '@/types/travel';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { type FormEvent, useState } from 'react';
+import { useState } from 'react';
 
 /**
- * S1 — start an explore session. "I have 3 hours from here" (PRD §6.6).
- *
- * This is a functional page, not the finished Passo screen: the design system in
- * docs/design/DESIGN.md + SCREENS.md is the UI epic's job. The prop contract
- * below is the one that screen will bind to.
+ * S2 — session start (SCREENS.md): one screen, no wizard. Geolocation is
+ * asked here, in context, never on app open; "no" gets a quiet manual
+ * fallback, not nagging.
  */
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Explore', href: '/explore' }];
 
 interface TravelModeOption {
     value: TravelMode;
@@ -28,23 +20,25 @@ interface ExploreIndexProps {
     travelModeOptions: TravelModeOption[];
 }
 
-interface StartSessionForm {
-    origin: { lat: number; lng: number };
-    time_budget_minutes: number;
-    travel_mode: TravelMode;
-}
+const TIME_CHIPS = [
+    { label: '45 min', minutes: 45 },
+    { label: '2 h', minutes: 120 },
+    { label: '3 h', minutes: 180 },
+    { label: 'All day', minutes: 480 },
+];
+
+// Liljeholmen — the test-region base (PRD §8.0); the manual-origin fallback
+// when geolocation is denied or unavailable (SCREENS S2).
+const FALLBACK_ORIGIN = { lat: 59.31, lng: 18.02 };
 
 export default function ExploreIndex({ activeSession, travelModeOptions }: ExploreIndexProps) {
     const [locating, setLocating] = useState(false);
+    const [located, setLocated] = useState<'yes' | 'denied' | null>(null);
 
-    const { data, setData, post, processing, errors } = useForm<StartSessionForm>({
-        // Liljeholmen, Stockholm — the test region (PRD §8.0). Overwritten by
-        // the browser's geolocation when the user grants it. Phase 1 is
-        // foreground-only: we ask once, on this button, and never in the
-        // background.
-        origin: { lat: 59.31, lng: 18.02 },
+    const { data, setData, post, processing } = useForm({
+        origin: FALLBACK_ORIGIN,
         time_budget_minutes: 180,
-        travel_mode: 'walk',
+        travel_mode: 'walk' as TravelMode,
     });
 
     const useMyLocation = () => {
@@ -52,79 +46,91 @@ export default function ExploreIndex({ activeSession, travelModeOptions }: Explo
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 setData('origin', { lat: position.coords.latitude, lng: position.coords.longitude });
+                setLocated('yes');
                 setLocating(false);
             },
-            () => setLocating(false),
+            () => {
+                setLocated('denied');
+                setLocating(false);
+            },
+            { timeout: 10_000 },
         );
     };
 
-    const submit = (event: FormEvent) => {
-        event.preventDefault();
-        post('/explore');
-    };
-
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <div className="bg-paper min-h-screen">
             <Head title="Explore" />
+            <div className="mx-auto max-w-md space-y-8 px-5 py-8">
+                <PassoAppHeader contextStamp="Stockholm" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                {activeSession && (
-                    <div className="border-sidebar-border/70 rounded-xl border p-4">
-                        <p className="text-sm">You have an explore session open.</p>
-                        <Link href={`/explore/${activeSession.data.id}`} className="text-sm underline">
-                            Resume it
+                {activeSession ? (
+                    <section className="space-y-4">
+                        <EditorialLede>You're already out. One session at a time — that's the point.</EditorialLede>
+                        <Link href={`/explore/${activeSession.data.id}`}>
+                            <PrimaryPill type="button">Back to your session</PrimaryPill>
                         </Link>
-                    </div>
-                )}
+                    </section>
+                ) : (
+                    <form
+                        className="space-y-8"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            post('/explore');
+                        }}
+                    >
+                        <h1 className="text-headline text-ink font-serif font-medium italic">How long do you have?</h1>
 
-                <form onSubmit={submit} className="border-sidebar-border/70 flex max-w-lg flex-col gap-4 rounded-xl border p-4">
-                    <h1 className="text-lg font-medium">Find me something</h1>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="time_budget_minutes">Time budget (minutes)</Label>
-                        <Input
-                            id="time_budget_minutes"
-                            type="number"
-                            min={15}
-                            max={720}
-                            value={data.time_budget_minutes}
-                            onChange={(event) => setData('time_budget_minutes', Number(event.target.value))}
-                        />
-                        {errors.time_budget_minutes && <p className="text-destructive text-sm">{errors.time_budget_minutes}</p>}
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="travel_mode">Travel mode</Label>
-                        <select
-                            id="travel_mode"
-                            className="border-input h-9 rounded-md border bg-transparent px-3 py-1 text-sm"
-                            value={data.travel_mode}
-                            onChange={(event) => setData('travel_mode', event.target.value as TravelMode)}
-                        >
-                            {travelModeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
+                        <div className="flex flex-wrap gap-2">
+                            {TIME_CHIPS.map((chip) => (
+                                <ChoicePill
+                                    key={chip.minutes}
+                                    type="button"
+                                    selected={data.time_budget_minutes === chip.minutes}
+                                    onClick={() => setData('time_budget_minutes', chip.minutes)}
+                                >
+                                    {chip.label}
+                                </ChoicePill>
                             ))}
-                        </select>
-                        {errors.travel_mode && <p className="text-destructive text-sm">{errors.travel_mode}</p>}
-                    </div>
+                        </div>
 
-                    <div className="grid gap-2">
-                        <Label>Origin</Label>
-                        <p className="text-muted-foreground text-sm">
-                            {data.origin.lat.toFixed(4)}, {data.origin.lng.toFixed(4)}
-                        </p>
-                        <Button type="button" variant="outline" size="sm" onClick={useMyLocation} disabled={locating}>
-                            {locating ? 'Locating…' : 'Use my location'}
-                        </Button>
-                    </div>
+                        <div className="flex flex-wrap gap-2">
+                            {travelModeOptions.map((mode) => (
+                                <ChoicePill
+                                    key={mode.value}
+                                    type="button"
+                                    selected={data.travel_mode === mode.value}
+                                    onClick={() => setData('travel_mode', mode.value)}
+                                >
+                                    {mode.label}
+                                </ChoicePill>
+                            ))}
+                        </div>
 
-                    <Button type="submit" disabled={processing}>
-                        Start exploring
-                    </Button>
-                </form>
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={useMyLocation}
+                                className="text-ink text-xs font-semibold underline underline-offset-[3px]"
+                                disabled={locating}
+                            >
+                                {locating ? 'Finding you…' : located === 'yes' ? 'Using your location ✓' : 'Use my location'}
+                            </button>
+                            {located === 'denied' && (
+                                <p className="text-body-card text-body">
+                                    No problem — starting from Liljeholmen. Tell me where you're starting from and I'll take it from there.
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            <PrimaryPill type="submit" disabled={processing}>
+                                Start exploring
+                            </PrimaryPill>
+                            <EditorialLede>I'll be quiet until something is worth it.</EditorialLede>
+                        </div>
+                    </form>
+                )}
             </div>
-        </AppLayout>
+        </div>
     );
 }

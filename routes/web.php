@@ -3,6 +3,8 @@
 use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
+use App\Http\Controllers\Web\OpportunityController;
+use App\Http\Controllers\Web\RecommendationFeedbackController;
 use App\Http\Controllers\Web\TripController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -49,6 +51,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('trips.show');
 
     Route::patch('trips/{trip}', [TripController::class, 'update'])->name('trips.update');
+
+    Route::get('opportunities/{opportunity}', [OpportunityController::class, 'show'])
+        ->name('opportunities.show');
+
+    Route::post('recommendations/{recommendation}/feedback', [RecommendationFeedbackController::class, 'store'])
+        ->name('recommendations.feedback.store');
 });
 
 require __DIR__.'/settings.php';

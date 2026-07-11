@@ -32,6 +32,8 @@ final class SessionOpportunityResource extends JsonResource
                 'ends_at' => $this->windowEndsAt?->toIso8601String(),
             ],
             'expires_at' => $this->expiresAt->toIso8601String(),
+            'recommendation_id' => $this->recommendationId,
+            'walk_minutes' => $this->walkMinutes,
             'place' => new PlaceResource($this->place),
         ];
     }

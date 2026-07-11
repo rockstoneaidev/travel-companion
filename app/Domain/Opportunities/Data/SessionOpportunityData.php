@@ -31,5 +31,7 @@ final readonly class SessionOpportunityData
         public ?CarbonImmutable $windowStartsAt,
         public ?CarbonImmutable $windowEndsAt,
         public CarbonImmutable $expiresAt,
+        public ?string $recommendationId = null,   // E7: the trace row feedback posts against
+        public ?float $walkMinutes = null,         // Stage-A final approach (reachability trace)
     ) {}
 }

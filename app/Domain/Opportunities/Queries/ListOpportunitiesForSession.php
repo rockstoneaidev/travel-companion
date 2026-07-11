@@ -102,6 +102,10 @@ final class ListOpportunitiesForSession
                 windowStartsAt: $opportunity->window_starts_at,
                 windowEndsAt: $opportunity->window_ends_at,
                 expiresAt: $opportunity->expires_at,
+                recommendationId: $recommendation->id,
+                walkMinutes: isset($recommendation->score_inputs['reachability']['travel_min'])
+                    ? (float) $recommendation->score_inputs['reachability']['travel_min']
+                    : null,
             );
         }
 

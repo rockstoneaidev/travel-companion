@@ -78,5 +78,7 @@ export interface SessionOpportunity {
         ends_at: string | null;
     };
     expires_at: string;
+    recommendation_id: string | null;
+    walk_minutes: number | null;
     place: Place;
 }
