@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -8,9 +10,12 @@ use Tests\TestCase;
 | Test Case
 |--------------------------------------------------------------------------
 |
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
+| Feature tests get the application TestCase and a transactional database.
+| Unit tests get neither — if a "unit" test needs the database, it belongs in
+| Feature. See docs/conventions/11-testing.md.
+|
+| The database is real PostgreSQL + PostGIS + pgvector, not SQLite: the geo and
+| vector columns this product is built on cannot exist on SQLite.
 |
 */
 
@@ -23,28 +28,12 @@ pest()->extend(TestCase::class)
 | Expectations
 |--------------------------------------------------------------------------
 |
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
+| Project-specific expectations. Keep them few and meaningful.
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
+expect()->extend('toBeIso8601', function () {
+    expect($this->value)->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)$/');
+
+    return $this;
 });
-
-/*
-|--------------------------------------------------------------------------
-| Functions
-|--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
-|
-*/
-
-function something()
-{
-    // ..
-}

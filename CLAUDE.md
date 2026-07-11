@@ -15,7 +15,7 @@ Read before designing or implementing anything:
 
 ## Stack & tooling
 
-- **Backend:** Laravel 13, PHP 8.5. Auth via the Laravel React starter kit (Inertia). API tokens via Sanctum. Queues via Horizon. Lint: Pint. Tests: PHPUnit, class-based, run against real PostgreSQL/PostGIS/pgvector (see `docs/conventions/11-testing.md` — SQLite cannot host the geo/vector columns this product is built on).
+- **Backend:** Laravel 13, PHP 8.5. Auth via the Laravel React starter kit (Inertia). API tokens via Sanctum. Queues via Horizon. Lint: Pint. Tests: Pest 4 (on PHPUnit 12), run against real PostgreSQL/PostGIS/pgvector — SQLite cannot host the geo/vector columns this product is built on. `tests/Arch/ConventionsTest.php` enforces `docs/conventions/` in CI. See `docs/conventions/11-testing.md`.
 - **Frontend:** React 19 + TypeScript, Inertia 2, Vite 8, Tailwind 4, shadcn/ui (in `resources/js/components/ui`). Lint: ESLint; format: Prettier.
 - **Data:** PostgreSQL 18 + PostGIS + pgvector (custom image, `deployment/docker/postgres/`). Redis (shared on staging — keys are prefixed `travel_`).
 - **Commands:** `composer run dev` (all-in-one local), `composer test`, `npm run {lint,typecheck,format:check}`, `docker compose up --build`.

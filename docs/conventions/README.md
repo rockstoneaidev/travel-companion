@@ -28,6 +28,15 @@ Read `01` before writing any code. After that, read the document that matches wh
 | [11](11-testing.md) | Testing | Always, eventually. |
 | [12](12-caching-and-tiles.md) | Caching & tile keys | Anything cached, especially scout results. |
 
+## These rules are enforced, not just written down
+
+`tests/Arch/ConventionsTest.php` turns the structural rules below into failing builds — the module
+boundary, transport-agnostic domain code, thin controllers and jobs, string-backed enums, readonly
+DTOs, strict types. Run them with `vendor/bin/pest --testsuite=Arch` (sub-second).
+
+When you add a convention here, ask whether it can be an `arch()` rule. If it can, it should be —
+a rule a reviewer has to remember is a rule that gets broken.
+
 ## The five rules that outrank everything else
 
 If you remember nothing else from these documents:
