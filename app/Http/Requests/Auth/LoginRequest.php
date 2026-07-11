@@ -42,7 +42,10 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Persistent login is unconditional (product decision): the session may
+        // expire, but the remember cookie transparently re-authenticates. A
+        // travel companion must not show a login wall mid-trip.
+        if (! Auth::attempt($this->only('email', 'password'), remember: true)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

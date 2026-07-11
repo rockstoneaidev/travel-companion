@@ -85,6 +85,11 @@ Two hard rules, both enforced in code and tests:
 - **Permission names are checked via `can:`** middleware / `$user->can()`, which spatie wires into
   the Gate — no `hasRole()` checks outside the `Gate::before` definition itself.
 
+Sessions are persistent by design (logins are always remembered — `LoginRequest`), so when the
+dangerous write surfaces land (role changes exist today; position emulation, privacy operations
+and scoring config are coming), put Laravel's `password.confirm` middleware on those routes:
+eternal convenience everywhere, a real password check at the moment it matters.
+
 ## 4. Where the code lives
 
 Admin is the third HTTP delivery surface beside `Web/` and `Api/V1` (conventions/04). Same
