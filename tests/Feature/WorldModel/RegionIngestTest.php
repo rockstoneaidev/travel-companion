@@ -8,6 +8,7 @@ use App\Domain\Sources\Models\TileCacheState;
 use App\Domain\Sources\Services\RegionIngest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -71,7 +72,7 @@ it('re-running the same region refreshes rows instead of duplicating them', func
 });
 
 it('reports overture as unsupported (degraded, not failed) when no extract exists', function () {
-    \Illuminate\Support\Facades\Storage::fake('local'); // the real disk may hold a downloaded extract
+    Storage::fake('local'); // the real disk may hold a downloaded extract
 
     $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm-test'), 'overture');
 

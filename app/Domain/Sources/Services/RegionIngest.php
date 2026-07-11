@@ -6,6 +6,7 @@ namespace App\Domain\Sources\Services;
 
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Data\SourceDescriptor;
 use App\Domain\Sources\Exceptions\StoragePolicyViolation;
 use App\Domain\Sources\Models\TileCacheState;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,7 @@ final class RegionIngest
     }
 
     /** @param list<array{0: array<string, mixed>, 1: string}> $chunk */
-    private function upsertChunk(array $chunk, string $sourceKey, \App\Domain\Sources\Data\SourceDescriptor $descriptor, string $now): void
+    private function upsertChunk(array $chunk, string $sourceKey, SourceDescriptor $descriptor, string $now): void
     {
         $rows = [];
         $bindings = [];

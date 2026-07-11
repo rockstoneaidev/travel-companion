@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Places\Contracts\TileIndexer;
+use App\Domain\Places\Services\PostgresTileIndexer;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
@@ -16,8 +18,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(
-            \App\Domain\Places\Contracts\TileIndexer::class,
-            \App\Domain\Places\Services\PostgresTileIndexer::class,
+            TileIndexer::class,
+            PostgresTileIndexer::class,
         );
     }
 
