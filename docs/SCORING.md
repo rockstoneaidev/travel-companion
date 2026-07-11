@@ -97,8 +97,9 @@ All formulas are built from four deterministic primitives (one small pure-PHP su
 clamp(x)        max(0, min(1, x))
 ramp(x, a, b)   0 below a, 1 above b, linear between        — piecewise-linear, debuggable
 decay(t, H)     2^(−t / H)                                   — half-life decay
-pct_tile(x)     percentile rank of x among places in the same H3 neighborhood (k-ring 1),
-                computed once at tile-cache time and cached with the tile
+pct_tile(x)     percentile rank of x among places in the same H3 neighborhood (k-ring 1 at
+                res 8; sparse-tile expansion rules in conventions/12), computed once at
+                tile-cache time and cached with the tile
 ```
 
 Piecewise-linear ramps over sigmoids everywhere except time decay: a v1 heuristic must be easy to

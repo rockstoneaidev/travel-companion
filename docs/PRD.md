@@ -230,7 +230,17 @@ The MVP exists to answer four questions:
 Before trusting the automated pipeline, prove the experience manually:
 
 - **Concierge test:** for 2–3 real trips (founders/friends), a human plays the companion over a messaging app, using unlimited time and any source. If a human with unlimited time cannot produce magic moments, the automated system will not. Output: a validated quality bar and a corpus of "gold" opportunities.
-- **Launch region selection:** pick **one region** (e.g., Burgundy or Provence) and build a dense, partly hand-curated long-tail content layer for it (§9.4).
+- **Launch regions — DECIDED (2026-07-11):** two founder-ground-truthed contexts instead of one
+  abstract region:
+  1. **Stockholm (test region, immediately):** the founder's home base (Liljeholmen) — daily-use
+     test loops to validate the pipeline, app, and curation flow end-to-end before the trip.
+  2. **The France-trip corridor (pilot):** the founders' real trip, **July 27 – Aug 7, 2026** —
+     Paris → Nantes (2n) → Bordeaux → Toulouse → Nice/Riviera (2n) → Lyon → Dijon/Burgundy →
+     Paris (2n). The trip *is* the concierge test and the first live pilot; Dijon puts the PRD's
+     own Burgundy-vineyard thesis on the itinerary. Curation is nights-weighted per city —
+     pack plan and effort budget in [CURATION.md](CURATION.md) §4.
+  Principle 7 ("content density before generalization") is thereby refined: density where the
+  founders can *ground-truth it in person*, not density in the abstract.
 - **Trip replayer:** build the trace-replay harness (§15.2) as one of the first engineering artifacts.
 
 **Exit criteria:** ≥1 "would have missed this" moment per concierge trip-day; curated layer covering the launch region; replayer runs a recorded trace end-to-end.
@@ -460,6 +470,22 @@ independent alternatives, not an itinerary — §8.1); it does not divide the bu
 [TAXONOMY.md](TAXONOMY.md) §2), optionally overridden by opportunity signals (a quick photo stop vs.
 a guided tour).
 
+**Travel-time strategy (tiered — v1 decision).** The gate needs a travel time for *every* candidate
+in scope; per-candidate routing calls would blow the cost model (§14.3). So:
+
+- **Stage A (gate + friction, all candidates):** estimator, free and in-DB — PostGIS distance ×
+  mode speed × a path factor. v1 constants (in `config/scoring.php`): walking 4.5 km/h × 1.30;
+  driving ~40 km/h effective urban / faster rural × 1.35. Session mode is declared (walk default;
+  drive selectable — Burgundy vineyards aren't walkable).
+- **Stage B (precision where it's shown):** real routing **only** for the 3–5 served items'
+  displayed `walk_minutes` and for destination-mode `detour_minutes` — ≤ ~6 Google Routes calls per
+  session, edge-only (conventions/09), cached per (place, origin res-9 tile, mode) with short TTL.
+- Self-hosted OSRM/Valhalla on the OSM extract replaces Google in Stage B as the Phase 2 cost lever
+  (DATA-SOURCES §9); the `Routing` port makes that a swap, not a rewrite.
+
+Estimator error (±20–30%) is acceptable at the gate because the ceiling already includes dwell and
+the menu is alternatives, not a schedule; the numbers a user actually *sees* are Stage-B real.
+
 **Opportunity state machine (makes the system debuggable):**
 
 ```text
@@ -581,7 +607,11 @@ Opportunities that don't clear the push/feed bar don't die — they surface in a
 
 ### 13.1 Client strategy
 
-- **Phase 1:** React web app / PWA (or minimal Expo shell) — foreground geolocation, no app-store friction, fastest iteration. Sufficient because Phase 1 is pull-only. *Decision gate at Phase 1 start: PWA vs. Expo shell, based on pilot-user install friction tolerance.*
+- **Phase 1 — DECIDED (2026-07-11): a single responsive Inertia/React app, installable as a PWA.**
+  One codebase serves both surfaces: mobile-first UI installed to the home screen on the trip
+  (manifest + service worker, foreground geolocation), and the same UI as a desktop web app —
+  explicitly desired, not an afterthought. No Expo shell, no app store. This rides the existing
+  Laravel + Inertia 2 + React 19 scaffold directly.
 - **Phase 2:** background behavior, battery, permission UX, and notification quality are make-or-break — move to native Swift/Kotlin **or** React Native with a mature native background-geolocation SDK. This decision is explicitly deferred until Phase 1 proves quality.
 
 ### 13.2 Onboarding taste calibration (cold start)
@@ -861,6 +891,22 @@ Honest permission UX     Ask for background location (P2) only when the user
                          understands the benefit. No dark patterns.
 ```
 
+**Concrete v1 retention & suppression policy** (numbers, not adjectives — versioned in
+`config/privacy.php` like every other constant set):
+
+- **Raw precise location** (context events, session origins): retained **30 days**, then coarsened
+  to H3 res-8 cell + derived signals (movement mode, dwell class); the precise coordinates are hard-
+  deleted. Trip-level deletion (§14.5) removes raw *and* derived location data immediately.
+- **Recommendation traces** (§15): kept indefinitely for replay, but their location fields are
+  coarsened to H3 res-8 on the same 30-day schedule — **except** accounts with explicit research
+  consent (founders/pilot users), whose full-precision traces feed the gold-trace suite (§15.2).
+- **Sensitive-zone suppression, Phase 1 scope:** a **user-declared home zone** (default radius
+  300 m) — no learning signals, no context storage beyond coarse presence, no opportunities served
+  inside it. Relevant immediately: Stockholm testing happens from the founder's actual home base.
+  *Automatic* home/work inference is Phase 2 (it needs background patterns Phase 1 doesn't collect).
+- Facet weights and profile signals persist until account deletion or an explicit "reset my taste
+  profile" (both Phase 1 API features).
+
 **GDPR specifics (launch region is the EU — this is day-one, not later):**
 
 - Article 5 principles: data minimisation, storage limitation, integrity/confidentiality, accountability — reflected in the retention and precision designs above.
@@ -890,9 +936,11 @@ Positioning upside: *"Your travel memory belongs to you"* is a differentiator, n
 
 ## 18. Open questions
 
-1. Launch region: Burgundy vs. Provence vs. another candidate — decide on curated-source availability + founder access for ground-truthing.
-2. Phase 1 client: PWA vs. minimal Expo shell (decision gate at Phase 1 start).
-3. Curation tooling: admin UI scope for the curated layer (build minimal in Phase 1).
+1. ~~Launch region.~~ **Resolved (§8.0):** Stockholm test region + the France-trip corridor
+   (Jul 27 – Aug 7, 2026) as pilot; pack plan in CURATION.md §4.
+2. ~~Phase 1 client.~~ **Resolved (§13.1):** single responsive Inertia/React app, installable PWA;
+   same UI on desktop web.
+3. Curation tooling: admin UI scope for the curated layer (build minimal in Phase 1 — sequenced in ADMIN.md; pipeline in CURATION.md).
 4. Cost ceiling per trip-hour: instrument first, then set the target (Phase 1, week ~4).
 5. ~~Visit detection heuristics in a foreground-only client.~~ **Resolved (§7.1, §13.3):** Phase 1 uses explicit confirmation + foreground proxies (a sparse, high-quality golden label; the north star is accordingly part self-reported in Phase 1); passive dwell detection is Phase 2. Only the exact proxy thresholds remain, to tune against pilot data.
 6. Monetization (subscription vs. premium regions vs. B2B tourism boards) — explicitly out of scope for this PRD; revisit after Phase 1 exit criteria are met.
@@ -911,8 +959,11 @@ Realtime:       (P2) Laravel Reverb, foreground only
 Push:           (P2) FCM cross-platform; APNs direct if needed later
 Maps/Places:    Google Places + Routes initially
 Long-tail:      OSM/Overpass, Wikipedia geosearch, Wikidata, curated layer, local sources
-LLM:            One provider; evidence-based summarization/comparison/wording;
-                cheap tier for routine work, capable tier for decisions
+LLM:            Google Gemini (DECIDED 2026-07-11; API key in hand), behind the swappable
+                LlmClient port (conventions/10). Tiers: cheap/routine (facet tagging,
+                translation, summaries) = gemini-3.1-flash-lite; capable (comparison,
+                "why now" wording, pack drafting) = gemini-3.5-flash; gemini-3.1-pro
+                reserved for escalation. Verify current model IDs at implementation.
 Client:         P1: React web/PWA or Expo shell · P2: native or RN + native geolocation SDK
 Storage:        S3-compatible object storage
 ```

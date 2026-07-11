@@ -12,6 +12,9 @@ Read before designing or implementing anything:
 - `docs/TAXONOMY.md` — the categorisation taxonomy (Type axis + appeal facets); load-bearing for onboarding, scoring, and learning. Implemented as enums per `conventions/02`.
 - `docs/SCORING.md` — the scoring model: every PRD §11 sub-score's v1 formula, constants, penalties, cold-start weight interpolation, and feed selection. Authoritative for implementing ranking.
 - `docs/ADMIN.md` — the admin & operations console: roles/permissions model, the `app/Admin/` platform namespace, section map, position-emulation design. Authoritative for anything under `/admin`.
+- `docs/ENTITY-RESOLUTION.md` — the v1 matching/merge algorithm behind the canonical `places` table (explicit-ID joins → blocked fuzzy matching → survivorship; `resolver_version`).
+- `docs/CURATION.md` — curated layer + Regional Knowledge Packs: schema, LLM-draft→ground→review pipeline, and the decided pack plan (Stockholm test + France-trip corridor).
+- `docs/ONBOARDING.md` — the taste-calibration content (9 facet-separating pairs + 2 practical questions; `calibration_version`).
 - `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
 - `docs/conventions/` — **how the code is shaped.** Read `docs/conventions/01-domain-modules.md` before writing any code, then the document matching what you're touching (enums, migrations, controllers, jobs, source adapters, LLM calls, testing, caching). These are binding; flag conflicts rather than deviating.
 
@@ -54,4 +57,5 @@ These are decided. Do not re-litigate them in implementation; flag explicitly if
 
 - GitHub remote: `rockstoneaidev/travel-companion` (HTTPS). Auth goes through `gh`; the active `gh` account must be **rockstoneaidev** (`gh auth switch --user rockstoneaidev` if pushes 403 as another account).
 - Repo-local `user.email` is `rockstoneaidev@gmail.com` — keep it for commit attribution.
-- Docs style: keep PRD/DATA-SOURCES/ODBL-REVIEW/TAXONOMY/SCORING cross-references intact when editing any of them; they link to each other's section numbers.
+- Docs style: keep PRD/DATA-SOURCES/ODBL-REVIEW/TAXONOMY/SCORING/ENTITY-RESOLUTION/CURATION/ONBOARDING cross-references intact when editing any of them; they link to each other's section numbers.
+- Decisions log (2026-07-11): launch = Stockholm test region + France-trip corridor pilot, Jul 27–Aug 7 (PRD §8.0) · client = single responsive Inertia PWA (PRD §13.1) · H3 res 8 (conventions/12) · travel time = estimator gate + edge routing for served items only (PRD §10) · LLM = Gemini behind the LlmClient port, cheap=flash-lite / capable=3.5-flash (PRD Appendix A).

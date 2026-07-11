@@ -17,6 +17,20 @@ Two consequences that must be respected everywhere:
 2. **A ranked, personalized result is never written back into a shared cache.** Rank into a
    per-user structure or not at all.
 
+## Resolution (DECIDED 2026-07-11)
+
+- **Canonical tile: H3 resolution 8** (avg hex ≈ 0.74 km², edge ≈ 460 m) — the scout/cache unit and
+  the coarsening target for privacy retention (PRD §16). City-block-scale sharing without rural
+  tiles going empty.
+- **Session coverage:** the tiles scouted for a session = the res-8 k-ring covering the session's
+  reachable radius (from `time_budget_minutes` × mode speed — PRD §10 Stage A constants).
+- **Uniqueness neighborhood** (`pct_tile`, SCORING §3): **k-ring 1 at res 8** (7 hexes ≈ 5.2 km²).
+  Sparse fallback: if the neighborhood holds < 30 places, expand k-ring stepwise (max k = 3) before
+  computing percentiles — rural Burgundy must not produce percentile ranks over 4 places.
+- **Blocking for entity resolution** uses res 9 k-ring 1 (~350 m) — see ENTITY-RESOLUTION.md §3.
+- Constants live in `config/tiles.php`, versioned like everything else. Store the index as string
+  (`h3_index`, [03](03-migrations-and-schema.md)).
+
 ## Redis
 
 Redis is **shared infrastructure on staging** (`docs/SERVER-DEPLOYMENT.md`), so all keys are

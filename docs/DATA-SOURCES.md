@@ -158,7 +158,22 @@ If the launch region is French, the original source list missed the three best s
 | **OpenAgenda** | Open event data, dense in France | Local events beyond Ticketmaster's mainstream |
 | Supporting cast | **Météo-France** open data · **SHOM** (tides) · **IGN** (open geodata, hiking) · **data.gouv.fr** (markets, heritage, trails) · local press RSS (Le Bien Public, JSL for Burgundy) · **Guide Michelin/Green Guide as curation reference only** | |
 
-**Action:** launch-region choice (PRD §18.1) should weigh open-data richness. France's open tourism data is unusually good — a genuine argument for Burgundy/Provence over regions with closed data.
+**Resolved (PRD §8.0, 2026-07-11):** the pilot is the founders' France trip corridor (Paris, Nantes,
+Bordeaux, Toulouse, Nice, Lyon, Dijon/Burgundy — Jul 27–Aug 7 2026), so the French sources above are
+confirmed P1 adapters. Pack plan: [CURATION.md](CURATION.md) §4.
+
+### 7.1 Test-region addendum: Stockholm
+
+Development and daily testing run from Stockholm (Liljeholmen base) before the trip. Sweden needs no
+new adapter *class* — the global open core (OSM is excellent in Sweden, Overture, Wikidata,
+Wikivoyage) carries it — plus, worth wiring where cheap:
+
+| Source | Notes |
+|---|---|
+| **visitstockholm.se events** | Municipal event calendar (Layer 2 pattern) |
+| **K-samsök / Riksantikvarieämbetet** | Swedish national heritage aggregator, open API — the Swedish counterpart to Mérimée |
+| **Stockholms stad open data** | Parks, baths, public art |
+| **SMHI open data** | Swedish met authority (weather layer, free API) |
 
 ---
 
