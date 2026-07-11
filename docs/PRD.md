@@ -245,6 +245,19 @@ The user opens the app and says, in effect: *"I'm exploring for the next 3 hours
 2. Learns from accept / ignore / save / dismiss / visited behavior.
 3. Offers a **daily digest**: a morning "today near you" view and evening recap of opportunities that were found but not surfaced (§12.4).
 
+**The feed is a menu, not an itinerary.** The 3–5 opportunities are *independent alternatives*, each
+of which on its own fits within the stated time — the budget is a per-item feasibility **ceiling**,
+not a pool split across items. (This product is explicitly not an itinerary planner, §1.2; "how is
+the budget divided across items?" is the wrong question — it isn't.) The user picks one; doing it and
+re-opening the app yields a fresh menu scored against the **remaining** budget, so multi-stop
+afternoons emerge from repeated picks without the app ever committing to a sequence. Per-item
+feasibility — round-trip in pure-radius mode, continue-to-destination when a destination is set — is
+the **reachability gate** (§10 step 8). The session inputs it reads — origin, `time_budget_minutes`,
+optional `heading` / `destination_point` — are defined in §6.6, and that optional direction is what
+"along the stated direction" above refers to. The budget also shapes the menu's *composition* — a
+spread of quick-win → big-rock durations, so a 45-minute budget surfaces quick things and a full day
+surfaces ambition (SCORING.md §7) — but menu size stays 3–5 regardless (scarcity, §12.1).
+
 **In scope:**
 - Explore Sessions ("I have N hours") as the primary interaction, foreground location only; Trips created **implicitly** around sessions (§6.6) — no mandatory trip-creation step. Optional explicit trip pre-creation for planners.
 - Full backend pipeline: context ingestion → scouts → normalize → dedupe → enrich → score → serve (§10).
@@ -440,6 +453,12 @@ cached per H3 tile** (§9.3); only steps 8–9 run per user at request time. The
 it is a filter, not a scoring weight. Distance then plays a *second, softer* role inside `friction_penalty`
 (§11) — "among the ones I can reach, closer is nicer" — with no double-counting, because the gate
 decides *membership* and the penalty decides *ordering*.
+
+The gate tests each candidate against the budget as a **per-item ceiling** (the feed is a menu of
+independent alternatives, not an itinerary — §8.1); it does not divide the budget across items.
+`typical dwell` comes from the candidate's `PlaceType` default (`typicalDwellMinutes()`,
+[TAXONOMY.md](TAXONOMY.md) §2), optionally overridden by opportunity signals (a quick photo stop vs.
+a guided tour).
 
 **Opportunity state machine (makes the system debuggable):**
 

@@ -322,9 +322,11 @@ weighting. `scoring_model_version` records which vector and which α produced ev
 
 ## 7. Feed selection (greedy, diversity-aware)
 
-The 3–5 item feed (PRD §12.1) is selected greedily, which is where the selection-time
-`repetition_penalty` (§5.2) and the cold-start diversification requirement (PRD §11 rule (c)) both
-live:
+The 3–5 item feed (PRD §12.1) is a **menu of independent alternatives, not an itinerary** (PRD §8.1):
+each item already cleared the reachability gate on its own, so selection never checks whether the set
+*collectively* fits the budget. It is selected greedily, which is where the selection-time
+`repetition_penalty` (§5.2), the cold-start diversification requirement (PRD §11 rule (c)), and
+duration variety all live:
 
 ```text
 picked = []
@@ -332,11 +334,17 @@ while |picked| < feed_size and candidates remain:
     score every remaining candidate with repetition_raw(c | picked)
     cold sessions (α < 0.7) additionally: skip candidates whose facet set is a subset
         of facets already covered by picked items, unless fewer than 2 candidates remain
+    duration variety: prefer spanning short / medium / long total-time buckets
+        (travel + typicalDwellMinutes) so the menu fits the budget's SIZE — a 45-min
+        budget yields quick wins, a full day yields ambition; a soft tie-breaker among
+        near-equal scores, never an override of a clearly better item
     pick the argmax; append to picked
 ```
 
 The cold-session facet-coverage rule maximizes learning per session — each served item probes facet
-weights the session hasn't probed yet — and expires on its own as α grows.
+weights the session hasn't probed yet — and expires on its own as α grows. The duration-variety
+tie-breaker is what lets one small feed serve both "I have 45 minutes" and "I have all day" without
+splitting the budget or planning a route.
 
 ---
 

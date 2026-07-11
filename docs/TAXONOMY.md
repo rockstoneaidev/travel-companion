@@ -52,7 +52,10 @@ learned — that is facets (§4). Type needs the specificity that facets deliber
 ### 2.1 Domains and leaves (v1)
 
 Leaf lists are v1 starting points, to be refined against real Overture/OSM coverage in the launch
-region. Implemented as [`PlaceType`](#6-implementation) with a `domain()` method.
+region. Implemented as [`PlaceType`](#6-implementation) with `domain()`, `baseFacets()`, and
+`typicalDwellMinutes()` methods — the last being the default time a visit takes (viewpoint ≈ 15,
+museum ≈ 90, winery ≈ 60, bakery ≈ 10), which the reachability gate (PRD §10 step 8) needs to test
+"fits in my remaining time" and which an opportunity may override from its own signals.
 
 | Domain (`PlaceTypeDomain`) | Leaf types (`PlaceType`, representative) |
 |---|---|
@@ -211,7 +214,7 @@ Per [conventions/02-enums.md](conventions/02-enums.md): **native PHP backed stri
 | Enum | Location | Notes |
 |---|---|---|
 | `PlaceTypeDomain` | `app/Domain/Places/Enums/PlaceTypeDomain.php` | ~10 cases + `practical` (P2). `label()`. |
-| `PlaceType` | `app/Domain/Places/Enums/PlaceType.php` | ~65 cases. `domain(): PlaceTypeDomain` and `baseFacets(): array` methods. |
+| `PlaceType` | `app/Domain/Places/Enums/PlaceType.php` | ~65 cases. `domain(): PlaceTypeDomain`, `baseFacets(): array`, and `typicalDwellMinutes(): int` (default visit duration for the reachability gate, PRD §10) methods. |
 | `AppealFacet` | `app/Enums/AppealFacet.php` | **Cross-module** (Places tags, Profiles weights, Recommendations scoring, Curation) — belongs in `app/Enums`, like `SourceLicense`. |
 
 `OpportunityKind` (the opportunity `kind` field) is a **separate** enum
