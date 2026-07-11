@@ -211,10 +211,13 @@ JOURNAL**. Active = ink 600; inactive = muted 500. On desktop (§4) it becomes a
 
 - **Mobile-first (~400px design width).** This is the primary surface, installed as a PWA on the
   trip.
-- **Desktop/tablet (≥ 1024px):** the same screens in a two-pane layout — persistent left rail
-  (wordmark + NOW/MAP/KEPT/JOURNAL + context stamp), content column max-width ~28rem, and the MAP
-  pane persistent to the right of the feed where it adds value. Never stretch cards full-width;
-  the column *is* the design.
+- **Mid widths (≥ 640px, e.g. iPad portrait):** the phone layout, centered — content column
+  max-width ~28rem with generous paper margins, bottom tab bar retained. Never a half-stretched
+  hybrid.
+- **Desktop / iPad landscape (≥ 1024px):** the same screens in a two-pane layout — persistent left
+  rail (wordmark + NOW/MAP/KEPT/JOURNAL + context stamp) replaces the bottom tab bar, content
+  column max-width ~28rem, and the MAP pane persistent to the right of the feed where it adds
+  value. Never stretch cards full-width; the column *is* the design.
 - **PWA:** manifest (name = wordmark token, `background_color` paper, `theme_color` paper per
   scheme), installable, service worker for shell caching. Foreground-only geolocation (PRD §8.1).
 - Touch targets ≥ 44px despite the small type. Respect safe-area insets (tab bar sits above them).
