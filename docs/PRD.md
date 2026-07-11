@@ -299,6 +299,14 @@ PracticalScout     Toilets, charging, pharmacies, transport disruptions, shelter
 NewsLocalScout     Temporary openings, closures, local happenings, strikes, alerts. (Phase 2)
 ```
 
+> **Discovery ≠ scoring.** `RouteDetourScout` is a *discovery* mechanism — it uses a route to
+> *find* candidates along a corridor, and it is Phase 2. Do not confuse it with the `route_fit`
+> *scoring* term (§11), which merely rates an already-found candidate by how well it fits the user's
+> trajectory. Scoring by route fit needs only a route/destination plus friction enrichment
+> (`CalculateRouteFrictionJob`, Phase 1-capable), so `route_fit` is active whenever a session has a
+> destination — including in Phase 1 — even though corridor *scouting* is not. They are different
+> pipeline stages.
+
 Every scout implements a common contract and returns candidates in one shared internal format, making sources pluggable without touching the recommendation engine:
 
 ```php
@@ -401,14 +409,24 @@ UserIsNearSavedOpportunity (Phase 2), TripEnded
  3. Run scouts          Check tile cache first; run only stale/missing scouts.
  4. Normalize           All sources -> shared candidate format.
  5. Deduplicate         Entity resolution against canonical places (§9.6).
- 6. Enrich              Opening hours, price, route friction, photos, credibility.
- 7. Embed               Semantic representation stored (pgvector); used for
+ 6. Enrich              Opening hours, price, walk/route friction, photos, credibility.
+ 7. Reachability gate   HARD FILTER (§11): keep only candidates reachable AND
+                        experienceable within the remaining time budget —
+                        travel + typical dwell + return (pure-radius) or
+                        continue-to-destination (destination mode). Unreachable
+                        candidates are EXCLUDED here, never merely down-ranked.
+ 8. Embed               Semantic representation stored (pgvector); used for
                         dedup/distinctiveness in MVP, taste-matching in Phase 2+.
- 8. Score               Composite score (§11).
- 9. Decide              Serve in feed / hold for digest / watch / discard.
+ 9. Score               Composite score (§11), using the context-appropriate weight vector.
+10. Decide              Serve in feed / hold for digest / watch / discard.
                         (Phase 2 adds: push now / register geofence.)
-10. Learn               Feedback updates profile and future ranking.
+11. Learn               Feedback updates profile and future ranking.
 ```
+
+The **reachability gate** (step 7) is what makes "I have 3 hours" actually constrain the feed:
+it is a filter, not a scoring weight. Distance then plays a *second, softer* role inside `friction_penalty`
+(§11) — "among the ones I can reach, closer is nicer" — with no double-counting, because the gate
+decides *membership* and the penalty decides *ordering*.
 
 **Opportunity state machine (makes the system debuggable):**
 
@@ -429,24 +447,53 @@ ACCEPTED -> { VISITED | ABANDONED }
 
 ## 11. Ranking & scoring
 
-Ranking is never "nearest + highest rating." Composite score, v1:
+Ranking is never "nearest + highest rating." It runs only over candidates that survived the
+**reachability gate** (§10 step 7) — scoring orders the reachable set, it does not decide membership.
+
+**There is no single universal weight vector — the vector is context-gated.** Two terms only exist
+in some contexts: `route_fit` requires a route/destination (see below), and `interruption_penalty`
+is Phase 2 only. So we publish and version (`scoring_model_version`) a vector *per context* rather
+than pretend one is phase-agnostic.
+
+**Route/destination context** (a Phase 1 destination-mode session, or any Phase 2 route) — v1:
 
 ```text
 OpportunityScore =
     personal_fit       * 0.30
   + uniqueness         * 0.20
   + temporal_urgency   * 0.15
-  + route_fit          * 0.15
+  + route_fit          * 0.15      (from detour_minutes — how "on the way" it is)
   + novelty            * 0.10
   + confidence         * 0.10
-  - friction_penalty        (distance, queue, cost, weather, effort)
-  - interruption_penalty    (would this be annoying right now?)  [Phase 2]
-  - repetition_penalty      (too many churches/cafés today?)
+  - friction_penalty               (queue, cost, weather, effort, final-approach walk)
+  - interruption_penalty           (would this be annoying right now?)  [Phase 2]
+  - repetition_penalty             (too many churches/cafés today?)
 ```
+
+**Pure-radius context** (the common Phase 1 case: "I have 3 hours *here*", no direction) — `route_fit`
+is undefined (there is no trajectory to fit), so it is dropped and its weight renormalised across the
+positive terms — v1:
+
+```text
+OpportunityScore =
+    personal_fit       * 0.35
+  + uniqueness         * 0.23
+  + temporal_urgency   * 0.18
+  + novelty            * 0.12
+  + confidence         * 0.12
+  - friction_penalty               (walk_minutes-based: closer is nicer, among the reachable)
+  - repetition_penalty
+```
+
+**Geometry has two fields, never double-counted.** The opportunity's `friction` object carries both
+`walk_minutes` (absolute, from where the user is) and `detour_minutes` (route-relative, only present
+with a route/destination). `friction_penalty` reads `walk_minutes`; `route_fit` reads
+`detour_minutes`. In pure-radius context `detour_minutes` is null, which is *why* `route_fit` is
+absent there — not an arbitrary phase rule.
 
 **Rules:**
 
-- Weights are v1 heuristics. **All sub-scores are stored per recommendation** (§15) so weights can be fit offline against real acceptance data later. `scoring_model_version` is recorded on every score.
+- Both vectors are v1 heuristics. **All sub-scores are stored per recommendation** (§15) so weights can be fit offline against real acceptance data later. `scoring_model_version` records which vector produced a given score.
 - **`personal_fit` is computed over appeal facets** (§6.5, [TAXONOMY.md](TAXONOMY.md)): roughly the match between the user's learned facet weights and the opportunity's facet set. Learning on ~14 shared facets rather than ~65 place types is what lets a handful of signals generalise to unseen places.
 - **Cold-start handling (required, not optional):** `personal_fit` is undefined for a new user — exactly when we must impress them. Until sufficient signal exists: (a) seed the user's facet weights from onboarding calibration priors (§13.2), (b) re-weight toward `uniqueness + temporal_urgency + confidence`, (c) diversify the served set across facets/types to maximize learning per session.
 - `confidence` reflects source credibility, freshness, and cross-source agreement — never LLM certainty.
