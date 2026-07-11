@@ -1,11 +1,15 @@
 <?php
 
 use App\Admin\Exceptions\OperatorCannotModifyOwnRoles;
+use App\Domain\Context\Exceptions\ExploreSessionNotAcceptingEvents;
+use App\Domain\Trips\Exceptions\ExploreSessionAlreadyEnded;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,7 +30,23 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Domain/platform exceptions map to HTTP once, here (conventions/01).
+        // The domain never knows it is behind HTTP; both delivery surfaces get
+        // their answer from this one place.
         $exceptions->render(function (OperatorCannotModifyOwnRoles $e) {
             return back()->withErrors(['roles' => $e->getMessage()]);
+        });
+
+        // A session that is already over: the request is well-formed but the
+        // state forbids it → 409.
+        $exceptions->render(function (ExploreSessionAlreadyEnded $e, Request $request) {
+            return $request->expectsJson()
+                ? response()->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT)
+                : back()->withErrors(['explore_session' => $e->getMessage()]);
+        });
+
+        $exceptions->render(function (ExploreSessionNotAcceptingEvents $e, Request $request) {
+            return $request->expectsJson()
+                ? response()->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT)
+                : back()->withErrors(['explore_session' => $e->getMessage()]);
         });
     })->create();
