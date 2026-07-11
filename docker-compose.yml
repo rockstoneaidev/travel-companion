@@ -71,6 +71,10 @@ services:
   adminer:
     image: adminer
     restart: unless-stopped
+    environment:
+      # Pre-fill the login form's Server field with the postgres service name
+      # (inside the compose network, "localhost" would be Adminer itself).
+      ADMINER_DEFAULT_SERVER: postgres
     ports:
       - '${ADMINER_PORT:-8080}:8080'
     depends_on:
