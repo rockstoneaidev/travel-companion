@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Domain\Feedback\Enums\FeedbackEvent;
+use App\Domain\Opportunities\Enums\OpportunityKind;
+use App\Domain\Places\Enums\PlaceType;
+use App\Domain\Places\Enums\PlaceTypeDomain;
+use App\Domain\Trips\Enums\TravelMode;
+use App\Enums\AppealFacet;
 use App\Enums\Permission;
 use App\Enums\Role;
 
@@ -34,4 +40,28 @@ it('mirrors Role in resources/js/types/enums.ts', function () use ($tsConstValue
 
 it('mirrors Permission in resources/js/types/enums.ts', function () use ($tsConstValues) {
     expect($tsConstValues('PERMISSIONS'))->toBe(Permission::values());
+});
+
+it('mirrors AppealFacet in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('APPEAL_FACETS'))->toBe(AppealFacet::values());
+});
+
+it('mirrors PlaceTypeDomain in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('PLACE_TYPE_DOMAINS'))->toBe(PlaceTypeDomain::values());
+});
+
+it('mirrors PlaceType in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('PLACE_TYPES'))->toBe(PlaceType::values());
+});
+
+it('mirrors OpportunityKind in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('OPPORTUNITY_KINDS'))->toBe(OpportunityKind::values());
+});
+
+it('mirrors TravelMode in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('TRAVEL_MODES'))->toBe(TravelMode::values());
+});
+
+it('mirrors FeedbackEvent in resources/js/types/enums.ts', function () use ($tsConstValues) {
+    expect($tsConstValues('FEEDBACK_EVENTS'))->toBe(FeedbackEvent::values());
 });
