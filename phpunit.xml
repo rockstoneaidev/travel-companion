@@ -23,8 +23,10 @@
         <env name="ALLOWED_REGISTRATION_EMAILS" value=""/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!-- Real Postgres: PostGIS/pgvector columns cannot exist on SQLite. See docs/conventions/11-testing.md.
+             Host/port/credentials are inherited from .env; only the database name is overridden. -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="travel_companion_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

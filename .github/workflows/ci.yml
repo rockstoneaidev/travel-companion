@@ -13,6 +13,27 @@ jobs:
   backend:
     name: Backend (Pint + PHPUnit)
     runs-on: ubuntu-latest
+
+    # Tests run against real PostgreSQL + PostGIS + pgvector — SQLite cannot host the
+    # geography/vector columns this product is built on. See docs/conventions/11-testing.md.
+    services:
+      postgres:
+        image: ghcr.io/rockstoneaidev/travel-postgres:pg18
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          POSTGRES_DB: travel_companion_test
+          POSTGRES_USER: travel
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -21,7 +42,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, bcmath, intl, pdo_sqlite, sqlite3, redis, pcntl
+          extensions: mbstring, bcmath, intl, pdo_pgsql, pgsql, redis, pcntl
           coverage: none
           tools: composer:v2
 
@@ -43,10 +64,15 @@ jobs:
       - name: Pint (lint, no-fix)
         run: vendor/bin/pint --test
 
-      # Tests use the in-memory SQLite connection forced by phpunit.xml.
-      # NOTE: once geospatial migrations/queries land, add a Postgres service
-      # container (ghcr.io/rockstoneaidev/travel-postgres:pg18) — SQLite cannot
-      # exercise PostGIS. See docs/SERVER-DEPLOYMENT.md.
+      # phpunit.xml forces DB_DATABASE=travel_companion_test; host/user/password come from .env.example.
+      # TODO: once a migration owns `CREATE EXTENSION postgis/vector`, drop this step.
+      - name: Enable PostGIS + pgvector in the test database
+        env:
+          PGPASSWORD: secret
+        run: |
+          psql -h 127.0.0.1 -U travel -d travel_companion_test \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS vector;"
+
       - name: PHPUnit
         run: php artisan test
 
