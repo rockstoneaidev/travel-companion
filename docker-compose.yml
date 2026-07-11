@@ -72,9 +72,18 @@ services:
     image: adminer
     restart: unless-stopped
     environment:
-      # Pre-fill the login form's Server field with the postgres service name
-      # (inside the compose network, "localhost" would be Adminer itself).
+      # Pre-fill the whole login form. Server is the postgres service name
+      # (inside the compose network, "localhost" would be Adminer itself); the
+      # credentials come from .env so the form tracks the app's own. The image
+      # only implements ADMINER_DEFAULT_SERVER; the rest are read by the
+      # mounted prefill-login.php plugin. Local dev only — never staging.
+      ADMINER_DEFAULT_DRIVER: pgsql
       ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_USERNAME: '${DB_USERNAME:-travel}'
+      ADMINER_DEFAULT_PASSWORD: '${DB_PASSWORD:-secret}'
+      ADMINER_DEFAULT_DB: '${DB_DATABASE:-travel_companion}'
+    volumes:
+      - ./deployment/docker/adminer/prefill-login.php:/var/www/html/plugins-enabled/prefill-login.php:ro
     ports:
       - '${ADMINER_PORT:-8080}:8080'
     depends_on:
