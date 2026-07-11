@@ -12,8 +12,11 @@
 
 **Passo** (Italian: "pace") is the **permanent internal codename** of this design system — code
 namespaces (`components/passo/`), doc titles, and token prefixes keep it regardless of what the
-product is eventually called. The *market-facing name* is a separate, undecided thing: the wordmark
-string is a single swappable token (shared prop from `APP_NAME`), never hard-coded in a component.
+product is eventually called. The *market-facing name* is a separate thing: **interim name (decided
+2026-07-11): "Travel Companion"** — used in the wordmark, PWA manifest, and app chrome until a
+final brand name is chosen (the trademark screen ruled out Passo/Wayside/Meander/Amble). The
+wordmark string is a single swappable token (shared prop from `APP_NAME`), never hard-coded in a
+component, so the rename later is a config change, not a refactor.
 The feel is **a warm, analog travel journal**: paper, ink, one accent. It is quiet, editorial, and personal — the opposite of a booking app. The companion speaks
 in the first person, in short serif sentences, and promises silence: *"The light in São Roque is
 worth six minutes of your evening. I'll be quiet after this."* The UI's job is to make 3–5 cards

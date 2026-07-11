@@ -15,7 +15,7 @@ Read before designing or implementing anything:
 - `docs/ENTITY-RESOLUTION.md` — the v1 matching/merge algorithm behind the canonical `places` table (explicit-ID joins → blocked fuzzy matching → survivorship; `resolver_version`).
 - `docs/CURATION.md` — curated layer + Regional Knowledge Packs: schema, LLM-draft→ground→review pipeline, and the decided pack plan (Stockholm test + France-trip corridor).
 - `docs/ONBOARDING.md` — the taste-calibration content (9 facet-separating pairs + 2 practical questions; `calibration_version`).
-- `docs/design/DESIGN.md` + `docs/design/SCREENS.md` — the **Passo** UI design system (tokens, type, component anatomy, voice) and per-screen build specs with API bindings. Authoritative for all UI work; source mockups in `../Brand/Travel companion brand exploration/`.
+- `docs/design/DESIGN.md` + `docs/design/SCREENS.md` — the **Passo** UI design system (tokens, type, component anatomy, voice) and per-screen build specs with API bindings. Authoritative for all UI work; source mockups in `../Brand/Travel companion brand exploration/`. Naming: **Passo is only the internal design codename**; the interim market-facing name is **"Travel Companion"** (via `APP_NAME` — never hard-code it) until a final brand name is decided.
 - `docs/SERVER-DEPLOYMENT.md` — staging server layout, shared infra, deploy pipeline.
 - `docs/conventions/` — **how the code is shaped.** Read `docs/conventions/01-domain-modules.md` before writing any code, then the document matching what you're touching (enums, migrations, controllers, jobs, source adapters, LLM calls, testing, caching). These are binding; flag conflicts rather than deviating.
 

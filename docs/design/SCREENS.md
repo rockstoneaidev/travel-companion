@@ -187,7 +187,8 @@ decisions:
 2. Components in `resources/js/components/passo/`; pages are Inertia pages calling the same domain
    actions as `/api/v1` (conventions/01 — no business logic in pages).
 3. The wordmark string comes from one shared constant (`APP_NAME` → shared Inertia prop) — the name
-   is provisional.
+   is provisional: **interim market name is "Travel Companion"** (`APP_NAME` already carries it);
+   a final brand name replaces it via config only (DESIGN.md §1).
 4. Mirror enums crossing the wire (`AppealFacet`, `TravelMode`, feedback event) per conventions/02
    frontend-parity rules.
 5. Every screen must render sensibly with: zero items, one urgent item, slow network (stripe
