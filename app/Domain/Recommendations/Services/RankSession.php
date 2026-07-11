@@ -9,9 +9,11 @@ use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
 use App\Domain\Places\Services\CoverageGeometry;
 use App\Domain\Places\Services\ScoutRunner;
 use App\Domain\Profiles\Services\TasteProfiles;
+use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Recommendations\Support\Num;
 use App\Domain\Trips\Data\ExploreSessionData;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -54,13 +56,24 @@ final class RankSession
             return $existing;
         }
 
-        return DB::transaction(fn (): array => $this->rank($session));
+        $plan = $this->plan($session);
+
+        return DB::transaction(fn (): array => $this->persist($session, $plan));
     }
 
-    /** @return list<Recommendation> */
-    private function rank(ExploreSessionData $session): array
+    /**
+     * The pure planning pass (PRD §15.2): compute what WOULD be served, under
+     * an injectable clock and scoring model — the replayer's entry point.
+     * Warms the shared tile cache but never writes recommendations.
+     *
+     * @return array{picked: list<array<string, mixed>>, model: ScoringModel, alpha: float, context: string, scout_summary: array, rank_ms: int}
+     */
+    public function plan(ExploreSessionData $session, ?CarbonImmutable $at = null, ?ScoringModel $modelOverride = null): array
     {
-        $model = $this->resolver->resolve();
+        $at ??= now()->toImmutable();
+        $started = hrtime(true);
+
+        $model = $modelOverride ?? $this->resolver->resolve();
         $subScores = new SubScores($model);
         $scorer = new CompositeScorer($model);
         $selector = new FeedSelector($model, $scorer);
@@ -75,23 +88,43 @@ final class RankSession
             $session->destinationPoint?->lat, $session->destinationPoint?->lng,
         );
 
-        $this->runner->warm($coverage);
+        $scoutSummary = $this->runner->warm($coverage);
         $candidates = $this->dedupe($this->runner->candidates($coverage->allTiles()));
 
-        $remaining = ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, now()->toImmutable());
+        $remaining = ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at);
         $gated = $this->gate->filter(
             $candidates, $session->origin->lat, $session->origin->lng, $session->travelMode,
             $remaining, $session->destinationPoint?->lat, $session->destinationPoint?->lng,
         );
 
-        $tripEvents = $this->tripHistory($session->tripId);
+        $tripEvents = $this->tripHistory($session->tripId, $at);
         $scored = [];
 
         foreach ($gated['kept'] as $candidate) {
-            $scored[] = $this->score($candidate, $session, $subScores, $profile->facetWeights, $profile->walkToleranceMinutes, $remaining, $tripEvents);
+            $scored[] = $this->score($candidate, $session, $subScores, $profile->facetWeights, $profile->walkToleranceMinutes, $remaining, $tripEvents, $at);
         }
 
         $picked = $selector->select($scored, $context, $alpha, (int) config('trips.session.feed_size'));
+
+        return [
+            'picked' => $picked,
+            'model' => $model,
+            'alpha' => $alpha,
+            'context' => $context,
+            'scout_summary' => $scoutSummary,
+            'rank_ms' => (int) ((hrtime(true) - $started) / 1_000_000),
+        ];
+    }
+
+    /**
+     * @param  array{picked: list<array<string, mixed>>, model: ScoringModel, scout_summary: array, rank_ms: int}  $plan
+     * @return list<Recommendation>
+     */
+    private function persist(ExploreSessionData $session, array $plan): array
+    {
+        $picked = $plan['picked'];
+        $model = $plan['model'];
+
         $opportunities = ($this->materialize)(array_map(static fn (array $c): array => [
             'place_id' => $c['place_id'], 'name' => $c['name'], 'h3_index' => $c['h3_index'],
             'walk_minutes' => $c['reachability']['travel_min'],
@@ -115,7 +148,17 @@ final class RankSession
                 'coverage_flags' => $candidate['missing'],
                 'scoring_model_version' => $model->version,
                 'taxonomy_version' => 1,
+                'resolver_version' => (string) config('resolver.version'),
                 'served_at' => now(),
+                // Per-recommendation cost (PRD §14.3): honest Phase 1 numbers —
+                // own-DB scouts, no paid APIs, no LLM yet.
+                'cost' => [
+                    'api_calls' => 0,
+                    'llm_tokens' => 0,
+                    'rank_ms' => $plan['rank_ms'],
+                    'scout_tiles_filled' => array_sum(array_column($plan['scout_summary'], 'filled')),
+                    'scout_tiles_hit' => array_sum(array_column($plan['scout_summary'], 'hits')),
+                ],
             ]);
         }
 
@@ -123,7 +166,7 @@ final class RankSession
     }
 
     /** @param array<string, mixed> $candidate */
-    private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents): array
+    private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents, CarbonImmutable $at): array
     {
         $raw = [];
         $missing = [];
@@ -146,7 +189,7 @@ final class RankSession
         // Phase 1 horizon: the opportunity's own closing bounded by end of the
         // session's day; evergreen has no closing → slack = end of day.
         $travel = (float) $candidate['reachability']['travel_min'];
-        $slack = max(0.0, now()->diffInMinutes(now()->endOfDay(), false) - $travel);
+        $slack = max(0.0, $at->diffInMinutes($at->endOfDay(), false) - $travel);
         $urgency = $subScores->temporalUrgency($slack);
         $scores['temporal_urgency'] = $urgency['value'];
         $raw['temporal_urgency'] = $urgency['inputs'];
@@ -244,7 +287,7 @@ final class RankSession
     }
 
     /** @return list<array{type: ?string, type_domain: ?string, event: string, age_days: float}> */
-    private function tripHistory(string $tripId): array
+    private function tripHistory(string $tripId, CarbonImmutable $at): array
     {
         $rows = Recommendation::query()
             ->where('trip_id', $tripId)
@@ -266,7 +309,7 @@ final class RankSession
                     'type' => $candidate['type'] ?? null,
                     'type_domain' => $candidate['type_domain'] ?? null,
                     'event' => $event['event'],
-                    'age_days' => max(0.0, now()->parse($event['occurred_at'])->diffInDays(now(), false)),
+                    'age_days' => max(0.0, CarbonImmutable::parse($event['occurred_at'])->diffInDays($at, false)),
                 ];
             }
         }

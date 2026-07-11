@@ -26,9 +26,18 @@ final class UserTasteProfile extends Model
 
     public static function for(int $userId): self
     {
+        // Explicit defaults: firstOrCreate does NOT hydrate DB column defaults
+        // on the create path, and a scorer reading tolerance 0 maxes friction
+        // on a user's very first feed.
         return self::query()->firstOrCreate(
             ['user_id' => $userId],
-            ['profile_model_version' => 'v1', 'facet_weights' => [], 'event_counts' => []],
+            [
+                'profile_model_version' => 'v1',
+                'facet_weights' => [],
+                'event_counts' => [],
+                'walk_tolerance_minutes' => 15,
+                'price_band' => 2,
+            ],
         );
     }
 
