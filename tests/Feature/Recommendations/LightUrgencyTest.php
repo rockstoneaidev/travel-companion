@@ -7,6 +7,9 @@ use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Services\SubScores;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 /*
 |--------------------------------------------------------------------------

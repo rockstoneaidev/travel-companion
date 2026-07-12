@@ -38,6 +38,12 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+
+        // Places/Routes (E16). EDGE-ONLY: what this key fetches is used in the
+        // response and discarded — only the place_id string may ever be stored
+        // (conventions/09). Absent = the verifier stays quiet and hours are simply
+        // unknown, which is a supported state, not a broken one.
+        'maps_key' => env('GOOGLE_MAPS_API_KEY', ''),
     ],
 
     'slack' => [

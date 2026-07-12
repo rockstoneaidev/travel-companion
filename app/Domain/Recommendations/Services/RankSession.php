@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Recommendations\Services;
 
 use App\Domain\Context\Data\WeatherContext;
+use App\Domain\Context\Services\GoogleHoursVerifier;
 use App\Domain\Context\Services\LightContextResolver;
 use App\Domain\Context\Services\WeatherClient;
 use App\Domain\Feedback\Services\FeedbackLedger;
@@ -20,6 +21,7 @@ use App\Domain\Trips\Data\ExploreSessionData;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * PRD §10 steps 8–10, per user at request time: coverage → shared tile cache
@@ -62,6 +64,7 @@ final class RankSession
         private readonly TileUniquenessSignals $uniqueness,
         private readonly LightContextResolver $light,
         private readonly WeatherClient $weather,
+        private readonly GoogleHoursVerifier $hours,
     ) {}
 
     /**
@@ -154,7 +157,16 @@ final class RankSession
         // selection ever sees a candidate — a held item must not merely rank low.
         $decided = $evidence->partition($scored);
 
-        $picked = $selector->select($decided['served'], $context, $alpha, (int) config('trips.session.feed_size'));
+        $feedSize = (int) config('trips.session.feed_size');
+        $picked = $selector->select($decided['served'], $context, $alpha, $feedSize);
+
+        // Verify-before-recommend (conventions/09, conventions/12) — the last gate.
+        //
+        // Run AFTER selection, on purpose: hours cost a paid Google call each, so we
+        // verify the handful we are about to serve, not the hundreds we scored. It
+        // also means the cost of the feed is bounded by its size rather than by how
+        // dense the city is.
+        $picked = $this->verifyOpenNow($picked, $decided['served'], $feedSize, $at);
 
         return [
             'picked' => $picked,
@@ -326,6 +338,69 @@ final class RankSession
         }
 
         return $type?->needsDaylight() === true ? 1.0 : 0.35;
+    }
+
+    /**
+     * Drop what we can VERIFY is shut, and backfill from what we already scored.
+     *
+     * "We do not tell a user a place is open on the strength of a day-old cache"
+     * (conventions/12) — so the check happens here, at serve time, against a
+     * short-TTL edge cache.
+     *
+     * Unknown is not closed. Most of the OSM long tail has no hours published
+     * anywhere, and treating silence as "shut" would quietly delete the entire long
+     * tail from the feed — the exact layer this product exists to surface. So only a
+     * definite, verified "closed" removes anything.
+     *
+     * @param  list<array<string, mixed>>  $picked
+     * @param  list<array<string, mixed>>  $servable  everything the evidence gates allowed
+     * @return list<array<string, mixed>>
+     */
+    private function verifyOpenNow(array $picked, array $servable, int $feedSize, CarbonImmutable $at): array
+    {
+        $open = [];
+        $rejected = [];
+
+        // Bounded: a city where everything is shut must not turn one feed into fifty
+        // paid calls walking down the candidate list.
+        $budget = $feedSize + 3;
+
+        $queue = [...$picked, ...array_filter(
+            $servable,
+            static fn (array $c): bool => ! in_array($c['place_id'], array_column($picked, 'place_id'), true),
+        )];
+
+        foreach ($queue as $candidate) {
+            if (count($open) >= $feedSize || $budget <= 0) {
+                break;
+            }
+
+            $budget--;
+
+            $hours = $this->hours->forPlace(
+                (string) $candidate['place_id'],
+                (string) $candidate['name'],
+                (float) $candidate['lat'],
+                (float) $candidate['lng'],
+                $at,
+            );
+
+            $candidate['raw_inputs']['hours'] = $hours->toTrace();
+
+            if ($hours->definitelyClosed()) {
+                $rejected[] = $candidate['name'];
+
+                continue;
+            }
+
+            $open[] = $candidate;
+        }
+
+        if ($rejected !== []) {
+            Log::info('verify-before-recommend dropped closed places', ['places' => $rejected]);
+        }
+
+        return $open;
     }
 
     /** The nearer of two closings — a null closing is no closing, not an early one. */

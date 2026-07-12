@@ -6,8 +6,10 @@ namespace App\Providers;
 
 use App\Domain\Context\Actions\EraseContextLocations;
 use App\Domain\Context\Contracts\ContextLocationEraser;
+use App\Domain\Places\Contracts\ExternalIdRegistry;
 use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Queries\LookupPlaces;
+use App\Domain\Places\Services\PlaceExternalIds;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
 use App\Domain\Trips\Contracts\TripLocationEraser;
@@ -25,6 +27,10 @@ final class DomainServiceProvider extends ServiceProvider
     public array $bindings = [
         // Places — geography lives here, so geo lookups do too.
         PlaceLookup::class => LookupPlaces::class,
+
+        // ...and the cross-source ID concordance: Context needs a Google place_id to
+        // verify hours with, and may hold that STRING, but never Places' models (E16).
+        ExternalIdRegistry::class => PlaceExternalIds::class,
 
         // Trips — what other modules may know about a session / a trip's locations.
         ExploreSessionLookup::class => FindExploreSession::class,

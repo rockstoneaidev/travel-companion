@@ -190,3 +190,34 @@ afterEach(function () {
         rmdir(goldTracePath());
     }
 });
+
+it('will not recommend a place it can verify is shut', function () {
+    config()->set('services.google.maps_key', 'test-key');
+
+    // A distinct Google id per place, as Google would give — otherwise the
+    // collision guard (rightly) refuses to verify the second one.
+    $n = 0;
+    Http::fake([
+        'places.googleapis.com/v1/places:searchText' => function () use (&$n) {
+            $n++;
+
+            return Http::response(['places' => [['id' => "ChIJclosed{$n}"]]]);
+        },
+        'places.googleapis.com/v1/places/*' => Http::response(['currentOpeningHours' => ['openNow' => false]]),
+    ]);
+
+    $this->travelTo(CarbonImmutable::parse('2026-07-12 11:00:00', 'Europe/Stockholm'));
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->at(59.3103, 18.0227)->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 180,
+    ]);
+
+    $recommendations = app(RankSession::class)->feedFor(ExploreSessionData::fromModel($session));
+
+    // "We do not tell a user a place is open on the strength of a day-old cache"
+    // (conventions/12). Verified shut, at serve time, means it is not served — and
+    // a shorter honest feed beats a longer one that sends someone to a locked door.
+    expect($recommendations)->toBeEmpty();
+});
