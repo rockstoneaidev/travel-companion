@@ -9,10 +9,14 @@ use App\Domain\Places\Taxonomy\OsmTagMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
+use Carbon\CarbonImmutable;
 use DateInterval;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Throwable;
 
 /**
  * OpenStreetMap adapter (DATA-SOURCES §2): the long-tail layer — viewpoints,
@@ -33,14 +37,60 @@ final class OsmAdapter implements ScoutSource
 
     public const VERSION = 'v1';
 
-    // The lz4 endpoint of the main instance: the plain endpoint 504s under
-    // load and the Kumi mirror stalls; lz4 answers reliably.
-    private const OVERPASS_URL = 'https://lz4.overpass-api.de/api/interpreter';
+    /**
+     * Endpoints, in preference order — because a single hard-coded host is a
+     * single point of failure, and it failed.
+     *
+     * lz4 is still first: it answers fastest and compresses. But it is not always
+     * *reachable* — from the local Docker network it refuses the connection in
+     * 18 ms while the main instance answers fine, and a region does not deserve to
+     * die of that. Kumi is last: it stalls rather than refusing, so it is only
+     * worth trying when both of the others are gone.
+     */
+    private const OVERPASS_ENDPOINTS = [
+        'https://lz4.overpass-api.de/api/interpreter',
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter',
+    ];
 
     // 4 quadrants × 4^3 = up to 256 sub-boxes for the worst region. Paris needs
     // one or two splits; the bound exists so a dead endpoint cannot turn into a
     // fork bomb of politeness sleeps.
     private const MAX_SPLIT_DEPTH = 3;
+
+    /**
+     * The wall clock, which is what actually killed Nice.
+     *
+     * MAX_SPLIT_DEPTH bounds *breadth*, not *time*, and the two are not the same
+     * thing: every box a split creates re-pays the full HTTP budget, so retrying
+     * and splitting multiply. A region that 504s all the way down visits up to
+     * 4 + 16 + 64 + 256 boxes, and at ~150 s each that is hours — no fixed job
+     * timeout survives it, which is why raising `$timeout` is not the fix.
+     *
+     * So the recursion is bounded in seconds as well as in depth. The budget sits
+     * inside BuildRegionWorldModelJob's timeout with room for normalize() and the
+     * upsert afterwards: we would rather hand back a partial region and say so
+     * (conventions/09) than be killed mid-request and hand back nothing.
+     *
+     * Measured: Nice is 516 s of real Overpass. Paris returns 34k elements and
+     * splits further, so the budget has to be well clear of the biggest city in
+     * the corridor or the fix just moves the truncation from "killed" to "skipped".
+     * Enforced against the job's timeout by tests/Feature/QueueConfigTest.php.
+     */
+    public const BUDGET_SECONDS = 1200;
+
+    /**
+     * Just above the `[timeout:120]` we ask Overpass for, so the server's own
+     * timeout fires first and we get a 504 to split on rather than a client abort
+     * we can't attribute. Was 180 s with `->retry(2, 10000)` — 370 s for a single
+     * doomed box, and the retry re-asked the *identical* question that had just
+     * timed out. Overpass timed out because the question was too big; the answer
+     * is a smaller question, not the same one again. The splitter IS the retry.
+     */
+    private const HTTP_TIMEOUT_SECONDS = 150;
+
+    /** Public Overpass rate-limits bursts. The ingest lane is serial anyway. */
+    private const POLITENESS_SECONDS = 2;
 
     public function supports(ScoutRequest $request): bool
     {
@@ -65,18 +115,32 @@ final class OsmAdapter implements ScoutSource
     public function search(ScoutRequest $request): array
     {
         $elements = [];
-        $failedBoxes = 0;
+        $state = ['failed' => 0, 'skipped' => 0, 'requests' => 0];
+        $deadline = CarbonImmutable::now()->addSeconds(self::BUDGET_SECONDS);
 
         foreach ($this->quadrants($request) as $quadrant) {
-            $this->collect($quadrant, 0, $elements, $failedBoxes);
+            $this->collect($quadrant, 0, $elements, $state, $deadline);
+        }
+
+        if ($state['skipped'] > 0) {
+            // Silent truncation reads as "covered everything". Say what was dropped.
+            Log::warning("osm ingest {$request->regionKey}: ran out of time", [
+                'boxes_skipped' => $state['skipped'],
+                'boxes_failed' => $state['failed'],
+                'elements' => count($elements),
+                'budget_seconds' => self::BUDGET_SECONDS,
+            ]);
         }
 
         // Something is better than nothing (coverage honesty, conventions/09) —
         // but *nothing* must not be mistaken for "this region has no places".
-        if ($elements === [] && $failedBoxes > 0) {
-            throw new RuntimeException(
-                "Overpass failed for every sub-box of region \"{$request->regionKey}\" ({$failedBoxes} boxes).",
-            );
+        if ($elements === [] && ($state['failed'] > 0 || $state['skipped'] > 0)) {
+            throw new RuntimeException(sprintf(
+                'Overpass returned nothing for region "%s" (%d boxes failed, %d never attempted).',
+                $request->regionKey,
+                $state['failed'],
+                $state['skipped'],
+            ));
         }
 
         return array_values($elements);
@@ -84,30 +148,52 @@ final class OsmAdapter implements ScoutSource
 
     /**
      * @param  array<string, array<string, mixed>>  $elements
+     * @param  array{failed: int, skipped: int, requests: int}  $state
      */
-    private function collect(ScoutRequest $box, int $depth, array &$elements, int &$failedBoxes): void
+    private function collect(ScoutRequest $box, int $depth, array &$elements, array &$state, CarbonImmutable $deadline): void
     {
-        if (! app()->runningUnitTests()) {
-            sleep(3); // politeness: public Overpass instances rate-limit bursts
+        // Never *start* a request that could run past the deadline. Checking after
+        // the fact would be checking too late: the job dies inside curl_exec, and
+        // everything fetched so far dies with it, unwritten.
+        if (CarbonImmutable::now()->addSeconds(self::HTTP_TIMEOUT_SECONDS)->greaterThan($deadline)) {
+            $state['skipped']++;
+
+            return;
         }
 
-        try {
-            $response = Http::timeout(180)
-                ->retry(2, 10000)
-                ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
-                ->asForm()
-                ->post(self::OVERPASS_URL, ['data' => $this->overpassQuery($box)]);
+        if ($state['requests'] > 0 && ! app()->runningUnitTests()) {
+            sleep(self::POLITENESS_SECONDS);   // between requests, not before the first
+        }
 
-            $response->throw();
-        } catch (Throwable $e) {
+        $state['requests']++;
+
+        try {
+            $response = $this->ask($box);
+        } catch (ConnectionException $e) {
+            // We could not REACH any endpoint. That is not a question that is too
+            // big, so a smaller question cannot fix it — splitting here just asks
+            // an unreachable host four more times. Nice failed 188 boxes this way
+            // in 8 minutes, every one of them refused in under 20 ms.
+            $state['failed']++;
+
+            return;
+        } catch (RequestException $e) {
+            // The server ANSWERED, and the answer was "no" — a 504 means Overpass
+            // timed out working, i.e. the question was too big. THAT is what a
+            // smaller question fixes.
+            //
+            // Only these two split. The catch used to be `Throwable`, which meant
+            // the framework's own TimeoutExceededException — the signal that the
+            // job is out of time — was answered by issuing *more* HTTP requests,
+            // and a plain bug in this method looked like a bad day at Overpass.
             if ($depth >= self::MAX_SPLIT_DEPTH) {
-                $failedBoxes++;   // give up on this patch, keep the rest of the region
+                $state['failed']++;   // give up on this patch, keep the rest of the region
 
                 return;
             }
 
             foreach ($this->quadrants($box) as $quadrant) {
-                $this->collect($quadrant, $depth + 1, $elements, $failedBoxes);
+                $this->collect($quadrant, $depth + 1, $elements, $state, $deadline);
             }
 
             return;
@@ -116,6 +202,37 @@ final class OsmAdapter implements ScoutSource
         foreach ($response->json('elements') ?? [] as $element) {
             $elements[$element['type'].'/'.$element['id']] = $element;
         }
+    }
+
+    /**
+     * One box, asked of the first endpoint that will take the question.
+     *
+     * Failing over costs nothing when the failure is a refused connection (it is
+     * immediate), which is exactly the case it exists for. A server that answers
+     * with an error is NOT failed over to the next host — every public Overpass
+     * runs the same software and would give the same answer; the box needs to get
+     * smaller, not to move.
+     *
+     * @throws ConnectionException no endpoint was reachable
+     * @throws RequestException an endpoint answered with an error
+     */
+    private function ask(ScoutRequest $box): Response
+    {
+        $lastFailure = null;
+
+        foreach (self::OVERPASS_ENDPOINTS as $endpoint) {
+            try {
+                return Http::timeout(self::HTTP_TIMEOUT_SECONDS)
+                    ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
+                    ->asForm()
+                    ->post($endpoint, ['data' => $this->overpassQuery($box)])
+                    ->throw();
+            } catch (ConnectionException $e) {
+                $lastFailure = $e;   // unreachable — try the next host
+            }
+        }
+
+        throw $lastFailure ?? new ConnectionException('No Overpass endpoint configured.');
     }
 
     /** @return list<ScoutRequest> */

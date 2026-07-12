@@ -34,14 +34,21 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
     private const RESOLVE_BATCH_TILES = 12;
 
     /**
-     * Must stay BELOW the `redis-long` connection's retry_after (1800s).
+     * Must stay BELOW the `redis-long` connection's retry_after (1800s), and ABOVE
+     * OsmAdapter::BUDGET_SECONDS — the source that actually uses the time.
      *
      * The old value was 420s on a connection whose retry_after was 90s, which is
      * how Dijon died: after 90 seconds the queue decided the still-running job was
      * dead, handed it to a second worker, and it failed as MaxAttemptsExceeded
-     * having done nothing wrong. Enforced now by tests/Arch/QueueConfigTest.php.
+     * having done nothing wrong.
+     *
+     * Raising this is only safe because the ingest is now bounded in *time* rather
+     * than merely in split depth (OsmAdapter::BUDGET_SECONDS). Before that, no
+     * timeout was big enough — the fan-out was unbounded in seconds, so any fixed
+     * number was a coin flip, and 900s is the one Nice lost. Both invariants are
+     * enforced by tests/Feature/QueueConfigTest.php.
      */
-    public int $timeout = 900;
+    public int $timeout = 1500;
 
     public int $tries = 1;
 
@@ -79,9 +86,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             // A failed source is still degraded, never fatal (conventions/09):
             // the chain moves to the next source regardless, because a region with
             // three of four sources is a usable region and a region with none is not.
-            $sources = $registry->keys();
-            $source = $this->source ?? $sources[0];
-            $index = array_search($source, $sources, true);
+            $source = $this->source ?? $registry->keys()[0];
 
             try {
                 $result = $ingest->ingest($region, $source);
@@ -90,11 +95,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
                 Log::warning("world-model ingest {$this->regionKey}/{$source} degraded: {$e->getMessage()}");
             }
 
-            $next = $sources[$index + 1] ?? null;
-
-            $next === null
-                ? self::dispatch($this->regionKey, 'resolve')
-                : self::dispatch($this->regionKey, 'ingest', $next);
+            $this->chainOnwardFromIngest($registry, $source);
 
             return;
         }
@@ -140,6 +141,48 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         $this->warmRegionTiles($this->regionKey);
 
         Log::info("world-model build complete for {$this->regionKey}");
+    }
+
+    /**
+     * A dead job must not strand the region.
+     *
+     * `handle()` already treats a failed *source* as degraded-not-fatal, but that
+     * catch cannot save us from the job itself being killed — a worker timeout is
+     * delivered by killing the process, so no `catch` inside `handle()` ever runs
+     * and nothing dispatches the next phase. That is how Nice stalled forever: the
+     * OSM ingest was killed at 900 s, and `resolve`, `photos` and `warm` were never
+     * queued. With `tries = 1` there was no second attempt to rescue it either, so
+     * the region simply stopped, silently, with an empty `places_core`.
+     *
+     * So the chain is carried forward from the failure handler too. Each hop only
+     * ever moves *onward*, so a repeatedly-failing phase drains the chain rather
+     * than looping on it.
+     */
+    public function failed(Throwable $e): void
+    {
+        Log::error("world-model {$this->phase} {$this->regionKey} failed — carrying the chain onward", [
+            'source' => $this->source,
+            'error' => $e->getMessage(),
+        ]);
+
+        match ($this->phase) {
+            'ingest' => $this->chainOnwardFromIngest(app(SourceRegistry::class), $this->source ?? app(SourceRegistry::class)->keys()[0]),
+            'resolve' => self::dispatch($this->regionKey, 'photos'),
+            'photos' => self::dispatch($this->regionKey, 'warm'),
+            default => null,   // `warm` is the last phase; there is nowhere to go
+        };
+    }
+
+    /** Next source in the registry, or on to `resolve` when this was the last one. */
+    private function chainOnwardFromIngest(SourceRegistry $registry, string $source): void
+    {
+        $sources = $registry->keys();
+        $index = array_search($source, $sources, true);
+        $next = $index === false ? null : ($sources[$index + 1] ?? null);
+
+        $next === null
+            ? self::dispatch($this->regionKey, 'resolve')
+            : self::dispatch($this->regionKey, 'ingest', $next);
     }
 
     /** One WarmTileJob per (tile, scout); ShouldBeUnique collapses duplicates. */

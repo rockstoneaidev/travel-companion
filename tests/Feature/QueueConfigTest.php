@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Domain\Sources\Adapters\OsmAdapter;
 use App\Enums\QueueLane;
+use App\Jobs\Ingest\BuildRegionWorldModelJob;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,4 +70,20 @@ it('runs region ingest serially, because Overpass rate-limits', function () {
     // Two region ingests at once is how you get thrown off a source you do not pay for.
     expect(config('horizon.defaults.supervisor-ingest.maxProcesses'))->toBe(1)
         ->and(config('horizon.environments.production.supervisor-ingest.maxProcesses'))->toBe(1);
+});
+
+it('gives the ingest more time than its slowest source is allowed to spend', function () {
+    // The three numbers that killed Nice, now in one place and in order:
+    //
+    //   OsmAdapter::BUDGET_SECONDS  <  BuildRegionWorldModelJob::$timeout  <  retry_after
+    //
+    // The budget bounds the fan-out in SECONDS (depth only bounds it in breadth,
+    // and every split re-pays the full HTTP budget, so the two multiply). If the
+    // budget ever exceeds the timeout, the worker is killed mid-request again and
+    // everything fetched dies unwritten. If the timeout ever exceeds retry_after,
+    // the queue hands a still-running job to a second worker.
+    $timeout = new BuildRegionWorldModelJob('stockholm')->timeout;
+
+    expect(OsmAdapter::BUDGET_SECONDS)->toBeLessThan($timeout)
+        ->and($timeout)->toBeLessThan(config('queue.connections.redis-long.retry_after'));
 });
