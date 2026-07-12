@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\Web\CalibrationController;
+use App\Http\Controllers\Web\DigestController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
+use App\Http\Controllers\Web\JournalController;
 use App\Http\Controllers\Web\KeptController;
 use App\Http\Controllers\Web\OpportunityController;
 use App\Http\Controllers\Web\PlaceSearchController;
@@ -72,6 +74,12 @@ Route::middleware(['auth'])->group(function () {
 
     // S6 — KEPT. Windows are re-checked on every open, so this is a GET with no cache.
     Route::get('kept', [KeptController::class, 'index'])->name('kept.index');
+
+    // S8 — the digest release valve (PRD §12.4). A screen you find; no push in Phase 1.
+    Route::get('digest/today', [DigestController::class, 'today'])->name('digest.today');
+
+    // S7 — JOURNAL. The seed of "your travel memory belongs to you".
+    Route::get('journal', [JournalController::class, 'index'])->name('journal.index');
 
     Route::get('trips', [TripController::class, 'index'])->name('trips.index');
 

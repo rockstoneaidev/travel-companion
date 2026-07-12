@@ -180,6 +180,26 @@ final class RankSession
         $feedSize = (int) config('trips.session.feed_size');
         $picked = $selector->select($decided['served'], $context, $alpha, $feedSize);
 
+        /*
+         * The near-misses (PRD §12.4 — the digest release valve).
+         *
+         * "Opportunities that don't clear the feed bar don't die." They were reachable,
+         * they cleared the evidence gates, they were scored — they simply lost to four
+         * or five better things. Those are the most valuable items in the whole
+         * pipeline that nobody ever sees, and they were being DROPPED on the floor:
+         * the funnel recorded what was held and what was unreachable, but not what
+         * merely came fifth.
+         *
+         * Keeping them is what lets the digest lower the pressure on each individual
+         * interrupt decision, and it is what gives the learning loop labelled exposure
+         * it would otherwise never get.
+         */
+        $pickedIds = array_column($picked, 'place_id');
+        $nearMisses = array_values(array_filter(
+            $decided['served'],
+            static fn (array $c): bool => ! in_array($c['place_id'], $pickedIds, true),
+        ));
+
         // Verify-before-recommend (conventions/09, conventions/12) — the last gate.
         //
         // Run AFTER selection, on purpose: hours cost a paid Google call each, so we
@@ -191,6 +211,7 @@ final class RankSession
         return [
             'picked' => $picked,
             'held' => $decided['held'],
+            'near_misses' => $nearMisses,
             // Candidates the reachability gate dropped, with their breakdowns.
             // The gate computed these and they were being thrown away, so a trace
             // could never answer "why was this not offered to me" — which is the
@@ -249,6 +270,11 @@ final class RankSession
                         'held' => array_map(static fn (array $c): array => [
                             'place_id' => $c['place_id'], 'name' => $c['name'], 'hold' => $c['hold'],
                         ], $plan['held']),
+                        // Scored, servable, and beaten. The digest's raw material (§12.4).
+                        'near_misses' => array_map(static fn (array $c): array => [
+                            'place_id' => $c['place_id'], 'name' => $c['name'],
+                            'composite' => $c['composite'] ?? null,
+                        ], $plan['near_misses']),
                     ],
                 ],
                 'coverage_flags' => $candidate['missing'],
