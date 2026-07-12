@@ -11,16 +11,19 @@ use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
 use DateInterval;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
+use Throwable;
 
 /**
  * OpenStreetMap adapter (DATA-SOURCES §2): the long-tail layer — viewpoints,
  * ruins, fountains, city gates — the things Google doesn't have.
  *
- * Fetch strategy: Overpass bbox query, which DATA-SOURCES sanctions for
- * dev-scale work and which comfortably covers the small bounded test regions
- * of Phase 1. When a region outgrows it (country-scale ingest), the documented
- * production path is a Geofabrik extract via osm2pgsql — same normalize(),
- * different search() plumbing. Revisit at E13 (France corridor).
+ * Fetch strategy: Overpass bbox query with adaptive subdivision (see search()).
+ * DATA-SOURCES §2 sanctions Overpass for the bounded city-scale regions of
+ * Phase 1 — Stockholm and the seven France-corridor cities. When a region stops
+ * being city-scale (a country, or continuous re-ingest), the documented
+ * production path is a Geofabrik extract via osm2pgsql: same normalize(),
+ * different search() plumbing.
  */
 final class OsmAdapter implements ScoutSource
 {
@@ -34,37 +37,85 @@ final class OsmAdapter implements ScoutSource
     // load and the Kumi mirror stalls; lz4 answers reliably.
     private const OVERPASS_URL = 'https://lz4.overpass-api.de/api/interpreter';
 
+    // 4 quadrants × 4^3 = up to 256 sub-boxes for the worst region. Paris needs
+    // one or two splits; the bound exists so a dead endpoint cannot turn into a
+    // fork bomb of politeness sleeps.
+    private const MAX_SPLIT_DEPTH = 3;
+
     public function supports(ScoutRequest $request): bool
     {
         return true; // the base layer supports every region
     }
 
+    /**
+     * Overpass times out as a function of how much it has to answer, so the
+     * answer to a timeout is a smaller question.
+     *
+     * A fixed 4-quadrant split was enough for one Stockholm-sized region and is
+     * NOT enough for the France corridor: Paris alone returns 34k elements, and
+     * running seven cities back to back had public Overpass returning 504 on
+     * whole quadrants — silently costing Nantes its entire OSM layer. So the
+     * split is now adaptive: a quadrant that fails is quartered and retried,
+     * down to a depth bound. Ways on a seam appear in both halves — dedupe on
+     * type/id.
+     *
+     * (This is the shape that survives at city scale. At country scale the
+     * documented path is still Geofabrik → osm2pgsql — DATA-SOURCES §2.)
+     */
     public function search(ScoutRequest $request): array
     {
-        // A whole region in one Overpass call routinely times out; four
-        // quadrant calls stay small, and each is independently retryable.
-        // Ways on a quadrant seam appear twice — dedupe on type/id.
         $elements = [];
+        $failedBoxes = 0;
 
-        foreach ($this->quadrants($request) as $i => $quadrant) {
-            if ($i > 0 && ! app()->runningUnitTests()) {
-                sleep(3); // politeness: public Overpass instances rate-limit bursts
-            }
+        foreach ($this->quadrants($request) as $quadrant) {
+            $this->collect($quadrant, 0, $elements, $failedBoxes);
+        }
 
-            $response = Http::timeout(180)
-                ->retry(3, 10000)
-                ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
-                ->asForm()
-                ->post(self::OVERPASS_URL, ['data' => $this->overpassQuery($quadrant)]);
-
-            $response->throw();
-
-            foreach ($response->json('elements') ?? [] as $element) {
-                $elements[$element['type'].'/'.$element['id']] = $element;
-            }
+        // Something is better than nothing (coverage honesty, conventions/09) —
+        // but *nothing* must not be mistaken for "this region has no places".
+        if ($elements === [] && $failedBoxes > 0) {
+            throw new RuntimeException(
+                "Overpass failed for every sub-box of region \"{$request->regionKey}\" ({$failedBoxes} boxes).",
+            );
         }
 
         return array_values($elements);
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $elements
+     */
+    private function collect(ScoutRequest $box, int $depth, array &$elements, int &$failedBoxes): void
+    {
+        if (! app()->runningUnitTests()) {
+            sleep(3); // politeness: public Overpass instances rate-limit bursts
+        }
+
+        try {
+            $response = Http::timeout(180)
+                ->retry(2, 10000)
+                ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
+                ->asForm()
+                ->post(self::OVERPASS_URL, ['data' => $this->overpassQuery($box)]);
+
+            $response->throw();
+        } catch (Throwable $e) {
+            if ($depth >= self::MAX_SPLIT_DEPTH) {
+                $failedBoxes++;   // give up on this patch, keep the rest of the region
+
+                return;
+            }
+
+            foreach ($this->quadrants($box) as $quadrant) {
+                $this->collect($quadrant, $depth + 1, $elements, $failedBoxes);
+            }
+
+            return;
+        }
+
+        foreach ($response->json('elements') ?? [] as $element) {
+            $elements[$element['type'].'/'.$element['id']] = $element;
+        }
     }
 
     /** @return list<ScoutRequest> */

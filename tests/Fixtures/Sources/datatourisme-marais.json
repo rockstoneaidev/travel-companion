@@ -1,0 +1,1338 @@
+[
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.857063,
+          "longitude": 2.3649938
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "19 rue des Minimes"
+            ],
+            "postalCode": "75003",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Discover Atelier Antik Batik, where delicacy and charm meet to dress you with elegance. Explore the collection, order on the shelves and enjoy free 24-hour delivery. Exclusive pieces are also available for purchase on site. Immerse yourself in a warm atmosphere, enjoy a cup of tea in the boudoir and live a unique shopping experience in India. L'Atelier Antik Batik promises you a sensory voyage of enchantment.",
+          "@fr": "Découvrez l'Atelier Antik Batik, où délicatesse et charme se rencontrent pour vous habiller avec élégance. Explorez la collection, commandez sur place avec les tablettes disponibles et profitez de la livraison gratuite en 24h. Des pièces exclusives sont également disponibles à l'achat sur place. Plongez dans une ambiance chaleureuse, dégustez un thé dans le boudoir et vivez une expérience shopping unique en Inde. L'Atelier Antik Batik vous promet un voyage sensoriel et envoûtant."
+        },
+        "shortDescription": {
+          "@en": "Discover Atelier Antik Batik, where delicacy and charm meet to dress you with elegance. Explore the collection, order on the shelves and enjoy free 24-hour delivery. Exclusive pieces are also available for purchase on site. Immerse yourself in a warm atmosphere, enjoy a cup of tea in the boudoir and live a unique shopping experience in India. L'Atelier Antik Batik promises you a sensory voyage of enchantment.",
+          "@fr": "Découvrez l'Atelier Antik Batik, où délicatesse et charme se rencontrent pour vous habiller avec élégance. Explorez la collection, commandez sur place avec les tablettes disponibles et profitez de la livraison gratuite en 24h. Des pièces exclusives sont également disponibles à l'achat sur place. Plongez dans une ambiance chaleureuse, dégustez un thé dans le boudoir et vivez une expérience shopping unique en Inde. L'Atelier Antik Batik vous promet un voyage sensoriel et envoûtant."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Antik Batik"
+    },
+    "type": [
+      "PointOfInterest",
+      "PlaceOfInterest",
+      "Store",
+      "BoutiqueOrLocalShop",
+      "LocalBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T14:42:43.447Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 48 87 95 95"
+        ],
+        "homepage": [
+          "https://www.antikbatik.com/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/ae8aa551-85f1-39da-a86f-cec9204f8e95",
+    "uuid": "00104ecf-b338-3c07-aab7-e0e24880219b"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.850025,
+          "longitude": 2.3533635
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "3 rue de Poissy"
+            ],
+            "postalCode": "75005",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "In the heart of the Saint-Victor district is La Main au Panier, a famous cabaret where Patrick Sébastien, Gérald Dahan, Pascal Bruner and Daniel Herzog got their start. Since 1962, spectators have been able to enjoy an exceptional dinner prepared by a renowned chef. Led by charismatic master of ceremonies Michel Forever, the evenings are filled with humor, song and even magic tricks, promising unforgettable entertainment.",
+          "@fr": "Au cœur du quartier Saint-Victor se trouve La Main au Panier, un célèbre cabaret où ont débuté Patrick Sébastien, Gérald Dahan, Pascal Bruner et Daniel Herzog. Depuis 1962, les spectateurs peuvent déguster un dîner d'exception préparé par un chef renommé. Sous la houlette de Michel Forever, maître de cérémonie charismatique, les soirées sont animées d'humour, de chansons et même de tours de magie, promettant un divertissement inoubliable."
+        },
+        "shortDescription": {
+          "@en": "In the heart of the Saint-Victor district is La Main au Panier, a famous cabaret where Patrick Sébastien, Gérald Dahan, Pascal Bruner and Daniel Herzog got their start. Since 1962, spectators have been able to enjoy an exceptional dinner prepared by a renowned chef. Led by charismatic master of ceremonies Michel Forever, the evenings are filled with humor, song and even magic tricks, promising unforgettable entertainment.",
+          "@fr": "Au cœur du quartier Saint-Victor se trouve La Main au Panier, un célèbre cabaret où ont débuté Patrick Sébastien, Gérald Dahan, Pascal Bruner et Daniel Herzog. Depuis 1962, les spectateurs peuvent déguster un dîner d'exception préparé par un chef renommé. Sous la houlette de Michel Forever, maître de cérémonie charismatique, les soirées sont animées d'humour, de chansons et même de tours de magie, promettant un divertissement inoubliable."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "La Main au Panier"
+    },
+    "type": [
+      "PlaceOfInterest",
+      "PointOfInterest",
+      "SportsAndLeisurePlace"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.027Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 46 33 33 63"
+        ],
+        "homepage": [
+          "https://www.lamainaupanier.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/9a46e748-1af9-3fcf-aef1-1f7aaa961aff",
+    "uuid": "0115fed5-5489-31c2-888f-f1942904da49"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Choose Paris Region",
+      "identifier": "1019",
+      "homepage": [
+        "http://www.visitparisregion.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.860307,
+          "longitude": 2.351132
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75104",
+              "label": {
+                "@en": "Paris 4e Arrondissement",
+                "@fr": "Paris 4e Arrondissement"
+              }
+            },
+            "streetAddress": [
+              "Place Georges Pompidou"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris 4e Arrondissement"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-06-24",
+    "hasDescription": [
+      {
+        "shortDescription": {
+          "@en": "With more than 100,000 works, the collection of the Musée national d'art moderne / Centre de création industrielle is one of the world's leading reference collections for 20th and 21st century art.",
+          "@fr": "Rassemblant plus de 100 000 œuvres, la collection du Musée national d’art moderne / Centre de création industrielle constitue l’un des premiers ensembles mondiaux de référence pour l’art des XXe et XXIe siècles."
+        }
+      }
+    ],
+    "label": {
+      "@en": "Centre Pompidou",
+      "@fr": "Centre Pompidou"
+    },
+    "type": [
+      "LocalBusiness",
+      "PlaceOfInterest",
+      "Museum",
+      "CulturalSite",
+      "PointOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-06-25T06:09:08.893Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 44 78 12 33"
+        ],
+        "homepage": [
+          "https://www.centrepompidou.fr/fr/visite/accessibilite/appli-centre-pompidou-accessibilite",
+          "https://www.centrepompidou.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/13/b02a4b65-5ec3-3f80-8cd9-ea8af229cb5f",
+    "uuid": "01ad867c-a5b6-398f-aea0-a64a96ea6ee6"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.85440701,
+          "longitude": 2.345229016
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "15 Boulevard du Palais"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "label": {
+      "@fr": "Le soleil d'or"
+    },
+    "type": [
+      "FoodEstablishment",
+      "Restaurant",
+      "BrasserieOrTavern",
+      "PlaceOfInterest",
+      "PointOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:31:10.876Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 43 54 22 22"
+        ],
+        "homepage": [
+          "https://lesoleildor.fr/fr"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/0f5d179f-3622-3d66-858a-ed93b2d3dff8",
+    "uuid": "01d7a9f4-100d-3930-aaea-a9611988bfa7"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.85914,
+          "longitude": 2.3526056
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "16 rue du Renard"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "The Saint-Merri swimming pool, near the Georges Pompidou center, is the perfect place to relax in Paris. With its 25-meter pool, it's the ideal place to swim and keep fit. The sunny solarium is ideal for relaxing. Whether you're looking for exercise or peace and quiet, this pool is sure to satisfy. Take advantage of this unique setting and let yourself be carried away by the serenity of the place.",
+          "@fr": "La piscine Saint-Merri, près du centre Georges Pompidou, est parfaite pour se détendre à Paris. Avec son bassin de 25 mètres, c'est l'endroit idéal pour nager et rester en forme. Le solarium ensoleillé est idéal pour se relaxer. Que ce soit pour l'exercice ou la tranquillité, cette piscine saura vous satisfaire. Profitez de ce cadre unique et laissez-vous emporter par la sérénité du lieu."
+        },
+        "shortDescription": {
+          "@en": "The Saint-Merri swimming pool, near the Georges Pompidou center, is the perfect place to relax in Paris. With its 25-meter pool, it's the ideal place to swim and keep fit. The sunny solarium is ideal for relaxing. Whether you're looking for exercise or peace and quiet, this pool is sure to satisfy. Take advantage of this unique setting and let yourself be carried away by the serenity of the place.",
+          "@fr": "La piscine Saint-Merri, près du centre Georges Pompidou, est parfaite pour se détendre à Paris. Avec son bassin de 25 mètres, c'est l'endroit idéal pour nager et rester en forme. Le solarium ensoleillé est idéal pour se relaxer. Que ce soit pour l'exercice ou la tranquillité, cette piscine saura vous satisfaire. Profitez de ce cadre unique et laissez-vous emporter par la sérénité du lieu."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Piscine Saint-Merri"
+    },
+    "type": [
+      "SportsAndLeisurePlace",
+      "PointOfInterest",
+      "PlaceOfInterest",
+      "SwimmingPool",
+      "LocalBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.036Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 42 72 29 45"
+        ],
+        "homepage": [
+          "https://www.paris.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/f00ebf4b-5930-3fde-aa72-a7ce922d32d8",
+    "uuid": "01f4e004-4a6b-30f8-93a2-4118e8d682a6"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Choose Paris Region",
+      "identifier": "1019",
+      "homepage": [
+        "http://www.visitparisregion.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.854918,
+          "longitude": 2.356064
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75104",
+              "label": {
+                "@en": "Paris 4e Arrondissement",
+                "@fr": "Paris 4e Arrondissement"
+              }
+            },
+            "streetAddress": [
+              "17 rue Geoffroy l'Asnier"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris 4e Arrondissement"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-06-24",
+    "hasDescription": [
+      {
+        "shortDescription": {
+          "@en": "As a place of history and education, this institution, through its many actions, is part of the transmission of the memory and teaching of the Shoah.",
+          "@fr": "Lieu d'histoire et d'éducation, cette institution, à travers ses nombreuses actions, s’inscrit dans une transmission de la mémoire et de l'enseignement de la Shoah."
+        }
+      }
+    ],
+    "label": {
+      "@en": "Shoah Memorial of Paris",
+      "@fr": "Mémorial de la Shoah - Paris"
+    },
+    "type": [
+      "PlaceOfInterest",
+      "PointOfInterest",
+      "CulturalSite",
+      "RemembranceSite"
+    ],
+    "lastUpdateDatatourisme": "2026-06-25T06:09:08.89Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 42 77 44 72"
+        ],
+        "homepage": [
+          "http://www.memorialdelashoah.org/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/13/a1079b7b-a568-3799-ba38-367f144651ff",
+    "uuid": "022af0aa-419e-32a5-8219-31b8c8f080f0"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.853752,
+          "longitude": 2.3404346
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "25 rue des Grands Augustins"
+            ],
+            "postalCode": "75006",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Located just 150 meters from his first establishment, chef William Ledeuil has opened this new contemporary art gallery-restaurant. It features the same playful, designer concept, as well as the same original, tasty Asian-inspired cuisine. An address to remember for combining the pleasures of the taste buds and the eyes in a modern, convivial setting.",
+          "@fr": "Situé à seulement 150 mètres de son premier établissement, le chef William Ledeuil a ouvert ce nouveau restaurant-galerie d'art contemporain. On y retrouve le même concept ludique et design, ainsi que la même cuisine originale et savoureuse, empreinte d'une inspiration asiatique. Une adresse à retenir pour allier plaisir des papilles et des yeux dans un cadre moderne et convivial."
+        },
+        "shortDescription": {
+          "@en": "Located just 150 meters from his first establishment, chef William Ledeuil has opened this new contemporary art gallery-restaurant. It features the same playful, designer concept, as well as the same original, tasty Asian-inspired cuisine. An address to remember for combining the pleasures of the taste buds and the eyes in a modern, convivial setting.",
+          "@fr": "Situé à seulement 150 mètres de son premier établissement, le chef William Ledeuil a ouvert ce nouveau restaurant-galerie d'art contemporain. On y retrouve le même concept ludique et design, ainsi que la même cuisine originale et savoureuse, empreinte d'une inspiration asiatique. Une adresse à retenir pour allier plaisir des papilles et des yeux dans un cadre moderne et convivial."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "KGB - Kitchen Galerie Bis"
+    },
+    "type": [
+      "PointOfInterest",
+      "Restaurant",
+      "FoodEstablishment",
+      "PlaceOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:31:10.877Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 46 33 00 85"
+        ],
+        "homepage": [
+          "https://zekitchengalerie.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/4731084b-bc75-3aaf-99da-198f90bdfb46",
+    "uuid": "02edadc8-a3bb-3a7e-bc4c-d3b1cec5a9f4"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.85365,
+          "longitude": 2.340206
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "26-28 rue des Grands Augustins"
+            ],
+            "postalCode": "75006",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "The frog leg remains the signature dish of this restaurant, which has been a benchmark since the 1930s. Today, this restaurant offers bistro-style cuisine, revisiting traditional recipes to delight the taste buds. An institution where local gastronomy is sublimated with creativity.",
+          "@fr": "La cuisse de grenouille demeure le plat emblématique de cette adresse, une véritable référence depuis les années 1930. Ce restaurant propose actuellement une cuisine de bistrot revisitant avec talent les recettes traditionnelles pour le plaisir des papilles. Une institution où la gastronomie de terroir est sublimée avec créativité."
+        },
+        "shortDescription": {
+          "@en": "The frog leg remains the signature dish of this restaurant, which has been a benchmark since the 1930s. Today, this restaurant offers bistro-style cuisine, revisiting traditional recipes to delight the taste buds. An institution where local gastronomy is sublimated with creativity.",
+          "@fr": "La cuisse de grenouille demeure le plat emblématique de cette adresse, une véritable référence depuis les années 1930. Ce restaurant propose actuellement une cuisine de bistrot revisitant avec talent les recettes traditionnelles pour le plaisir des papilles. Une institution où la gastronomie de terroir est sublimée avec créativité."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Roger La Grenouille"
+    },
+    "type": [
+      "Winery",
+      "FoodEstablishment",
+      "PlaceOfInterest",
+      "BistroOrWineBar",
+      "PointOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:31:10.876Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 56 24 24 34"
+        ],
+        "homepage": [
+          "http://roger-la-grenouille.com/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/ed917378-00f5-3e5a-b5e3-a9708ad38a2d",
+    "uuid": "032be30b-fee5-3c3d-ae6b-062dc3a79976"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.8542001513767,
+          "longitude": 2.348877829352809
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "NC"
+            ],
+            "postalCode": "75",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "I've been an experienced tour leader and guide since 1990, and I'm here to help you discover Paris in a personalized way. Whether you're a family or a group, I'll adapt to your needs to create a customized program. Contact me in advance to work out together a program that will give you a complete overview of the capital and its fascinating history.",
+          "@fr": "Guide-conférencier et tour leader expérimenté depuis 1990, je vous propose mes services pour découvrir Paris de manière personnalisée. Que vous soyez en famille ou en groupe, je m'adapte à vos besoins pour créer un programme sur mesure. Contactez-moi en amont pour élaborer ensemble un parcours qui vous offrira un aperçu complet de la Capitale et de son histoire fascinante."
+        },
+        "shortDescription": {
+          "@en": "I've been an experienced tour leader and guide since 1990, and I'm here to help you discover Paris in a personalized way. Whether you're a family or a group, I'll adapt to your needs to create a customized program. Contact me in advance to work out together a program that will give you a complete overview of the capital and its fascinating history.",
+          "@fr": "Guide-conférencier et tour leader expérimenté depuis 1990, je vous propose mes services pour découvrir Paris de manière personnalisée. Que vous soyez en famille ou en groupe, je m'adapte à vos besoins pour créer un programme sur mesure. Contactez-moi en amont pour élaborer ensemble un parcours qui vous offrira un aperçu complet de la Capitale et de son histoire fascinante."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Guide Martin Ziemann"
+    },
+    "type": [
+      "Visit",
+      "PointOfInterest",
+      "Product"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T16:03:09.188Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 6 07 80 02 58"
+        ],
+        "homepage": [
+          "http://www.facebook.com/Martin.Ziemann/about/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/4f04d2a0-b2bc-367c-96e2-7eae8297e08f",
+    "uuid": "033f1974-8b04-3d68-9d71-5e9e47d523c7"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.863243,
+          "longitude": 2.3511665
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "58 boulevard de Sébastopol"
+            ],
+            "postalCode": "75003",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "\"Sacré Frenchy! is a friendly restaurant in Paris, near the Centre Pompidou. With seating for 120, including 40 on the terrace, it offers a warm, typically French ambience. Fresh, local and homemade products are used in the cuisine, such as the côte de b?uf to share or the Poulet Bio des Landes roast. The chef revisits classics with quality. Festive atmosphere with piano, perfect for an authentic evening in Paris.\" (373 characters)",
+          "@fr": "\"Sacré Frenchy! est un resto convivial à Paris, près du Centre Pompidou. Avec 120 places dont 40 en terrasse, il offre une ambiance chaleureuse typiquement française. Cuisine avec produits frais, locaux et faits maison, comme la côte de bœuf à partager ou le Poulet Bio des Landes rôti. Le chef revisite les classiques avec qualité. Ambiance festive avec piano, parfaite pour une soirée authentique à Paris.\" (373 caractères)"
+        },
+        "shortDescription": {
+          "@en": "\"Sacré Frenchy! is a friendly restaurant in Paris, near the Centre Pompidou. With seating for 120, including 40 on the terrace, it offers a warm, typically French ambience. Fresh, local and homemade products are used in the cuisine, such as the côte de b?uf to share or the Poulet Bio des Landes roast. The chef revisits classics with quality. Festive atmosphere with piano, perfect for an authentic evening in Paris.\" (373 characters)",
+          "@fr": "\"Sacré Frenchy! est un resto convivial à Paris, près du Centre Pompidou. Avec 120 places dont 40 en terrasse, il offre une ambiance chaleureuse typiquement française. Cuisine avec produits frais, locaux et faits maison, comme la côte de bœuf à partager ou le Poulet Bio des Landes rôti. Le chef revisite les classiques avec qualité. Ambiance festive avec piano, parfaite pour une soirée authentique à Paris.\" (373 caractères)"
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Sacré Frenchy !"
+    },
+    "type": [
+      "PointOfInterest",
+      "Restaurant",
+      "FoodEstablishment",
+      "BrasserieOrTavern",
+      "PlaceOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:31:10.875Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 42 74 55 63"
+        ],
+        "homepage": [
+          "http://www.sacrefrenchy.com/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/af7e7a0c-bb89-398c-b510-2492520e9cac",
+    "uuid": "0398fb4b-d405-35d6-a5bb-ae96d4555b73"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.856483,
+          "longitude": 2.3524134
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "Mairie de Paris - Place de l'Hôtel de Ville"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Since 1357, the Hôtel de Ville de Paris has been the seat of the Paris municipality. Rebuilt in neo-Renaissance style after the fire of 1871, this emblematic building is steeped in history. Guided tours are available on reservation, and feature the magnificent Salle des Fêtes, reminiscent of the Hall of Mirrors at Versailles. Free exhibitions attract a wide audience, offering an immersion into the political and cultural life of the capital.",
+          "@fr": "Depuis 1357, l'Hôtel de Ville de Paris est le siège de la municipalité parisienne. Reconstruit en style néo-renaissance après l'incendie de 1871, ce bâtiment emblématique est chargé d'histoire. Il propose des visites guidées sur réservation, mettant en valeur la magnifique Salle des Fêtes rappelant la galerie des glaces de Versailles. Des expositions gratuites y attirent un large public, offrant une immersion dans la vie politique et culturelle de la capitale."
+        },
+        "shortDescription": {
+          "@en": "Since 1357, the Hôtel de Ville de Paris has been the seat of the Paris municipality. Rebuilt in neo-Renaissance style after the fire of 1871, this emblematic building is steeped in history. Guided tours are available on reservation, and feature the magnificent Salle des Fêtes, reminiscent of the Hall of Mirrors at Versailles. Free exhibitions attract a wide audience, offering an immersion into the political and cultural life of the capital.",
+          "@fr": "Depuis 1357, l'Hôtel de Ville de Paris est le siège de la municipalité parisienne. Reconstruit en style néo-renaissance après l'incendie de 1871, ce bâtiment emblématique est chargé d'histoire. Il propose des visites guidées sur réservation, mettant en valeur la magnifique Salle des Fêtes rappelant la galerie des glaces de Versailles. Des expositions gratuites y attirent un large public, offrant une immersion dans la vie politique et culturelle de la capitale."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Hotel de Ville de Paris"
+    },
+    "type": [
+      "PointOfInterest",
+      "PlaceOfInterest",
+      "RemarkableBuilding",
+      "CulturalSite"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.031Z",
+    "hasContact": [
+      {
+        "homepage": [
+          "https://www.paris.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/e7f7a90d-a10c-3bce-a82f-e25d2b99f458",
+    "uuid": "041a18cc-52d5-3ed8-9817-a7e2967cab9b"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Choose Paris Region",
+      "identifier": "1019",
+      "homepage": [
+        "http://www.visitparisregion.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.859874,
+          "longitude": 2.362905
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75103",
+              "label": {
+                "@en": "Paris 3e Arrondissement",
+                "@fr": "Paris 3e Arrondissement"
+              }
+            },
+            "streetAddress": [
+              "7 rue de Thorigny"
+            ],
+            "postalCode": "75003",
+            "addressLocality": "Paris 3e Arrondissement"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2024-10-23",
+    "hasDescription": [
+      {
+        "shortDescription": {
+          "@en": "In this little corner of paradise in the heart of the Marais, no Californian or Swedish massages. Maison Suisen offers a direct route to Japanese well-being. Shiatsu, ryokan, green tea, omotenashi, prepare your senses to travel without leaving Paris.",
+          "@fr": "Dans ce petit coin de paradis au cœur du Marais, pas de massages californien ou suédois. La maison Suisen offre un aller direct vers le bien-être japonais. Shiatsu, ryokan, thé vert, omotenashi, préparez vos sens à voyager sans quitter Paris."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Maison Suisen"
+    },
+    "type": [
+      "SportsAndLeisurePlace",
+      "PointOfInterest",
+      "PlaceOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-01-01T00:00:00Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 57 40 62 44"
+        ],
+        "homepage": [
+          "https://suisen.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/13/dfbc7274-2cae-3b26-bd0c-45b4aacf95b3",
+    "uuid": "04412355-5ae3-3e37-9320-3a5a7f4b7d68"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.86302,
+          "longitude": 2.360207
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "79 rue des Archives"
+            ],
+            "postalCode": "75003",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "The Fondation Henri Cartier-Bresson, located in the Marais district of Paris, exhibits the precious collections of the famous photographer and his wife. Emblematic works by Cartier-Bresson are presented in temporary exhibitions, both on site and elsewhere. The museum also showcases other national and international photographic greats. A captivating journey to the heart of visual art awaits you.",
+          "@fr": "La Fondation Henri Cartier-Bresson, installée dans le Marais, expose les précieuses collections du célèbre photographe et de son épouse. Les œuvres emblématiques de Cartier-Bresson sont présentées lors d'expositions temporaires, qu'elles se tiennent sur place ou ailleurs. Cette institution incontournable met également en lumière d'autres grands noms de la photographie, nationaux et internationaux. Un voyage captivant au cœur de l'art visuel vous attend."
+        },
+        "shortDescription": {
+          "@en": "The Fondation Henri Cartier-Bresson, located in the Marais district of Paris, exhibits the precious collections of the famous photographer and his wife. Emblematic works by Cartier-Bresson are presented in temporary exhibitions, both on site and elsewhere. The museum also showcases other national and international photographic greats. A captivating journey to the heart of visual art awaits you.",
+          "@fr": "La Fondation Henri Cartier-Bresson, installée dans le Marais, expose les précieuses collections du célèbre photographe et de son épouse. Les œuvres emblématiques de Cartier-Bresson sont présentées lors d'expositions temporaires, qu'elles se tiennent sur place ou ailleurs. Cette institution incontournable met également en lumière d'autres grands noms de la photographie, nationaux et internationaux. Un voyage captivant au cœur de l'art visuel vous attend."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Fondation Henri Cartier-Bresson"
+    },
+    "type": [
+      "PlaceOfInterest",
+      "CulturalSite",
+      "Museum",
+      "PointOfInterest",
+      "LocalBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.037Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 40 61 50 50"
+        ],
+        "homepage": [
+          "https://www.henricartierbresson.org/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/6816e8f1-f0d6-317a-82ee-16267957640a",
+    "uuid": "04b5d67b-a75b-3998-96b6-25b5349f6602"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Choose Paris Region",
+      "identifier": "1019",
+      "homepage": [
+        "http://www.visitparisregion.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.852793,
+          "longitude": 2.342306
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75106",
+              "label": {
+                "@en": "Paris 6e Arrondissement",
+                "@fr": "Paris 6e Arrondissement"
+              }
+            },
+            "streetAddress": [
+              "4 rue Danton"
+            ],
+            "postalCode": "75006",
+            "addressLocality": "Paris 6e Arrondissement"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2023-05-18",
+    "hasDescription": [
+      {
+        "shortDescription": {
+          "@en": "There's no doubt that this address is destined to become a favorite of many a Parisian. From the rooftop bar of the Hotel Dame des Arts, gaze out over the historic skyline of the capital. Your Moscow Mule has never tasted so good.",
+          "@fr": "Pas de doute, cette adresse est vouée à devenir la favorite de plus d’un Parisien. Au-dessus des toits, embrassez le paysage historique de la capitale depuis le bar rooftop de l’hôtel Dame des arts. Jamais votre Moscow Mule n’aura eu aussi bon goût."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Bar rooftop Hôtel Dame des Arts"
+    },
+    "type": [
+      "Winery",
+      "PlaceOfInterest",
+      "PointOfInterest",
+      "FoodEstablishment",
+      "BistroOrWineBar",
+      "SportsAndLeisurePlace"
+    ],
+    "lastUpdateDatatourisme": "2026-01-01T00:00:00Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 81 69 00 60"
+        ],
+        "homepage": [
+          "https://www.damedesarts.com/rooftop"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/13/4aa3a423-373f-360a-80bc-e8df3722e442",
+    "uuid": "056a33fa-5f0f-3c4a-a510-303b46987f50"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.860985,
+          "longitude": 2.3556447
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "Hôtel de Saint-Aignan - 71 rue du Temple"
+            ],
+            "postalCode": "75003",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "The Musée d'Art et d'Histoire du Judaïsme bookshop-boutique offers a wide range of books, objects, textiles, jewelry and a selection for children. Books cover a wide range of subjects, including fine art, Judaica, philosophy, mysticism, contemporary history, ethnography and more. Discover also monographs by contemporary artists and essays by intellectuals. A rich diversity to explore for all enthusiasts of Jewish culture and history.",
+          "@fr": "La librairie-boutique du Musée d'Art et d'Histoire du Judaïsme offre une gamme étendue d'ouvrages, objets, textiles, bijoux, et une sélection pour les enfants. Les livres disponibles couvrent divers sujets tels que beaux-arts, judaïca, philosophie, mysticisme, histoire contemporaine, ethnographie, etc. Découvrez également des monographies d'artistes contemporains et des essais d'intellectuels. Une riche diversité à explorer pour tous les passionnés de culture et d'histoire juive."
+        },
+        "shortDescription": {
+          "@en": "The Musée d'Art et d'Histoire du Judaïsme bookshop-boutique offers a wide range of books, objects, textiles, jewelry and a selection for children. Books cover a wide range of subjects, including fine art, Judaica, philosophy, mysticism, contemporary history, ethnography and more. Discover also monographs by contemporary artists and essays by intellectuals. A rich diversity to explore for all enthusiasts of Jewish culture and history.",
+          "@fr": "La librairie-boutique du Musée d'Art et d'Histoire du Judaïsme offre une gamme étendue d'ouvrages, objets, textiles, bijoux, et une sélection pour les enfants. Les livres disponibles couvrent divers sujets tels que beaux-arts, judaïca, philosophie, mysticisme, histoire contemporaine, ethnographie, etc. Découvrez également des monographies d'artistes contemporains et des essais d'intellectuels. Une riche diversité à explorer pour tous les passionnés de culture et d'histoire juive."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Librairie-boutique du musée d’art et d’histoire du Judaïsme"
+    },
+    "type": [
+      "BoutiqueOrLocalShop",
+      "PointOfInterest",
+      "PlaceOfInterest",
+      "Store",
+      "LocalBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T14:42:43.445Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 53 01 86 49"
+        ],
+        "homepage": [
+          "https://www.mahj.org/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/44de0ad3-054f-3455-80df-aa75e0436f23",
+    "uuid": "05859a54-c81d-3253-8823-ad6e467b3af0"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.851475,
+          "longitude": 2.3511095
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "2 Port de Montebello"
+            ],
+            "postalCode": "75005",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Moored on the Quai de Montebello, the \"Son de la Terre\" offers a breathtaking view of Notre-Dame de Paris. Designed by the Seine Design agency, this elegant space has been a unique venue in the heart of the capital since 2023, with its panoramic view over the Seine. This bistronomic restaurant celebrates world cuisine, hosts concerts and club nights, and welcomes artists in residence. Modular, it offers private spaces and a mobile stage, as well as a large 200m2 terrace with in-house cuisine and original cocktails. An address not to be missed!",
+          "@fr": "Amarré au quai de Montebello, le \"Son de la Terre\" offre une vue imprenable sur Notre-Dame de Paris. Pensé par l'agence Seine Design, cet espace élégant est un lieu unique au cœur de la capitale depuis 2023, avec sa vue panoramique sur la Seine. Ce restaurant bistronomique célèbre les cuisines du monde, propose des concerts, soirées club et accueille des artistes en résidence. Modulable, il offre des espaces privatisables et une scène mobile, ainsi qu'une grande terrasse de 200m2 avec une cuisine maison et des cocktails originaux. Une adresse incontournable à découvrir!"
+        },
+        "shortDescription": {
+          "@en": "Moored on the Quai de Montebello, the \"Son de la Terre\" offers a breathtaking view of Notre-Dame de Paris. Designed by the Seine Design agency, this elegant space has been a unique venue in the heart of the capital since 2023, with its panoramic view over the Seine. This bistronomic restaurant celebrates world cuisine, hosts concerts and club nights, and welcomes artists in residence. Modular, it offers private spaces and a mobile stage, as well as a large 200m2 terrace with in-house cuisine and original cocktails. An address not to be missed!",
+          "@fr": "Amarré au quai de Montebello, le \"Son de la Terre\" offre une vue imprenable sur Notre-Dame de Paris. Pensé par l'agence Seine Design, cet espace élégant est un lieu unique au cœur de la capitale depuis 2023, avec sa vue panoramique sur la Seine. Ce restaurant bistronomique célèbre les cuisines du monde, propose des concerts, soirées club et accueille des artistes en résidence. Modulable, il offre des espaces privatisables et une scène mobile, ainsi qu'une grande terrasse de 200m2 avec une cuisine maison et des cocktails originaux. Une adresse incontournable à découvrir!"
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Le Son de la Terre"
+    },
+    "type": [
+      "PointOfInterest",
+      "SportsAndLeisurePlace",
+      "PlaceOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.031Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 7 45 11 63 36"
+        ],
+        "homepage": [
+          "https://www.sondelaterre.fr/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/d0fbed9f-5a58-3c98-9be1-15eb16f15b0a",
+    "uuid": "05dda09b-79dd-36c2-b363-a3caf40e1846"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.85586,
+          "longitude": 2.3594544
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "16 rue de Rivoli"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Discover our sale-depot specialized in new and second-hand luxury goods. Each item is authenticated before sale, and can be validated by our experts for 60 euros. Wide selection of leather goods, shoes, accessories (scarves, jewelry, belts, hats). Payment by instalments up to 4 times free of charge, personal shopper service. Private lounge available to relax during your visits.",
+          "@fr": "Découvrez notre dépôt-vente spécialisé en articles de luxe neufs et d'occasion. Chaque pièce est authentifiée avant la vente, possibilité de validation par nos experts pour 60 euros. Large sélection de maroquinerie, chaussures, accessoires (foulards, bijoux, ceintures, chapeaux). Paiement échelonné jusqu'à 4 fois sans frais, service de personal shopper. Salon privé disponible pour se détendre pendant vos visites."
+        },
+        "shortDescription": {
+          "@en": "Discover our sale-depot specialized in new and second-hand luxury goods. Each item is authenticated before sale, and can be validated by our experts for 60 euros. Wide selection of leather goods, shoes, accessories (scarves, jewelry, belts, hats). Payment by instalments up to 4 times free of charge, personal shopper service. Private lounge available to relax during your visits.",
+          "@fr": "Découvrez notre dépôt-vente spécialisé en articles de luxe neufs et d'occasion. Chaque pièce est authentifiée avant la vente, possibilité de validation par nos experts pour 60 euros. Large sélection de maroquinerie, chaussures, accessoires (foulards, bijoux, ceintures, chapeaux). Paiement échelonné jusqu'à 4 fois sans frais, service de personal shopper. Salon privé disponible pour se détendre pendant vos visites."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Passion Luxe"
+    },
+    "type": [
+      "PlaceOfInterest",
+      "BoutiqueOrLocalShop",
+      "PointOfInterest",
+      "Store",
+      "LocalBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T14:42:43.445Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 6 17 68 49 18",
+          "+33 1 73 75 32 18"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/d44ac360-b26d-31c3-bb48-2dc76129aad4",
+    "uuid": "06506803-ae2e-3276-8b1e-b9ded89c399a"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.86137147,
+          "longitude": 2.352267515
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "Place Georges Pompidou"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Located on Place Georges Pompidou, the Maison Pompidou now occupies the building that once housed the Atelier Brancusi. This new living and information space accompanies the Centre Pompidou's major renovation project. Open to all, this hybrid space offers a varied cultural program - exhibitions, workshops, meetings and events - dedicated to the history of the Centre, its emblematic architecture and the behind-the-scenes aspects of its transformation. It's the place to be if you want to keep in touch with the institution while it's undergoing renovation.",
+          "@fr": "Située sur la place Georges Pompidou, la Maison Pompidou occupe désormais le bâtiment qui abritait l'Atelier Brancusi. Ce nouveau lieu de vie et d'information accompagne le grand chantier de rénovation du Centre Pompidou. Ouvert à tous, cet espace hybride propose une programmation culturelle variée - expositions, ateliers, rencontres et événements - dédiée à l'histoire du Centre, à son architecture emblématique et aux coulisses de sa transformation. Un point de ralliement incontournable pour rester connecté à l'institution durant sa période de travaux."
+        },
+        "shortDescription": {
+          "@en": "Located on Place Georges Pompidou, the Maison Pompidou now occupies the building that once housed the Atelier Brancusi. This new living and information space accompanies the Centre Pompidou's major renovation project. Open to all, this hybrid space offers a varied cultural program - exhibitions, workshops, meetings and events - dedicated to the history of the Centre, its emblematic architecture and the behind-the-scenes aspects of its transformation. It's the place to be if you want to keep in touch with the institution while it's undergoing renovation.",
+          "@fr": "Située sur la place Georges Pompidou, la Maison Pompidou occupe désormais le bâtiment qui abritait l'Atelier Brancusi. Ce nouveau lieu de vie et d'information accompagne le grand chantier de rénovation du Centre Pompidou. Ouvert à tous, cet espace hybride propose une programmation culturelle variée - expositions, ateliers, rencontres et événements - dédiée à l'histoire du Centre, à son architecture emblématique et aux coulisses de sa transformation. Un point de ralliement incontournable pour rester connecté à l'institution durant sa période de travaux."
+        }
+      }
+    ],
+    "label": {
+      "@fr": "La Maison Pompidou"
+    },
+    "type": [
+      "Museum",
+      "LocalBusiness",
+      "CulturalSite",
+      "PlaceOfInterest",
+      "PointOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:19:09.027Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 44 78 12 33"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/b9a8de1f-447c-3755-b280-042e66c39a01",
+    "uuid": "06a8fcde-706a-38a3-9f1d-49255e42b1a3"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Choose Paris Region",
+      "identifier": "1019",
+      "homepage": [
+        "http://www.visitparisregion.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.861347,
+          "longitude": 2.350561
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75104",
+              "label": {
+                "@en": "Paris 4e Arrondissement",
+                "@fr": "Paris 4e Arrondissement"
+              }
+            },
+            "streetAddress": [
+              "51 rue Quincampoix"
+            ],
+            "postalCode": "75004",
+            "addressLocality": "Paris 4e Arrondissement"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-06-24",
+    "hasDescription": [
+      {
+        "shortDescription": {
+          "@en": "Since 2004, the Dans le Noir ? restaurant in the heart of Paris has been offering creative, responsible bistronomic cuisine in total darkness, accompanied and served by unexpected guides.",
+          "@fr": "Depuis 2004, le restaurant Dans le Noir ? vous propose de déguster au cœur de Paris, une cuisine bistronomique, créative et responsable dans l’obscurité totale, accompagnés et servis par des guides inattendus."
+        }
+      }
+    ],
+    "label": {
+      "@en": "Dans le Noir",
+      "@fr": "Dans le Noir"
+    },
+    "type": [
+      "FoodEstablishment",
+      "PointOfInterest",
+      "PlaceOfInterest"
+    ],
+    "lastUpdateDatatourisme": "2026-06-25T06:09:08.891Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 42 77 98 04"
+        ],
+        "homepage": [
+          "https://paris.danslenoir.com/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/13/e264f542-295d-3330-ac4d-576c12aa5182",
+    "uuid": "06ce29cf-1a2f-3a94-a06e-58603b84bcca"
+  },
+  {
+    "hasBeenCreatedBy": {
+      "legalName": "Paris je t'aime - Office de Tourisme",
+      "homepage": [
+        "https://parisjetaime.com/"
+      ]
+    },
+    "isLocatedAt": [
+      {
+        "geo": {
+          "latitude": 48.86052,
+          "longitude": 2.3680134
+        },
+        "address": [
+          {
+            "hasAddressCity": {
+              "insee": "75056",
+              "label": {
+                "@en": "Paris",
+                "@fr": "Paris"
+              }
+            },
+            "streetAddress": [
+              "74 rue Amelot"
+            ],
+            "postalCode": "75011",
+            "addressLocality": "Paris"
+          }
+        ]
+      }
+    ],
+    "lastUpdate": "2026-03-20",
+    "hasDescription": [
+      {
+        "description": {
+          "@en": "Nestled behind a discreet door, Les Jardins du Marais offers a haven of peace in the heart of Paris. With 18th- and 19th-century facades, 263 rooms and suites, 5 flexible meeting rooms and a trendy restaurant, this place is full of surprises. As soon as the sun comes out, one of the capital's largest private gardens becomes the place to be. 1,500 m² of Mediterranean vegetation provide an open-air space for relaxation in the heart of Parisian hustle and bustle!",
+          "@fr": "Niché derrière une porte discrète, les Jardins du Marais offrent un havre de paix au cœur de Paris. Avec des façades du XVIIIe et XIXe siècle, 263 chambres et suites, 5 salles de réunion modulables et un restaurant branché, cet endroit réserve bien des surprises. Dès les beaux jours, on se presse dans l'un des plus grands jardins privés de la capitale. 1 500 m² de végétation méditerranéenne offrent un espace de détente en plein air au cœur de l'animation parisienne!"
+        },
+        "shortDescription": {
+          "@en": "Nestled behind a discreet door, Les Jardins du Marais offers a haven of peace in the heart of Paris. With 18th- and 19th-century facades, 263 rooms and suites, 5 flexible meeting rooms and a trendy restaurant, this place is full of surprises. As soon as the sun comes out, one of the capital's largest private gardens becomes the place to be. 1,500 m² of Mediterranean vegetation provide an open-air space for relaxation in the heart of Parisian hustle and bustle!",
+          "@fr": "Niché derrière une porte discrète, les Jardins du Marais offrent un havre de paix au cœur de Paris. Avec des façades du XVIIIe et XIXe siècle, 263 chambres et suites, 5 salles de réunion modulables et un restaurant branché, cet endroit réserve bien des surprises. Dès les beaux jours, on se presse dans l'un des plus grands jardins privés de la capitale. 1 500 m² de végétation méditerranéenne offrent un espace de détente en plein air au cœur de l'animation parisienne!"
+        }
+      }
+    ],
+    "label": {
+      "@fr": "Les Jardins du Marais"
+    },
+    "type": [
+      "Accommodation",
+      "PlaceOfInterest",
+      "HotelTrade",
+      "Hotel",
+      "PointOfInterest",
+      "LodgingBusiness"
+    ],
+    "lastUpdateDatatourisme": "2026-03-20T15:49:18.174Z",
+    "hasContact": [
+      {
+        "telephone": [
+          "+33 1 40 21 20 00"
+        ],
+        "homepage": [
+          "http://www.lesjardinsdumarais.com/"
+        ]
+      }
+    ],
+    "uri": "https://data.datatourisme.fr/19/659384a5-5166-3023-9ebc-d1fab345cf8e",
+    "hasReview": [
+      {
+        "hasReviewValue": {
+          "label": {
+            "@en": "4 Stars",
+            "@fr": "4 étoiles"
+          },
+          "isCompliantWith": [
+            "ClubOrHolidayVillage",
+            "SelfCateringAccommodation",
+            "HolidayCentre",
+            "CampingAndCaravanning",
+            "Hotel"
+          ],
+          "key": "ScaleRating_4etoiles"
+        }
+      }
+    ],
+    "uuid": "076f3838-53e2-3450-8ab3-1705d0054afd"
+  }
+]

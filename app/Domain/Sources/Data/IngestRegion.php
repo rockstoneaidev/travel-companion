@@ -51,7 +51,57 @@ final readonly class IngestRegion
                 east: 18.160,
                 locale: 'sv',
             ),
+
+            /*
+            | The France-trip corridor (PRD §8.0, CURATION §4) — Jul 27–Aug 7 2026.
+            |
+            | City-scale boxes, deliberately. A region is what a traveler can walk
+            | or ride out of in a session, not an administrative boundary: bigger
+            | boxes cost ingest time and Overpass patience without ever being
+            | scouted, because coverage geometry never reaches them.
+            |
+            | locale `fr` is load-bearing now, not decorative: the adapters read
+            | name:{locale}, query Wikidata for French labels, and follow the
+            | fr.wikipedia sitelink (E2). Every one of those was hard-coded to
+            | Swedish until this corridor forced the fix.
+            */
+            ...self::franceCorridor(),
         ];
+    }
+
+    /**
+     * @return array<string, self>
+     */
+    private static function franceCorridor(): array
+    {
+        $cities = [
+            // key            name                  south     west      north     east
+            ['paris', 'Paris', 48.8150, 2.2240, 48.9020, 2.4700],
+            ['nantes', 'Nantes', 47.1800, -1.6100, 47.2600, -1.4950],
+            ['bordeaux', 'Bordeaux', 44.8000, -0.6400, 44.8900, -0.5300],
+            ['toulouse', 'Toulouse', 43.5600, 1.3800, 43.6500, 1.4900],
+            // Nice runs to the water on purpose: the coast IS the opportunity
+            // (light on the sea, the Promenade), and tide/light windows arrive
+            // with E16 — a box cut inland would have nothing to hang them on.
+            ['nice', 'Nice', 43.6550, 7.1950, 43.7350, 7.3200],
+            ['lyon', 'Lyon', 45.7200, 4.7800, 45.8000, 4.9000],
+            ['dijon', 'Dijon', 47.2950, 5.0000, 47.3500, 5.0800],
+        ];
+
+        $regions = [];
+        foreach ($cities as [$key, $name, $south, $west, $north, $east]) {
+            $regions[$key] = new self(
+                key: $key,
+                name: $name,
+                south: $south,
+                west: $west,
+                north: $north,
+                east: $east,
+                locale: 'fr',
+            );
+        }
+
+        return $regions;
     }
 
     public function toScoutRequest(): ScoutRequest

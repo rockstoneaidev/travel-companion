@@ -24,7 +24,24 @@ use Illuminate\Support\Facades\DB;
  */
 final class RankSession
 {
-    private const CREDIBILITY_BY_SOURCE = ['osm' => 'open', 'overture' => 'open', 'wikidata' => 'reference', 'curated' => 'official'];
+    /**
+     * Source → credibility tier for the confidence sub-score and the Decide
+     * evidence gates (SCORING §2.1, §4.6).
+     *
+     * An unlisted source falls through to `community` (Tier D), which cannot
+     * establish existence on its own — so forgetting to add an adapter here does
+     * not quietly serve unvouched places, it holds them as leads. Safe by
+     * default, but it means every new adapter MUST be registered here or its
+     * places never surface.
+     */
+    private const CREDIBILITY_BY_SOURCE = [
+        'osm' => 'open',
+        'overture' => 'open',
+        'wikidata' => 'reference',
+        'merimee' => 'official',        // a national ministry registry (DATA-SOURCES §1.2 Tier A)
+        'datatourisme' => 'official',   // a tourism board writing about its own territory
+        'curated' => 'official',
+    ];
 
     private const STATIC_PLACE_TTL_DAYS = 30.0;
 

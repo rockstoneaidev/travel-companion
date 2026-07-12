@@ -47,4 +47,17 @@ return [
         ],
     ],
 
+    /*
+    | France corridor open data (DATA-SOURCES §7). Both are free keys on request.
+    | Absent key ⇒ the adapter reports itself unsupported and the region degrades,
+    | rather than the ingest failing (conventions/09 coverage honesty).
+    */
+    'datatourisme' => [
+        'key' => env('DATATOURISME_API_KEY'),
+    ],
+
+    'openagenda' => [
+        'key' => env('OPENAGENDA_API_KEY'),
+    ],
+
 ];

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Services;
 
+use App\Domain\Sources\Adapters\DatatourismeAdapter;
+use App\Domain\Sources\Adapters\MerimeeAdapter;
 use App\Domain\Sources\Adapters\OsmAdapter;
 use App\Domain\Sources\Adapters\OvertureAdapter;
 use App\Domain\Sources\Adapters\WikidataAdapter;
@@ -33,6 +35,8 @@ final class SourceRegistry
         OvertureAdapter::KEY => OvertureAdapter::class,
         OsmAdapter::KEY => OsmAdapter::class,
         WikidataAdapter::KEY => WikidataAdapter::class,
+        MerimeeAdapter::KEY => MerimeeAdapter::class,
+        DatatourismeAdapter::KEY => DatatourismeAdapter::class,
     ];
 
     public function __construct(
@@ -102,6 +106,32 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 30),
                 credibilityTier: CredibilityTier::Reference,
                 scoutRange: ScoutRange::Full, // heritage/history is worth the drive (conventions/09)
+            ),
+
+            // France corridor (E13, DATA-SOURCES §7). Mérimée is a national
+            // ministry registry — Tier A, the strongest open evidence of
+            // existence we have, and it can establish a place on its own.
+            MerimeeAdapter::KEY => new SourceDescriptor(
+                key: MerimeeAdapter::KEY,
+                license: SourceLicense::LicenceOuverte,
+                storage: StoragePolicy::Persistable,
+                attribution: 'Base Mérimée, Ministère de la Culture — Licence Ouverte (Etalab)',
+                ttl: new DateInterval('P90D'),
+                adapterVersion: MerimeeAdapter::VERSION,
+                rateLimit: new RateLimit(perMinute: 60),
+                credibilityTier: CredibilityTier::Official,
+                scoutRange: ScoutRange::Full, // a protected monument is worth the detour
+            ),
+            DatatourismeAdapter::KEY => new SourceDescriptor(
+                key: DatatourismeAdapter::KEY,
+                license: SourceLicense::LicenceOuverte,
+                storage: StoragePolicy::Persistable,
+                attribution: 'DATAtourisme — Licence Ouverte (Etalab)',
+                ttl: new DateInterval('P30D'),
+                adapterVersion: DatatourismeAdapter::VERSION,
+                rateLimit: new RateLimit(perMinute: 60),
+                credibilityTier: CredibilityTier::Official, // a tourism board on its own territory
+                scoutRange: ScoutRange::Near,
             ),
         ];
     }
