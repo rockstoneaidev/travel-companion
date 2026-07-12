@@ -1,4 +1,4 @@
-import { AppHeader, ChoicePill, EditorialLede, PlaceSearch, PrimaryPill, QuietAction, type PlaceSuggestion } from '@/components/app';
+import { AppHeader, ChoicePill, EditorialLede, PlaceSearch, PrimaryPill, QuietAction, SecondaryPill, type PlaceSuggestion } from '@/components/app';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { type TravelMode } from '@/types/enums';
@@ -33,11 +33,27 @@ const TIME_CHIPS = [
 
 type LocationState = 'idle' | 'locating' | 'located' | 'manual';
 
+/**
+ * WHY the browser would not place you. It used to be thrown away — every failure
+ * collapsed into `manual` with no explanation — and on iOS that made the button look
+ * broken: once a site is denied location, getCurrentPosition errors INSTANTLY, every
+ * time, forever. So "Use my location" did fire, could never succeed, and never said
+ * why. A control that cannot work must say so; a silent one just looks dead.
+ */
+type LocationError = 'denied' | 'unavailable' | 'unsupported' | null;
+
+const LOCATION_MESSAGE: Record<Exclude<LocationError, null>, string> = {
+    denied: "Your browser is blocking location for this site — it won't ask again until you allow it in the browser's site settings. Search for your starting point instead.",
+    unavailable: "I couldn't get a fix on where you are. Try again, or search for your starting point.",
+    unsupported: "This browser won't share a location. Search for your starting point instead.",
+};
+
 type Point = { lat: number; lng: number };
 
 export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
     const { online } = useOnline('explore-start');
     const [state, setState] = useState<LocationState>('idle');
+    const [locationError, setLocationError] = useState<LocationError>(null);
     const [originLabel, setOriginLabel] = useState<string | null>(null);
     const [destinationLabel, setDestinationLabel] = useState<string | null>(null);
     const [headingSomewhere, setHeadingSomewhere] = useState(false);
@@ -51,21 +67,32 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
 
     const useMyLocation = () => {
         if (!navigator.geolocation) {
+            setLocationError('unsupported');
             setState('manual');
 
             return;
         }
 
+        setLocationError(null);
         setState('locating');
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 setData('origin', { lat: position.coords.latitude, lng: position.coords.longitude });
                 setOriginLabel('your location');
                 setState('located');
             },
-            // Denied, or the fix timed out. Both mean the same thing to the user:
-            // we cannot place you, so ask — once, and without nagging.
-            () => setState('manual'),
+            /*
+             * Denied and "could not get a fix" are NOT the same thing to the user, and
+             * treating them as one is what made this look broken. Denied is permanent
+             * until they change a browser setting — retrying will fail instantly and
+             * forever — so we have to say that, or they tap a dead-looking control until
+             * they give up. A failed fix is worth another try.
+             */
+            (error) => {
+                setLocationError(error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable');
+                setState('manual');
+            },
             { timeout: 10_000 },
         );
     };
@@ -125,6 +152,7 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
 
                         <OriginField
                             state={state}
+                            locationError={locationError}
                             originLabel={originLabel}
                             onUseMyLocation={useMyLocation}
                             onChoosePlace={(place) => {
@@ -134,6 +162,7 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                             onStartOver={() => {
                                 setData('origin', null);
                                 setOriginLabel(null);
+                                setLocationError(null);
                                 setState('manual');
                             }}
                         />
@@ -180,6 +209,16 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                             </PrimaryPill>
 
                             {/*
+                             * A greyed-out button is not an explanation. Without an origin the
+                             * product is dead — there is no default and there must not be a guess —
+                             * so SAY that the starting point is the thing standing in the way,
+                             * rather than leaving someone to work it out from a disabled control.
+                             */}
+                            {data.origin === null && online && (
+                                <p className="text-body-card text-meta">I need a starting point before I can look around.</p>
+                            )}
+
+                            {/*
                              * Starting a session means scouting, and scouting needs the network.
                              * Say so plainly and point at the thing that DOES work — no spinner,
                              * no retry-hammering a dead zone (S11).
@@ -207,13 +246,14 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
 
 interface OriginFieldProps {
     state: LocationState;
+    locationError: LocationError;
     originLabel: string | null;
     onUseMyLocation: () => void;
     onChoosePlace: (place: PlaceSuggestion) => void;
     onStartOver: () => void;
 }
 
-function OriginField({ state, originLabel, onUseMyLocation, onChoosePlace, onStartOver }: OriginFieldProps) {
+function OriginField({ state, locationError, originLabel, onUseMyLocation, onChoosePlace, onStartOver }: OriginFieldProps) {
     if (originLabel !== null) {
         return (
             <div className="space-y-2">
@@ -230,25 +270,44 @@ function OriginField({ state, originLabel, onUseMyLocation, onChoosePlace, onSta
     if (state === 'manual') {
         return (
             <div className="space-y-3">
-                <p className="text-body-card text-body">Tell me where you're starting from and I'll take it from there.</p>
+                <p className="text-body-card text-body">Where are you starting from?</p>
+
+                {/*
+                 * The REASON, in the user's words. This is the whole fix: every failure used
+                 * to collapse into this screen silently, so a denied permission looked
+                 * identical to a slow fix — and on iOS a denied site errors instantly and
+                 * forever, which made "Use my location" look like a dead button.
+                 */}
+                {locationError !== null && <p className="text-body-card text-meta">{LOCATION_MESSAGE[locationError]}</p>}
+
+                {/* Retrying a DENIED permission cannot work — it fails instantly, every time.
+                    Offering the button again would be inviting them to tap a dead control. */}
+                {locationError !== 'denied' && (
+                    <SecondaryPill type="button" onClick={onUseMyLocation}>
+                        {locationError === null ? 'Use my location' : 'Try my location again'}
+                    </SecondaryPill>
+                )}
+
                 <PlaceSearch onChoose={onChoosePlace} label="Search for your starting point" />
-                {/* One quiet affordance remains — no nagging (SCREENS S2). */}
-                <button type="button" onClick={onUseMyLocation} className="text-ink text-xs font-semibold underline underline-offset-[3px]">
-                    Use my location
-                </button>
             </div>
         );
     }
 
     return (
-        <div className="space-y-2">
-            <button
-                type="button"
-                onClick={onUseMyLocation}
-                className="text-ink text-xs font-semibold underline underline-offset-[3px]"
-                disabled={state === 'locating'}
-            >
+        <div className="space-y-3">
+            {/*
+             * The PRIMARY path, and it now looks like one. It used to be 11px underlined text
+             * — the same weight as a footnote — for the one action the whole screen depends on.
+             */}
+            <p className="text-body-card text-body">Where are you starting from?</p>
+
+            <SecondaryPill type="button" onClick={onUseMyLocation} disabled={state === 'locating'}>
                 {state === 'locating' ? 'Finding you…' : 'Use my location'}
+            </SecondaryPill>
+
+            {/* And the way out, for anyone who would rather not be located at all. */}
+            <button type="button" onClick={onStartOver} className="text-ink block text-xs font-semibold underline underline-offset-[3px]">
+                Or search for a place
             </button>
         </div>
     );
