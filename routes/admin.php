@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\CurationController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EntityResolutionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\WorldModelController;
@@ -44,4 +45,11 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     // World-model ops: the ingest/resolve buttons (runs on Horizon).
     Route::get('world-model', [WorldModelController::class, 'index'])->name('world-model.index');
     Route::post('world-model/{region}/build', [WorldModelController::class, 'build'])->name('world-model.build');
+
+    // Entity-resolution review queue (ENTITY-RESOLUTION §3 stage 4): the pairs
+    // the resolver refused to guess about. Until a human looks, the world model
+    // is holding a probable duplicate.
+    Route::get('entity-resolution', [EntityResolutionController::class, 'index'])->name('entity-resolution.index');
+    Route::put('entity-resolution/{decision}/merge', [EntityResolutionController::class, 'merge'])->name('entity-resolution.merge');
+    Route::put('entity-resolution/{decision}/distinct', [EntityResolutionController::class, 'keepDistinct'])->name('entity-resolution.distinct');
 });

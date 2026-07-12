@@ -65,11 +65,49 @@ final class ReplaySessionCommand extends Command
             }
         }
 
+        $this->stageFunnel($plan);
+
         $this->table(['Place', 'Original', 'Replay', 'Diff'], $rows);
         $identical = $replayByPlace->keys()->all() === $originalByPlace->keys()->all()
             && $replayByPlace->every(fn (array $r, string $id): bool => $r['composite'] === $originalByPlace[$id]['composite']);
         $this->components->twoColumnDetail('Verdict', $identical ? 'identical serve' : 'diverged (data, constants, or profile changed since)');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The stages *before* the serve. Diffing only what was served answers "what
+     * changed" but never "why was this dropped" — and a candidate that dies at
+     * the reachability gate or an evidence gate leaves no trace on the served
+     * list at all.
+     *
+     * @param  array<string, mixed>  $plan
+     */
+    private function stageFunnel(array $plan): void
+    {
+        $scouted = array_sum(array_column($plan['scout_summary'], 'candidates'));
+        $held = $plan['held'];
+
+        $this->components->twoColumnDetail('<fg=gray>scouted</>', (string) $scouted);
+        $this->components->twoColumnDetail('<fg=gray>held at Decide</>', (string) count($held));
+        $this->components->twoColumnDetail('<fg=gray>served</>', (string) count($plan['picked']));
+
+        if ($held === []) {
+            return;
+        }
+
+        $this->newLine();
+        $this->line('  <fg=yellow>Held at the evidence gates (SCORING §2.1) — never eligible for the feed:</>');
+
+        $byReason = [];
+        foreach ($held as $candidate) {
+            $byReason[$candidate['hold']['reason']][] = $candidate['name'];
+        }
+
+        foreach ($byReason as $reason => $names) {
+            $this->line(sprintf('    %-24s %d  (%s)', $reason, count($names), implode(', ', array_slice($names, 0, 3))));
+        }
+
+        $this->newLine();
     }
 }

@@ -1,0 +1,962 @@
+[
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "a4718bb9-aa31-41d2-9b1a-9a00d07f07e1",
+            "name": "Lilla Lekparken Vidängsvägen"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/343546975",
+            "name": "Lekparken"
+        },
+        "distance_m": 22,
+        "score": 0.844,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "b880f59c-87cb-485d-bba6-219d5e366d26",
+            "name": "Milstensparken"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/343546975",
+            "name": "Lekparken"
+        },
+        "distance_m": 240,
+        "score": 0.6973,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "b880f59c-87cb-485d-bba6-219d5e366d26",
+            "name": "Milstensparken"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/7491835783",
+            "name": "Himmelsfärdsberget"
+        },
+        "distance_m": 170,
+        "score": 0.5952,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/773643506",
+            "name": "Apoteket"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "7df21922-48bc-4165-9d06-6a9fab377ee1",
+            "name": "Apoteket Tranan"
+        },
+        "distance_m": 13,
+        "score": 0.9122,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/773643506",
+            "name": "Apoteket"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "b846b2a9-34a6-448a-8b8e-9bea615eb510",
+            "name": "Kronans Apotek"
+        },
+        "distance_m": 2,
+        "score": 0.7429,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/3505761151",
+            "name": "Restaurang Tryffel"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f8c1d30e-dac2-4806-a185-0338fd35c47e",
+            "name": "Tryffel Restaurang & Bar"
+        },
+        "distance_m": 1,
+        "score": 0.8746,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/7491835783",
+            "name": "Himmelsfärdsberget"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "38f93870-13ed-40e2-be62-c0f7ba6658df",
+            "name": "Himmelsfärdsberget"
+        },
+        "distance_m": 6,
+        "score": 0.8197,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "be5b4f93-0af2-4fe3-b9bf-f29dc06ada6b",
+            "name": "Minneberg strand"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/316746123",
+            "name": "Minnebergsparken"
+        },
+        "distance_m": 132,
+        "score": 0.804,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "317cd729-d51c-4c9a-b860-2ab0b33fd6ca",
+            "name": "Badviken Minneberg"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/316746123",
+            "name": "Minnebergsparken"
+        },
+        "distance_m": 154,
+        "score": 0.6237,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "22abc4b9-091a-4c50-98fd-c2356cf7e2b9",
+            "name": "Badbryggan i Minneberg"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/316746123",
+            "name": "Minnebergsparken"
+        },
+        "distance_m": 156,
+        "score": 0.5779,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "15dc6622-f3f2-4e67-8752-5be7f9ce4a3c",
+            "name": "Ulvsundasjön"
+        },
+        "b": {
+            "source": "wikidata",
+            "external_id": "Q10709015",
+            "name": "Ulvsundasjön"
+        },
+        "distance_m": 0,
+        "score": 1,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "e624584f-6d40-437f-92d6-28dca3eb0228",
+            "name": "Ötermalm"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/316746123",
+            "name": "Minnebergsparken"
+        },
+        "distance_m": 53,
+        "score": 0.7041,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "4a8de0a9-d015-4781-ab29-a08eaf522d11",
+            "name": "Alviks Kulturhus"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/12035222405",
+            "name": "Alviks Grillen"
+        },
+        "distance_m": 49,
+        "score": 0.5843,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "way/343542180",
+            "name": "Tranebergsparken"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "6747e8e8-f738-4c8e-9052-eb0cb165c16f",
+            "name": "Tranebergs strand"
+        },
+        "distance_m": 302,
+        "score": 0.6988,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5468755154",
+            "name": "Gustafs Matsal & Bar"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e34df678-7fef-4901-9811-46e0d14587dd",
+            "name": "Gustafs Matsal"
+        },
+        "distance_m": 23,
+        "score": 0.9019,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5468755154",
+            "name": "Gustafs Matsal & Bar"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "da98180c-4e87-4098-83bb-adeeb0b2d859",
+            "name": "The Wonderland Sthlm"
+        },
+        "distance_m": 14,
+        "score": 0.6537,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/685120395",
+            "name": "Caffè Nero"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "008a3684-6cc9-4fb1-b113-6fcd17000b64",
+            "name": "Caffè Nero"
+        },
+        "distance_m": 7,
+        "score": 0.9786,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/2571793104",
+            "name": "Brioche"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "008a3684-6cc9-4fb1-b113-6fcd17000b64",
+            "name": "Caffè Nero"
+        },
+        "distance_m": 35,
+        "score": 0.559,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5468753264",
+            "name": "Pokeburger"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e34df678-7fef-4901-9811-46e0d14587dd",
+            "name": "Gustafs Matsal"
+        },
+        "distance_m": 17,
+        "score": 0.6279,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/8712095818",
+            "name": "Bastard Burgers"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "7d6f3134-cf9c-4dee-983a-5f2222fdfb3d",
+            "name": "P-hus Alviks Torg Nedre"
+        },
+        "distance_m": 29,
+        "score": 0.6137,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/8712095818",
+            "name": "Bastard Burgers"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "aa5c12e8-8212-493a-baa6-c321068e700c",
+            "name": "Bistro Garros"
+        },
+        "distance_m": 48,
+        "score": 0.7375,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "wikidata",
+            "external_id": "Q10407161",
+            "name": "Alviks torg"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "7d6f3134-cf9c-4dee-983a-5f2222fdfb3d",
+            "name": "P-hus Alviks Torg Nedre"
+        },
+        "distance_m": 42,
+        "score": 0.6003,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "7088fab2-4296-4a05-a151-eb272c9ca995",
+            "name": "Kronans Apotek"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/2571793077",
+            "name": "Kronans Apotek"
+        },
+        "distance_m": 11,
+        "score": 0.967,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "f787e36b-6ded-4058-b0c6-94848ec2365f",
+            "name": "Vattenfall InCharge"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/12035222405",
+            "name": "Alviks Grillen"
+        },
+        "distance_m": 4,
+        "score": 0.576,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "aa5c12e8-8212-493a-baa6-c321068e700c",
+            "name": "Bistro Garros"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/5468749382",
+            "name": "Garros Bistro"
+        },
+        "distance_m": 25,
+        "score": 0.7928,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "way/32857595",
+            "name": "Kristinebergsparken"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "67eb7f7f-fd13-4907-8266-4ec8b9be8656",
+            "name": "Kristinebergsparkens Lekplats"
+        },
+        "distance_m": 125,
+        "score": 0.8902,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "relation/14247215",
+            "name": "Tranebergsängen"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "c90b8665-e3a1-4918-8778-7f1b21f8d24e",
+            "name": "Tranebergsängens plaskdamm"
+        },
+        "distance_m": 33,
+        "score": 0.9373,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "67eb7f7f-fd13-4907-8266-4ec8b9be8656",
+            "name": "Kristinebergsparkens Lekplats"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/56259253",
+            "name": "Kristinebergs strandpark"
+        },
+        "distance_m": 171,
+        "score": 0.8456,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12107619647",
+            "name": "Clay Space"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "4f3e0d49-cbcd-4e93-bae5-cf7c1155a809",
+            "name": "ClaySpace Stockholm"
+        },
+        "distance_m": 6,
+        "score": 0.724,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "c730f02a-08ab-47d7-ac7e-b6a349d3bf2d",
+            "name": "SABOR Norteño Estocolmo"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/12030753528",
+            "name": "Damas"
+        },
+        "distance_m": 11,
+        "score": 0.6126,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12030753528",
+            "name": "Damas"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "53d2c16e-9c1e-4023-8e92-60fe9a033df7",
+            "name": "Mays Al Reem Cafe ميس الريم كافيه"
+        },
+        "distance_m": 4,
+        "score": 0.653,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666297971",
+            "name": "Tantuni"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e296b039-dc84-42ad-8bb7-497b3b44250e",
+            "name": "Pixelsolna"
+        },
+        "distance_m": 19,
+        "score": 0.6331,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666297971",
+            "name": "Tantuni"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f1baf3ca-3004-4805-9ae4-c35603c09193",
+            "name": "Tantuni Turkish Street Food"
+        },
+        "distance_m": 12,
+        "score": 0.8851,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666297971",
+            "name": "Tantuni"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e427d014-defc-42db-b870-bf7060d64ece",
+            "name": "Lilla Pixel"
+        },
+        "distance_m": 26,
+        "score": 0.6534,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666297971",
+            "name": "Tantuni"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "6e414872-c2c6-4847-b1c6-7d1ed5102887",
+            "name": "MittCafé"
+        },
+        "distance_m": 17,
+        "score": 0.6201,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12256204501",
+            "name": "Indian Street Food & Co"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e296b039-dc84-42ad-8bb7-497b3b44250e",
+            "name": "Pixelsolna"
+        },
+        "distance_m": 19,
+        "score": 0.6842,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12256204501",
+            "name": "Indian Street Food & Co"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f1baf3ca-3004-4805-9ae4-c35603c09193",
+            "name": "Tantuni Turkish Street Food"
+        },
+        "distance_m": 16,
+        "score": 0.7783,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12256204501",
+            "name": "Indian Street Food & Co"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e427d014-defc-42db-b870-bf7060d64ece",
+            "name": "Lilla Pixel"
+        },
+        "distance_m": 30,
+        "score": 0.6426,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/12256204501",
+            "name": "Indian Street Food & Co"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "6e414872-c2c6-4847-b1c6-7d1ed5102887",
+            "name": "MittCafé"
+        },
+        "distance_m": 24,
+        "score": 0.6194,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5333081021",
+            "name": "Nonni Sushi"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "3cc77f97-13ef-4bff-a7c8-e7334398d5fb",
+            "name": "Moshi Sushi"
+        },
+        "distance_m": 483,
+        "score": 0.5655,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5333081021",
+            "name": "Nonni Sushi"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e296b039-dc84-42ad-8bb7-497b3b44250e",
+            "name": "Pixelsolna"
+        },
+        "distance_m": 21,
+        "score": 0.6521,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5333081021",
+            "name": "Nonni Sushi"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f1baf3ca-3004-4805-9ae4-c35603c09193",
+            "name": "Tantuni Turkish Street Food"
+        },
+        "distance_m": 44,
+        "score": 0.6623,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/5333081021",
+            "name": "Nonni Sushi"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e427d014-defc-42db-b870-bf7060d64ece",
+            "name": "Lilla Pixel"
+        },
+        "distance_m": 8,
+        "score": 0.7185,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/1757390422",
+            "name": "Toscana"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "b5127af0-5f02-4f49-a2b0-b91c1e092fae",
+            "name": "Huvudstagatan 16"
+        },
+        "distance_m": 5,
+        "score": 0.5669,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/1757390422",
+            "name": "Toscana"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "3f10c7ec-1c2c-426c-a749-e9b4fde3acce",
+            "name": "Huvudsta krog"
+        },
+        "distance_m": 10,
+        "score": 0.6962,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/9246366217",
+            "name": "Mitt Cafe"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f1baf3ca-3004-4805-9ae4-c35603c09193",
+            "name": "Tantuni Turkish Street Food"
+        },
+        "distance_m": 19,
+        "score": 0.6292,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/9246366217",
+            "name": "Mitt Cafe"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e427d014-defc-42db-b870-bf7060d64ece",
+            "name": "Lilla Pixel"
+        },
+        "distance_m": 38,
+        "score": 0.5803,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/9246366217",
+            "name": "Mitt Cafe"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "6e414872-c2c6-4847-b1c6-7d1ed5102887",
+            "name": "MittCafé"
+        },
+        "distance_m": 12,
+        "score": 0.9537,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "a7176278-3e6d-41e9-92e9-90d265acae8d",
+            "name": "Bergsparken"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "relation/14584210",
+            "name": "Huvudsta torg"
+        },
+        "distance_m": 185,
+        "score": 0.6271,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "a7176278-3e6d-41e9-92e9-90d265acae8d",
+            "name": "Bergsparken"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/1202874422",
+            "name": "Big Street"
+        },
+        "distance_m": 40,
+        "score": 0.6022,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "a7176278-3e6d-41e9-92e9-90d265acae8d",
+            "name": "Bergsparken"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "way/256398673",
+            "name": "Lundbyparken"
+        },
+        "distance_m": 462,
+        "score": 0.5903,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/8699271363",
+            "name": "Bushi Sushi"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "3cc77f97-13ef-4bff-a7c8-e7334398d5fb",
+            "name": "Moshi Sushi"
+        },
+        "distance_m": 22,
+        "score": 0.87,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "83e02724-d630-42a1-95f4-99ff84bc9658",
+            "name": "Solnas Öl & Mat"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/1202874422",
+            "name": "Big Street"
+        },
+        "distance_m": 36,
+        "score": 0.5714,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "3cc77f97-13ef-4bff-a7c8-e7334398d5fb",
+            "name": "Moshi Sushi"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/1757389909",
+            "name": "Huvudsta pizzeria"
+        },
+        "distance_m": 17,
+        "score": 0.6975,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "3cc77f97-13ef-4bff-a7c8-e7334398d5fb",
+            "name": "Moshi Sushi"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/4653978458",
+            "name": "Galliano"
+        },
+        "distance_m": 29,
+        "score": 0.6011,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "3cc77f97-13ef-4bff-a7c8-e7334398d5fb",
+            "name": "Moshi Sushi"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/3927753168",
+            "name": "Kosterheds konditori"
+        },
+        "distance_m": 37,
+        "score": 0.5864,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "e296b039-dc84-42ad-8bb7-497b3b44250e",
+            "name": "Pixelsolna"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/13666310735",
+            "name": "myndig grekisk mat"
+        },
+        "distance_m": 21,
+        "score": 0.6529,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "overture",
+            "external_id": "e296b039-dc84-42ad-8bb7-497b3b44250e",
+            "name": "Pixelsolna"
+        },
+        "b": {
+            "source": "osm",
+            "external_id": "node/5333027522",
+            "name": "Pixel"
+        },
+        "distance_m": 22,
+        "score": 0.8812,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666310735",
+            "name": "myndig grekisk mat"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "f1baf3ca-3004-4805-9ae4-c35603c09193",
+            "name": "Tantuni Turkish Street Food"
+        },
+        "distance_m": 22,
+        "score": 0.7286,
+        "label": null,
+        "labeled_by": null
+    },
+    {
+        "a": {
+            "source": "osm",
+            "external_id": "node/13666310735",
+            "name": "myndig grekisk mat"
+        },
+        "b": {
+            "source": "overture",
+            "external_id": "e427d014-defc-42db-b870-bf7060d64ece",
+            "name": "Lilla Pixel"
+        },
+        "distance_m": 35,
+        "score": 0.604,
+        "label": null,
+        "labeled_by": null
+    }
+]

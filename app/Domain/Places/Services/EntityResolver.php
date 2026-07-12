@@ -51,30 +51,20 @@ final class EntityResolver
 
     private function resolveItem(ResolvableItem $item): string
     {
-        // Stage 1 — explicit-ID join via the Wikidata concordance.
-        $qid = $item->wikidataQid();
+        // Stage 1 — explicit-ID joins, strongest identifier first
+        // (ENTITY-RESOLUTION §3): a shared Wikidata QID, else a shared Wikipedia
+        // article. Both are assertions of identity by a human, which is why they
+        // outrank any amount of fuzzy name similarity.
+        $identifiers = array_filter([
+            'wikidata' => $item->wikidataQid(),
+            'wikipedia' => $item->wikipediaSitelink(),
+        ]);
 
-        if ($qid !== null) {
-            $existing = PlaceSourceId::query()
-                ->where('source', 'wikidata')
-                ->where('external_id', $qid)
-                ->first()?->place_id;
+        foreach ($identifiers as $source => $externalId) {
+            $outcome = $this->joinOnExplicitId($item, (string) $source, (string) $externalId);
 
-            $place = $existing === null ? null : $this->placeWithPoint($existing);
-
-            if ($place !== null) {
-                $distance = $this->scorer->distanceMeters($item->candidate(), $this->asCandidate($place));
-
-                if ($distance <= (float) config('resolver.explicit_max_distance_m')) {
-                    $this->resolve->intoPlace($item, $place, MatchBand::Explicit, null, ['explicit' => 'wikidata:'.$qid, 'distance_m' => round($distance)]);
-
-                    return 'explicit';
-                }
-
-                // Sanity guard: joined points > 1 km apart → review, not merge.
-                $this->resolve->asReviewOrDistinct($item, $place, MatchBand::Review, null, ['explicit' => 'wikidata:'.$qid, 'distance_m' => round($distance), 'guard' => 'explicit_distance']);
-
-                return 'review';
+            if ($outcome !== null) {
+                return $outcome;
             }
         }
 
@@ -102,6 +92,40 @@ final class EntityResolver
 
                 return 'created';
         }
+    }
+
+    /**
+     * One explicit-ID join attempt. Returns the outcome, or null if this
+     * identifier points at nothing we hold yet (the caller then tries the next
+     * identifier, and finally the fuzzy stages).
+     */
+    private function joinOnExplicitId(ResolvableItem $item, string $source, string $externalId): ?string
+    {
+        $existing = PlaceSourceId::query()
+            ->where('source', $source)
+            ->where('external_id', $externalId)
+            ->first()?->place_id;
+
+        $place = $existing === null ? null : $this->placeWithPoint($existing);
+
+        if ($place === null) {
+            return null;
+        }
+
+        $distance = $this->scorer->distanceMeters($item->candidate(), $this->asCandidate($place));
+        $signals = ['explicit' => "{$source}:{$externalId}", 'distance_m' => round($distance)];
+
+        if ($distance <= (float) config('resolver.explicit_max_distance_m')) {
+            $this->resolve->intoPlace($item, $place, MatchBand::Explicit, null, $signals);
+
+            return 'explicit';
+        }
+
+        // Sanity guard: two sources claiming the same identifier from > 1 km
+        // apart are more likely a bad tag than the same place. Review, never merge.
+        $this->resolve->asReviewOrDistinct($item, $place, MatchBand::Review, null, [...$signals, 'guard' => 'explicit_distance']);
+
+        return 'review';
     }
 
     /**

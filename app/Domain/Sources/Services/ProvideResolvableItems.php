@@ -34,6 +34,22 @@ final class ProvideResolvableItems implements ResolvableItems
             ->all();
     }
 
+    public function inBoundingBox(float $south, float $west, float $north, float $east): array
+    {
+        return SourceItem::query()
+            ->whereNotNull('location')
+            ->whereNotNull('h3_index')
+            ->whereRaw(
+                'ST_Intersects(location::geometry, ST_MakeEnvelope(?, ?, ?, ?, 4326))',
+                [$west, $south, $east, $north],
+            )
+            ->orderBy('h3_index')
+            ->orderBy('id')
+            ->get()
+            ->map(self::toData(...))
+            ->all();
+    }
+
     public function find(string $source, string $externalId): ?ResolvableItem
     {
         $item = SourceItem::query()

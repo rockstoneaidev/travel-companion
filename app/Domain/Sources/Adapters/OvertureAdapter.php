@@ -16,10 +16,8 @@ use RuntimeException;
  * Overture Maps places adapter (DATA-SOURCES §2): the broad legal POI base.
  *
  * Overture ships as cloud-hosted GeoParquet; the supported fetch is the
- * `overturemaps` CLI, run once per region:
- *
- *   overturemaps download --bbox={west},{south},{east},{north} -f geojson \
- *     --type=place -o storage/app/ingest/overture/{region}.geojson
+ * `overturemaps` CLI, wrapped by `php artisan ingest:overture-fetch {region}`
+ * so the bbox comes from IngestRegion rather than being copied by hand.
  *
  * search() reads that extract (its only I/O); normalize() is pure over the
  * GeoJSON features. A missing extract is a degraded result for the region,
@@ -44,8 +42,8 @@ final class OvertureAdapter implements ScoutSource
 
         if (! Storage::disk('local')->exists($path)) {
             throw new RuntimeException(sprintf(
-                'Overture extract missing for region "%s". Fetch it with: overturemaps download --bbox=%F,%F,%F,%F -f geojson --type=place -o storage/app/%s',
-                $request->regionKey, $request->west, $request->south, $request->east, $request->north, $path,
+                'Overture extract missing for region "%s". Fetch it with: php artisan ingest:overture-fetch %s',
+                $request->regionKey, $request->regionKey,
             ));
         }
 

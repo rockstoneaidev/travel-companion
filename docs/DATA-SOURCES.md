@@ -68,7 +68,7 @@ Rule: a Tier-D claim ("locals say the back room is the real experience") can *bo
 
 | Source | Strengths | Weaknesses | License / access | Phase |
 |---|---|---|---|---|
-| **OpenStreetMap** (via regional **Geofabrik extracts** → own PostGIS via osm2pgsql; public Overpass only for ad-hoc dev queries) | Viewpoints, ruins, fountains, monuments, waterfalls, shelters, caves, picnic sites, old city gates — things Google doesn't have. Community-driven, incredibly underrated. | Variable completeness, no narrative, tag inconsistency | ODbL (share-alike on derived DB — review once) | **P1** |
+| **OpenStreetMap** (bounded regions via **Overpass**; regional **Geofabrik extracts** → own PostGIS via osm2pgsql once a region outgrows it — see note below) | Viewpoints, ruins, fountains, monuments, waterfalls, shelters, caves, picnic sites, old city gates — things Google doesn't have. Community-driven, incredibly underrated. | Variable completeness, no narrative, tag inconsistency | ODbL (share-alike on derived DB — review once) | **P1** |
 | **Overture Maps** places layer | Open, downloadable, global POI base (Meta/Microsoft/TomTom-backed); the best *legal* foundation for our canonical places table | Younger dataset; verify freshness per region | CDLA-Permissive 2.0 | **P1** |
 | **Wikidata** (SPARQL) | Structured knowledge: "every medieval castle within 25 km," "all UNESCO sites," "everything by Gaudí." Also the relationship graph (§8) | Query complexity; sparse for mundane POIs | CC0 | **P1** |
 | **Wikipedia** (geosearch + articles) | History, stories, famous people, architecture, legends — the narrative layer | Not for restaurants/practicalities | CC BY-SA (attribute) | **P1** |
@@ -78,6 +78,14 @@ Rule: a Tier-D claim ("locals say the back room is the real experience") can *bo
 | **Wikimedia Commons** | Historical photos, landmark imagery | Licensing varies per file — check each | Mixed CC (per-file) | P2 |
 | **Mapillary** | Street-level imagery; later: "what does this place actually look like" | Not an MVP need | CC BY-SA imagery, API ToS | P3 |
 | **OpenTripMap** | Convenience aggregator over OSM+Wikidata | Adds little over doing it ourselves | Free tier | Optional |
+
+> **Note — the OSM fetch path (decided 2026-07-14).** Phase 1 ingests bounded city-scale regions
+> (`IngestRegion`: Stockholm test region, then the France corridor), and a bbox that small is well
+> within what public Overpass is meant to serve — the Stockholm region is four quadrant queries. So
+> `OsmAdapter::search()` uses Overpass, and that is a sanctioned production path *at this scale*, not
+> a shortcut. The Geofabrik → osm2pgsql import remains the correct path the moment a region stops
+> being city-scale (a country, or continuous re-ingest); it is tracked on **E13**. Both paths feed
+> the same pure `normalize()`, so swapping them touches `search()` only.
 
 ### Layer 1b — Live enrichment edge (proprietary, never persisted)
 

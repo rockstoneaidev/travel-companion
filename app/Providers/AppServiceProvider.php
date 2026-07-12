@@ -12,12 +12,15 @@ use App\Domain\Places\Services\Scouts\NatureScout;
 use App\Domain\Places\Services\Scouts\NearbyPlaceScout;
 use App\Domain\Places\Services\Scouts\UnusualnessScout;
 use App\Domain\Places\Services\TileCache;
+use App\Domain\Recommendations\Services\CostMeter;
 use App\Domain\Sources\Services\ProvideResolvableItems;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -48,6 +51,10 @@ class AppServiceProvider extends ServiceProvider
             CuratedScout::class,
         ], 'tile-scouts');
 
+        // Request-scoped spend counter (PRD §14.3) — read once when the
+        // recommendation trace is written.
+        $this->app->singleton(CostMeter::class);
+
         $this->app->singleton(ScoutRunner::class, function ($app) {
             return new ScoutRunner(
                 $app->make(TileCache::class),
@@ -70,6 +77,16 @@ class AppServiceProvider extends ServiceProvider
         // Pulse dashboard access (docs/ADMIN.md §8). Horizon's twin gate lives
         // in HorizonServiceProvider.
         Gate::define('viewPulse', fn (User $user): bool => $user->can(Permission::ViewOps->value));
+
+        // Every outbound HTTP call is counted, wherever it is made from (PRD
+        // §14.3). Instrumenting at the client rather than at each call site is
+        // the point: a paid API added on the serve path shows up in the trace
+        // whether or not whoever added it remembered to meter it.
+        Event::listen(function (ResponseReceived $event): void {
+            $this->app->make(CostMeter::class)->recordApiCall(
+                (string) $event->request->toPsrRequest()->getUri()->getHost(),
+            );
+        });
 
         $this->configureRateLimiters();
     }

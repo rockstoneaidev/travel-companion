@@ -17,4 +17,14 @@ interface ResolvableItems
     public function unresolvedInTile(string $h3Index, string $resolverVersion): array;
 
     public function find(string $source, string $externalId): ?ResolvableItem;
+
+    /**
+     * Every open-core item inside a bbox — the gold-set sampler's view of a
+     * region (ENTITY-RESOLUTION §6). Unlike unresolvedInTile() this ignores
+     * whether an item has been decided: the gold set measures the resolver, so
+     * it must see what the resolver already acted on.
+     *
+     * @return list<ResolvableItem>
+     */
+    public function inBoundingBox(float $south, float $west, float $north, float $east): array;
 }

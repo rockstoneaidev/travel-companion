@@ -76,6 +76,31 @@ it('merges OSM and Wikidata rows for the same place via the explicit wikidata re
         ->and(PlaceMatchDecision::query()->where('band', MatchBand::Explicit)->count())->toBe(1);
 });
 
+it('merges on a shared Wikipedia article when neither side carries a QID', function () {
+    // The two sources spell the sitelink differently — OSM tags it `sv:Title`,
+    // Wikidata gives the article URL — and they disagree on the name. Only the
+    // shared article says they are the same church.
+    makeItem('wikidata', 'Q1133075', [
+        'name' => 'Sankt Nikolai kyrka', 'lat' => 59.32550, 'lng' => 18.07080,
+        'type' => 'church', 'type_domain' => 'religious_sacred',
+        'external_refs' => ['wikipedia' => 'https://sv.wikipedia.org/wiki/Storkyrkan'],
+    ], CredibilityTier::Reference);
+
+    makeItem('osm', 'way/8049504', [
+        'name' => 'Storkyrkan', 'lat' => 59.32555, 'lng' => 18.07055,
+        'type' => 'church', 'type_domain' => 'religious_sacred',
+        'external_refs' => ['wikipedia' => 'sv:Storkyrkan'],
+    ]);
+
+    $stats = app(EntityResolver::class)->resolveTile(TILE);
+
+    expect($stats)->toMatchArray(['items' => 2, 'created' => 1, 'explicit' => 1])
+        ->and(Place::query()->count())->toBe(1);
+
+    $decision = PlaceMatchDecision::query()->where('band', MatchBand::Explicit)->sole();
+    expect($decision->signals['explicit'])->toBe('wikipedia:sv:Storkyrkan');
+});
+
 it('routes explicit joins to review when the points are over a kilometer apart', function () {
     makeItem('wikidata', 'Q99', [
         'name' => 'Vandaliserad kyrka', 'lat' => 59.3255, 'lng' => 18.0708,

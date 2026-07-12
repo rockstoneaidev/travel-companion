@@ -191,20 +191,25 @@ final class ResolveSourceItem
             update: ['place_id', 'updated_at'],
         );
 
-        // Wikidata QIDs referenced by other sources also land in the
-        // concordance, so later explicit joins are one indexed lookup.
-        $qid = $item->payload['external_refs']['wikidata'] ?? null;
-        if ($qid !== null && $item->source !== 'wikidata') {
+        // Identifiers *referenced* by a source also land in the concordance, so
+        // a later explicit join is one indexed lookup rather than a search.
+        // Both are ENTITY-RESOLUTION §3 Stage-1 identifiers.
+        $referenced = array_filter([
+            'wikidata' => $item->source !== 'wikidata' ? ($item->payload['external_refs']['wikidata'] ?? null) : null,
+            'wikipedia' => $item->wikipediaSitelink(),
+        ]);
+
+        foreach ($referenced as $source => $externalId) {
             PlaceSourceId::query()->upsert(
                 [[
                     'place_id' => $placeId,
-                    'source' => 'wikidata',
-                    'external_id' => $qid,
+                    'source' => (string) $source,
+                    'external_id' => (string) $externalId,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]],
                 uniqueBy: ['source', 'external_id'],
-                update: ['updated_at'], // an existing direct wikidata row wins; do not repoint it
+                update: ['updated_at'], // an existing direct row wins; do not repoint it
             );
         }
     }

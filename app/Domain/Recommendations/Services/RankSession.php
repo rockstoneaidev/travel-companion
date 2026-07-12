@@ -36,6 +36,7 @@ final class RankSession
         private readonly TasteProfiles $profiles,
         private readonly ScoringModelResolver $resolver,
         private readonly MaterializeEvergreenOpportunities $materialize,
+        private readonly CostMeter $cost,
     ) {}
 
     /**
@@ -157,11 +158,15 @@ final class RankSession
                 'taxonomy_version' => 1,
                 'resolver_version' => (string) config('resolver.version'),
                 'served_at' => now(),
-                // Per-recommendation cost (PRD §14.3): honest Phase 1 numbers —
-                // own-DB scouts, no paid APIs, no LLM yet.
+                // Per-recommendation cost (PRD §14.3). Phase 1 ranks off our own
+                // database, so these are zero — but they are *measured* zero, not
+                // asserted zero: the CostMeter counts every outbound call made
+                // while serving, so a paid API added here shows up on the trace
+                // without anyone having to remember to instrument it.
                 'cost' => [
-                    'api_calls' => 0,
-                    'llm_tokens' => 0,
+                    'api_calls' => $this->cost->apiCalls(),
+                    'llm_tokens' => $this->cost->llmTokens(),
+                    'api_calls_by_host' => $this->cost->byHost(),
                     'rank_ms' => $plan['rank_ms'],
                     'scout_tiles_filled' => array_sum(array_column($plan['scout_summary'], 'filled')),
                     'scout_tiles_hit' => array_sum(array_column($plan['scout_summary'], 'hits')),
