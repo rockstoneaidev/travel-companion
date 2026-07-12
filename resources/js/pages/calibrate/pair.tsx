@@ -39,7 +39,7 @@ export default function CalibratePair({ pair, total, answered }: CalibratePairPr
     useEffect(() => setChosen(null), [pair.number]);
 
     const answer = (side: 'a' | 'b' | null) => {
-        if (chosen !== null) return;   // one answer per pair; a double-tap is not two opinions
+        if (chosen !== null) return; // one answer per pair; a double-tap is not two opinions
 
         setChosen(side);
 
@@ -83,17 +83,7 @@ export default function CalibratePair({ pair, total, answered }: CalibratePairPr
     );
 }
 
-function PairCard({
-    side,
-    chosen,
-    dimmed,
-    onChoose,
-}: {
-    side: PairSide;
-    chosen: boolean;
-    dimmed: boolean;
-    onChoose: () => void;
-}) {
+function PairCard({ side, chosen, dimmed, onChoose }: { side: PairSide; chosen: boolean; dimmed: boolean; onChoose: () => void }) {
     return (
         <button
             type="button"

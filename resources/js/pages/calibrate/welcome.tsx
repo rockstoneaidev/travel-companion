@@ -20,8 +20,8 @@ export default function CalibrateWelcome() {
                     <div className="space-y-4">
                         <h1 className="text-headline text-ink font-serif font-medium italic">Before we start.</h1>
                         <p className="text-body-card text-body">
-                            Nine quick pairs, about a minute. There's no right answer — I'm learning which way you lean, so I can stay
-                            quiet about the rest.
+                            Nine quick pairs, about a minute. There's no right answer — I'm learning which way you lean, so I can stay quiet about the
+                            rest.
                         </p>
                     </div>
 

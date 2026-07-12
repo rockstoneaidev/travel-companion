@@ -18,6 +18,7 @@ interface ExploreShowProps {
 
 const TABS = (sessionId: string, tripId: string) => [
     { label: 'Now', href: `/explore/${sessionId}`, active: true },
+    { label: 'Map', href: `/explore/${sessionId}/map` },
     { label: 'Trip', href: `/trips/${tripId}` },
 ];
 

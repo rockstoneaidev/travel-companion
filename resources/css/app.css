@@ -64,6 +64,7 @@
     --color-map-bg: var(--map-bg);
     --color-map-road: var(--map-road);
     --color-map-green: var(--map-green);
+    --color-map-water: var(--map-water);
 
     /* shadcn semantic tokens, mapped onto the design tokens so starter components inherit the theme. */
     --color-background: var(--background);
@@ -151,6 +152,7 @@
     --map-bg: #efe8d8;
     --map-road: #e4dac4;
     --map-green: #dce3d6;
+    --map-water: #cfd8d3; /* desaturated on purpose: a paper map's water is not "blue" */
 
     /* shadcn semantics → design tokens */
     --background: var(--paper);
@@ -207,6 +209,7 @@
     --map-bg: #2a2318;
     --map-road: #3a3122;
     --map-green: #2e332a;
+    --map-water: #262d2b;
 
     --background: var(--paper);
     --foreground: var(--ink);

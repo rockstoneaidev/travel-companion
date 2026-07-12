@@ -57,6 +57,14 @@ Route::middleware(['auth'])->group(function () {
         ->can('view', 'exploreSession')
         ->name('explore.show');
 
+    // S3 — the feed as geography. `/map` is the bookmarkable entry point; the real
+    // screen is session-scoped, so ownership gates it like every other session route.
+    Route::get('map', [ExploreSessionController::class, 'activeMap'])->name('explore.active-map');
+
+    Route::get('explore/{exploreSession}/map', [ExploreSessionController::class, 'map'])
+        ->can('view', 'exploreSession')
+        ->name('explore.map');
+
     Route::post('explore/{exploreSession}/end', [ExploreSessionEndController::class, 'store'])
         ->can('update', 'exploreSession')
         ->name('explore.end');

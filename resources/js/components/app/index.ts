@@ -7,6 +7,9 @@ export { GoNowBadge } from './go-now';
 export { GoNowPin, PlacePin, YouMarker } from './map-pin';
 export { NavMenu } from './nav-menu';
 export { OpportunityCard, type OpportunityCardProps } from './opportunity-card';
+// PaperMap is deliberately NOT exported here: it pulls in maplibre-gl (~200KB), and a
+// barrel export would drag it into every screen's bundle. Import it lazily (see S3).
+export { PeekSheet, type PeekSheetProps } from './peek-sheet';
 export { PlaceSearch, type PlaceSuggestion } from './place-search';
 export { ProgressSegments } from './progress-segments';
 export { SectionLabel } from './section-label';

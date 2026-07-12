@@ -52,6 +52,35 @@ final class ExploreSessionController extends Controller
         return to_route('explore.show', $session);
     }
 
+    /**
+     * S3 — the same feed, drawn as geography. Same session, same domain query, same
+     * server-decided urgency: the map is a second *view* of the feed, never a second
+     * ranking. Nothing here re-sorts or re-filters what the feed already decided.
+     */
+    public function map(ExploreSession $exploreSession, ListOpportunitiesForSession $listOpportunities): Response
+    {
+        $opportunities = $listOpportunities(ExploreSessionData::fromModel($exploreSession));
+
+        return Inertia::render('explore/map', [
+            'session' => new ExploreSessionResource($exploreSession->load('trip')),
+            'opportunities' => SessionOpportunityResource::collection($opportunities),
+        ]);
+    }
+
+    /**
+     * `/map` with no session is a bookmark, not a screen: send it to the map of the
+     * session they actually have — or to the start form if they have none, exactly as
+     * `/explore` does. One entry point, one rule.
+     */
+    public function activeMap(Request $request, FindActiveExploreSessionForUser $findActiveSession): RedirectResponse
+    {
+        $session = $findActiveSession((int) $request->user()->id);
+
+        return $session !== null
+            ? to_route('explore.map', $session)
+            : to_route('explore.index');
+    }
+
     public function show(
         ExploreSession $exploreSession,
         ListOpportunitiesForSession $listOpportunities,
