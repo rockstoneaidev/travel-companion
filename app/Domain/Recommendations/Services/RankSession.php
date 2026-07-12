@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Recommendations\Services;
 
+use App\Domain\Context\Data\WeatherContext;
 use App\Domain\Context\Services\LightContextResolver;
+use App\Domain\Context\Services\WeatherClient;
 use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
 use App\Domain\Places\Enums\PlaceType;
@@ -59,6 +61,7 @@ final class RankSession
         private readonly CostMeter $cost,
         private readonly TileUniquenessSignals $uniqueness,
         private readonly LightContextResolver $light,
+        private readonly WeatherClient $weather,
     ) {}
 
     /**
@@ -136,10 +139,15 @@ final class RankSession
         );
 
         $tripEvents = $this->tripHistory($session->tripId, $at);
+
+        // One call per TILE, not per candidate and never per user (conventions/12):
+        // everyone standing in this hex is standing under the same sky.
+        $weather = $this->weather->forTile($coverage->originCell, $session->origin->lat, $session->origin->lng);
+
         $scored = [];
 
         foreach ($gated['kept'] as $candidate) {
-            $scored[] = $this->score($candidate, $session, $subScores, $profile->facetWeights, $profile->walkToleranceMinutes, $remaining, $tripEvents, $at);
+            $scored[] = $this->score($candidate, $session, $subScores, $profile->facetWeights, $profile->walkToleranceMinutes, $remaining, $tripEvents, $at, $weather);
         }
 
         // Decide (PRD §10 step 10): evidence gates decide membership, before
@@ -299,6 +307,27 @@ final class RankSession
         return ['count' => count($excluded), 'sample' => $sample];
     }
 
+    /**
+     * Rain, as friction (SCORING §4.7 — the `weather` term the model already had a
+     * slot for and nothing was filling).
+     *
+     * It is not a veto. A wet day is a reason to prefer the cloister to the
+     * clifftop, not a reason to tell someone to stay in their hotel — they are on
+     * holiday and it rains in Normandy. So an outdoor place takes the full penalty
+     * and an indoor one takes a smaller one, because you still get wet walking
+     * there, and the ranking sorts it out from there.
+     *
+     * Unknown weather scores 0: a missing signal is not evidence of rain.
+     */
+    private function weatherFriction(WeatherContext $weather, ?PlaceType $type): float
+    {
+        if (! $weather->known() || ! $weather->isWet()) {
+            return 0.0;
+        }
+
+        return $type?->needsDaylight() === true ? 1.0 : 0.35;
+    }
+
     /** The nearer of two closings — a null closing is no closing, not an early one. */
     private function earliest(CarbonImmutable $a, ?CarbonImmutable $b): CarbonImmutable
     {
@@ -306,7 +335,7 @@ final class RankSession
     }
 
     /** @param array<string, mixed> $candidate */
-    private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents, CarbonImmutable $at): array
+    private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents, CarbonImmutable $at, WeatherContext $weather): array
     {
         $raw = [];
         $missing = [];
@@ -346,13 +375,9 @@ final class RankSession
          * opening hours narrow it further where we have them.
          */
         $travel = (float) $candidate['reachability']['travel_min'];
+        $type = $candidate['type'] !== null ? PlaceType::from($candidate['type']) : null;
 
-        $light = $this->light->forCandidate(
-            $candidate['type'] !== null ? PlaceType::from($candidate['type']) : null,
-            (float) $candidate['lat'],
-            (float) $candidate['lng'],
-            $at,
-        );
+        $light = $this->light->forCandidate($type, (float) $candidate['lat'], (float) $candidate['lng'], $at);
 
         $closesAt = $this->earliest($at->endOfDay(), $light->closesAt);
         $slack = max(0.0, $at->diffInMinutes($closesAt, false) - $travel);
@@ -360,9 +385,15 @@ final class RankSession
         // The special-moment floor is NOT a deadline — it is a reason. The light is
         // good now and it will not be later, and that is worth interrupting for even
         // when there are hours of slack left (SCORING §4.3).
-        $urgency = $subScores->temporalUrgency($slack, specialMomentOpen: $light->goldenHourOpen());
+        // ...but golden hour under a lid of cloud is NOT golden. The sun can be at
+        // exactly the right angle and the light still be flat grey. "The light is
+        // good right now" is a factual claim, and we do not make factual claims we
+        // cannot support — so geometry alone may not raise the floor.
+        $specialMoment = $light->goldenHourOpen() && $weather->lightIsGood();
+
+        $urgency = $subScores->temporalUrgency($slack, specialMomentOpen: $specialMoment);
         $scores['temporal_urgency'] = $urgency['value'];
-        $raw['temporal_urgency'] = [...$urgency['inputs'], 'light' => $light->toTrace()];
+        $raw['temporal_urgency'] = [...$urgency['inputs'], 'light' => $light->toTrace(), 'weather' => $weather->toTrace()];
         $candidate['light'] = $light;
 
         if ($session->destinationPoint !== null) {
@@ -393,7 +424,7 @@ final class RankSession
         // Final-approach walk: the travel leg when walking; a short fixed
         // approach otherwise (input logged either way — §2.2).
         $walkMinutes = $session->travelMode->value === 'walk' ? $travel : 3.0;
-        $friction = $subScores->frictionRaw($walkMinutes, (float) $tolerance, null, 'low', 0.0, 0.0);
+        $friction = $subScores->frictionRaw($walkMinutes, (float) $tolerance, null, 'low', $this->weatherFriction($weather, $type), 0.0);
 
         return [
             ...$candidate,

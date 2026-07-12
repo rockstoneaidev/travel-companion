@@ -21,6 +21,12 @@ final class CacheKeys
         return "place:hours:{$placeId}";
     }
 
+    /** Everyone in the same hex is standing under the same sky — one call serves them all. */
+    public static function weather(string $h3Index): string
+    {
+        return "weather:{$h3Index}";
+    }
+
     public static function tileState(string $h3Index): string
     {
         return "tile:state:{$h3Index}";

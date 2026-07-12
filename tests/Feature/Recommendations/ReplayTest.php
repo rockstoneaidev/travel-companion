@@ -105,5 +105,10 @@ it('persists resolver_version and honest cost fields on the served trace', funct
     expect($recommendations)->not->toBeEmpty()
         ->and($recommendations[0]->resolver_version)->toBe(config('resolver.version'))
         ->and($recommendations[0]->cost)->toHaveKeys(['api_calls', 'llm_tokens', 'rank_ms', 'scout_tiles_filled', 'scout_tiles_hit'])
+        // Open-Meteo is unreachable in tests (Http::preventStrayRequests), so the
+        // circuit breaker swallows it and the feed is served WITHOUT weather. That
+        // is the designed degradation (SCORING §2.5): a missing edge signal drops
+        // out of the weighted sum, it does not fail the request. Nothing was spent,
+        // so nothing is billed.
         ->and($recommendations[0]->cost['api_calls'])->toBe(0);
 });

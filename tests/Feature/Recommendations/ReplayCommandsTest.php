@@ -13,6 +13,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -154,19 +155,26 @@ it('refuses to replay a session that never served anything', function () {
 });
 
 it('measures cost rather than asserting it', function () {
+    // E16 put a real edge call on the serve path (weather). This test caught it the
+    // moment it landed, which is exactly what it was written to do — so now it
+    // asserts the true number instead of a comfortable zero.
+    Http::fake(['api.open-meteo.com/*' => Http::response(['current' => ['temperature_2m' => 19.0, 'precipitation' => 0.0, 'weather_code' => 0, 'cloud_cover' => 10]])]);
+
     $session = servedSession();
 
     $recommendation = Recommendation::query()->where('explore_session_id', $session->id)->firstOrFail();
 
-    // Phase 1 ranks off our own database: zero paid calls, zero LLM tokens.
-    // The point is that this is now *counted*, so a paid call added to the
-    // serve path would show up here instead of silently reporting zero.
-    expect($recommendation->cost['api_calls'])->toBe(0)
-        ->and($recommendation->cost['llm_tokens'])->toBe(0)
-        ->and($recommendation->cost)->toHaveKey('api_calls_by_host');
+    // One weather call per SESSION, not per candidate: it is cached per tile, and
+    // everyone in the hex is under the same sky (conventions/12). If this ever
+    // reads as the candidate count, the shared-tile cache has been broken.
+    expect($recommendation->cost['api_calls'])->toBe(1)
+        ->and($recommendation->cost['api_calls_by_host'])->toBe(['api.open-meteo.com' => 1])
+        ->and($recommendation->cost['llm_tokens'])->toBe(0);
 
     // Prove the meter actually counts, rather than being a dressed-up literal.
+    // Cleared first: the serve above legitimately left the weather call on it.
     $meter = app(CostMeter::class);
+    $meter->reset();
     $meter->recordApiCall('places.googleapis.com');
     $meter->recordLlmTokens(1_200);
 
