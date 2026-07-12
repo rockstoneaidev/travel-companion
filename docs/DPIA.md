@@ -99,8 +99,24 @@ why it is the one gated behind separate opt-in consent (§4.2).
 | **Google Places** (`places.googleapis.com`) | a place's name + coordinates, to verify opening hours | US — see §6 |
 | **Google Routes** (`routes.googleapis.com`) | **the user's origin coordinates** + a destination | US — see §6 |
 | **Google Gemini** (LLM) | place evidence + `part_of_day`, `travel_mode`, `walk_minutes`, `city_name` | US — see §6 |
-| **Open-Meteo** | the coordinates of an H3 tile | EU (Germany) |
-| **Overpass / OpenStreetMap** | region bounding boxes only — **no user data at all** | n/a |
+| **Google OAuth** (sign-in) | the sign-in itself; returns `sub`, email, name, avatar | US — **independent controller**, not a processor |
+| **Open-Meteo** (`api.open-meteo.com`) | **the user's origin coordinates, at full precision** — *not* a tile centroid; see the correction below | EU (Germany) |
+| **Resend** (transactional email) | **the user's email address** + message body | US — see §6 |
+| **Overpass / OpenStreetMap, Wikidata, Wikimedia, DATAtourisme, Mérimée** | region bounding boxes only — **no user data at all** | n/a |
+
+> **CORRECTION (2026-07-12).** Version 0.1 of this table said Open-Meteo receives "the
+> coordinates of an H3 tile", and omitted Resend and Google OAuth entirely. Both were wrong,
+> and both were found by building the Art. 30 record from the **code** rather than from this
+> document — see [`legal/ROPA.md`](legal/ROPA.md) §7.1.
+>
+> `WeatherClient::forTile()` caches the *response* per H3 tile, but the request it makes is
+> `?latitude={$lat}&longitude={$lng}` with the session origin at full precision. The cache key
+> is the tile; the payload is the person. The transfer is intra-EEA so there is no Ch. V
+> problem, but it contradicts the minimisation claim in §4.1, and it is the direct cause of the
+> telemetry leak recorded in ROPA §7.2. **Fix in progress: send the tile centroid.**
+>
+> This is exactly the failure this document warns about in §0 — a DPIA that describes intentions
+> as if they were controls. It described one, and it took an audit of the code to catch it.
 
 **Two honest notes on this table.**
 
@@ -358,11 +374,34 @@ added later cannot bypass it (`tests/Feature/Privacy/ProfilingConsentTest.php`).
 - **Refusal costs personalisation, not the product** — α stays 0 and the honest cold-start ranking
   applies (SCORING §6).
 
-**Still OPEN:** the consent *wording* has not been reviewed by a lawyer. What is implemented is a
-plain-language attempt, not a vetted one.
+**Still OPEN:** the consent wording has not been reviewed by a **human** lawyer. It has now been
+reviewed against Arts. 4(11), 7 and 9(2)(a) element by element in **[legal/CONSENT.md](legal/CONSENT.md)**
+§2.2, which finds that it holds — and which archives the exact text, because Art. 7(1) requires the
+controller to be able to demonstrate *what was agreed to*, and a timestamp proves only that someone
+clicked. Two changes came out of that review and are implemented: the disclosure now names the
+*mechanism* (health as well as religion) rather than one instance of it, and the screen now links to
+the privacy notice — which is what turns "informed about the profiling" into "informed" (Art. 13(1)(e)).
 
-### 7.2 OPEN — consent text and a privacy notice (Arts. 13–14)
-Neither exists. A DPIA is not a privacy notice, and this document is not user-facing.
+### 7.2 ~~OPEN~~ DONE — consent text and a privacy notice (Arts. 13–14)
+
+Both now exist.
+
+- **[legal/CONSENT.md](legal/CONSENT.md)** — the consent register: every consent we ask for, its exact
+  on-screen wording, its version, where the record is stored, and how it is withdrawn. Versioned text
+  is archived, so widening what the profile infers invalidates the old agreement rather than silently
+  stretching it.
+- **[legal/PRIVACY-NOTICE.md](legal/PRIVACY-NOTICE.md)** — the Art. 13–14 notice, shipped as a public
+  page at **`/privacy-policy`**, alongside **`/terms-of-service`**. Both sit *outside* the auth group
+  on purpose: Art. 13 wants the notice available "at the time when personal data are obtained", and a
+  notice you can only read once you already have an account arrives after the decision it exists to
+  inform. The sign-up form and the consent screen both link to it.
+
+The retention figure on the notice is read from `config/privacy.php`, not typed into the page — a
+notice that says "30 days" while the job enforces 60 is a false statement to a data subject.
+
+**The Terms of Service is not decorative.** Six rows of the notice rely on Art. 6(1)(b) — performance
+of a contract — as the basis for processing location, and that basis requires a contract to exist.
+None did. This was ROPA finding B4.
 
 ### 7.3 ~~OPEN~~ DONE — Records of processing (Art. 30)
 The <250-person exemption does **not** apply: our processing is not occasional, and (per §3.2) may
@@ -372,18 +411,51 @@ It must be kept in step with §2 of this document and with `config/privacy.php`.
 data, the processors, or the retention numbers change and the ROPA does not, the ROPA is worse than
 nothing — a record of processing that no longer records the processing.
 
-### 7.4 OPEN — breach procedure (Arts. 33–34)
-72 hours is not long, and there is currently no written procedure and no rehearsed path to the
-supervisory authority. With a sole controller this is the control most likely to fail under stress,
-because it depends entirely on one person noticing.
+### 7.4 ~~OPEN~~ WRITTEN, NOT REHEARSED — breach procedure (Arts. 33–34)
 
-### 7.5 OPEN — processor agreements (Art. 28)
-Confirm a DPA is in place with the hosting provider and with Google.
+**[legal/BREACH-PROCEDURE.md](legal/BREACH-PROCEDURE.md)** now exists: the first hour, the
+notify/don't-notify decision, a risk table for *this* system's tables (almost anything with a
+`user_id` is high risk here, because the payload is location and inferred belief), templates for IMY
+and for users, and the Art. 33(5) internal log that is required even for breaches you decide **not**
+to report.
+
+The supervisory authority is **IMY (Sweden)** — the controller's establishment, not the servers'.
+Hetzner being in Germany does not move it (Art. 56).
+
+**Still OPEN, and honestly the weakest control in the system: nothing would tell you.** Detection
+today depends entirely on you looking — no alerting, nothing pages anyone. If the database were being
+dumped over a weekend, the 72-hour clock would not start until you happened to notice, which is
+legally in your favour and practically catastrophic. §8 of the procedure lists the cheapest fixes;
+the first is an afternoon's work.
+
+**Rehearse it once before the pilot.** A procedure discovered during an incident is not a procedure.
+
+### 7.5 OPEN — processor agreements (Art. 28) · **STILL OPEN, AND ONLY YOU CAN CLOSE IT**
+
+**[legal/PROCESSORS.md](legal/PROCESSORS.md)** is the register — derived from the code by enumerating
+every outbound call, which is how it found **Resend**, a processor holding every user's email address
+that this document had never mentioned.
+
+**Writing the register does not close this. Signing does.** Four errands, none delegable to any LLM,
+tracked in [legal/dpa/](legal/dpa/): Hetzner AVV, Resend DPA, confirming the Google Cloud DPA actually
+covers **Maps Platform** (a different product, and assuming one DPA covers both is the trap), and
+filing the PDFs — because Art. 5(2) accountability means being able to *demonstrate* compliance, and
+"I'm sure I clicked accept" is not a demonstration.
+
+**The one true launch blocker is the Gemini tier.** On the free tier Google generally trains on what
+you send it; on the paid tier it generally does not. If we are on a free key, place evidence + city +
+part-of-day is being processed for *Google's* purposes rather than ours — a processor acting outside
+the controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody. The fix is a credit
+card, not a code change.
 
 ### 7.6 Accepted residual risk
 With §7.1–§7.5 closed, the residual risk is judged **medium** — driven by R2 (home inference) and R5
 (sole controller, no security team), both mitigated but neither eliminated. **This is below the
 threshold that would require prior consultation with the supervisory authority under Art. 36.**
+
+> **As of 2026-07-12, §7.5 is not closed** (no DPA is filed, and the Gemini training question is
+> unanswered), so the "medium" judgement above is a statement about where we will be, not where we
+> are. Saying otherwise would be precisely the laundering §0 warns against.
 
 That judgement is only valid **while the pilot is small and consists of informed adults who know the
 controller personally.** It does not survive growth. Before onboarding users who are not personally

@@ -251,7 +251,7 @@ Numbers live in `config/privacy.php` and are enforced nightly by `EnforceRetenti
 | Feedback ledger | Until account deletion | Deleted | FK cascade |
 | Account + identity | Until the user deletes it | Deleted | `DeleteAccount` |
 | Google opening hours | **600 seconds**, in Redis | Evicted. **Never persisted** to any table — only the `place_id` string is stored. | `GoogleHoursVerifier` |
-| **Telemetry (`pulse_*`)** | **No limit configured. Not touched by the retention job. Not deleted on erasure.** | — | **Nothing. See §7.2.** |
+| **Telemetry (`pulse_*`)** | **7 days** (`PULSE_STORAGE_KEEP`) | Trimmed by Pulse itself. **Not** touched by our retention job, and **not** deleted on erasure. | Pulse's own trim — see §7.2 |
 | **Admin audit (`activity_log`)** | **No limit. Not deleted on erasure** (it uses `causer_id` / `subject_id`, not `user_id`). | — | **Nothing. See §7.2.** |
 
 ### 7.1 Correction: Open-Meteo receives raw coordinates, not a tile
@@ -267,28 +267,45 @@ minimisation claim in DPIA §4.1, and it is the direct cause of §7.2. The fix i
 send the tile's centroid, which is what the cache key already implies and what a weather
 lookup actually needs.
 
-### 7.2 The retention promise has a hole, and it is in the telemetry
+### 7.2 The telemetry hole — **FIXED 2026-07-12**, and a correction to this record
 
-Two tables hold personal data and are covered by **neither** the retention job nor erasure:
+**First, a correction to v0.1 of this document, which said Pulse had "no limit configured".
+That was wrong.** Pulse trims itself to **7 days** (`PULSE_STORAGE_KEEP`). The exposure was
+bounded, not indefinite, and this record overstated it. Getting that wrong in the direction
+of alarm is better than the other direction, but it is still getting it wrong.
 
-- **`pulse_entries`.** The `UserRequests` recorder keys entries by **user id**. The
-  `SlowOutgoingRequests` recorder records the **full outbound URL** — and because
-  Open-Meteo is a GET with coordinates in the query string (§7.1), *a slow weather call
-  writes the user's precise coordinates into `pulse_entries.key`*. The `ignore` and
-  `groups` lists in `config/pulse.php` are both empty (all commented out). Nothing expires
-  these rows on our 30-day clock, and `DeleteAccount` does not remove them.
-- **`activity_log`.** Admin role changes, keyed by `causer_id` / `subject_id`. Survives the
-  deletion of both users.
+**What was nevertheless real.** The `SlowOutgoingRequests` recorder writes the **full
+outbound URL** into `pulse_entries.key`, and Open-Meteo is a GET carrying the user's precise
+position in its query string (§7.1). So a weather call that happened to run slow wrote *where
+a person was standing* into a diagnostics table. The `ignore` and `groups` lists in
+`config/pulse.php` were both empty (all commented out).
 
-**Why the erasure test does not catch this.** `ExportAndErasureTest` enumerates
+The 7-day trim means this was not a retention breach — 7 days sits inside the 30-day window.
+**The serious part is the home zone.** DPIA §5.1 promises that inside it a coordinate is
+*never written* — "not for thirty days, not for thirty seconds." A slow weather lookup near
+someone's home broke that promise, in a table nobody thinks of as storage. That is the one
+claim in this system that cannot be retrofitted, and telemetry was quietly falsifying it.
+
+**Fix:** a `groups` rule on the recorder strips the query string from every recorded URL, so
+the dashboard still reports *"Open-Meteo is slow"* — the entire reason the recorder exists —
+while the thing that identifies a person never reaches the row. It is generic on purpose: the
+next GET anyone adds with a coordinate, an email or a token in its query is covered without
+anyone having to remember. Pinned by `tests/Feature/Privacy/TelemetryLeakTest.php`, because a
+commented-out privacy control looks exactly like a commented-out example.
+
+The root cause is still B3 (Open-Meteo should receive a tile centroid, not a person). Fixing
+that removes the coordinate from the URL entirely; this fix means it would not leak even if
+it were there.
+
+**Still open — `activity_log`.** Admin role changes, keyed by `causer_id` / `subject_id`.
+Survives the deletion of both users. Tracked as **B7**.
+
+**Why the erasure test does not catch either.** `ExportAndErasureTest` enumerates
 `information_schema.columns WHERE column_name = 'user_id'`. That is a good test and it is
 honestly described — but Pulse stores the user id inside a string `key` column and
 `activity_log` uses a morph, so **neither table has a `user_id` column and neither is in
-the test's enumeration.** DPIA §5.4's claim is true as literally written and broader than
+the test's enumeration.** DPIA §5.4's claim is true as literally written and narrower than
 it sounds.
-
-**This is the one finding in this document that makes a published privacy notice untrue.**
-It must be fixed before the notice ships, not disclosed in it. Tracked in §9 as **B1**.
 
 ---
 
@@ -323,17 +340,18 @@ with a test.
 
 Ranked. These are additions to DPIA §7, not a restatement of it.
 
-| # | Item | Why it matters | Severity |
-|---|---|---|---|
-| **B1** | **Pulse persists user ids — and, via the Open-Meteo URL, precise coordinates — with no retention and no erasure** (§7.2) | Makes "we hard-delete raw location at 30 days" and "deletion deletes" **false**. Blocks publishing the privacy notice. | **Blocker** |
-| **B2** | **Confirm Gemini API input is not used for training** (§6.2) | If it is, we are processing users' evidence for a vendor's purposes with no basis and no disclosure. | **Blocker** |
-| **B3** | Open-Meteo receives raw coordinates, not a tile centroid (§7.1) | Contradicts DPIA §2.4 and §4.1. One-line fix; also the root cause of B1. | High |
-| **B4** | **No Terms of Service exists** (§3) | Art. 6(1)(b) is the basis for P0/P1/P3 and it requires a contract. | High |
-| **B5** | Google DPA / Hetzner DPA not confirmed signed (Art. 28) | → `PROCESSORS.md`. Was DPIA §7.5. | High |
-| **B6** | `context_events.companions` may hold third-party personal data (§4.4) | Constrain to an enum. Cheap, and almost certainly the intent. | Medium |
-| **B7** | `activity_log` survives account deletion (§7.2) | Small (admin actions only, 1 admin), but it is an erasure gap. | Medium |
-| **B8** | Encryption at rest and backup retention unverified (§8) | A backup outliving the retention clock silently defeats it. | Medium |
-| **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) |
+| # | Item | Why it matters | Severity | Status |
+|---|---|---|---|---|
+| **B1** | Pulse recorded precise coordinates from the Open-Meteo URL (§7.2) | Falsified the home-zone "never written" promise — the one control that cannot be retrofitted. | Blocker | **FIXED** — query strings stripped; `TelemetryLeakTest` |
+| **B2** | **Confirm Gemini API input is not used for training** (§6.2) | If it is, we process users' evidence for a vendor's purposes with no basis and no disclosure. | **Blocker** | **OPEN — yours. A credit card, not a code change.** |
+| **B3** | Open-Meteo receives raw coordinates, not a tile centroid (§7.1) | Contradicts DPIA §2.4 and §4.1, and is B1's root cause. | High | **In progress** (WeatherClient centroid) |
+| **B4** | No Terms of Service existed (§3) | Art. 6(1)(b) is the basis for P0/P1/P3 and it requires a contract. | High | **FIXED** — `/terms-of-service` |
+| **B5** | No processor DPA filed (Art. 28) | → [`PROCESSORS.md`](PROCESSORS.md), [`dpa/`](dpa/). Writing the register does not close this; signing does. | High | **OPEN — yours** |
+| **B6** | `context_events.companions` may hold third-party personal data (§4.4) | Constrain to an enum. Cheap, and almost certainly the intent. | Medium | OPEN |
+| **B7** | `activity_log` survives account deletion (§7.2) | Small (admin actions only, one admin), but it is an erasure gap. | Medium | OPEN |
+| **B8** | Encryption at rest and backup retention unverified (§8) | A backup outliving the retention clock silently defeats it. And Art. 34(3)(a) — encryption is the difference between emailing your users about a breach and logging it. | Medium | OPEN |
+| **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) | OPEN |
+| **B10** | **No breach detection at all** (BREACH-PROCEDURE §8) | The 72-hour clock starts when you *notice*. Nothing pages anyone. | Medium–High | OPEN |
 
 ---
 

@@ -187,10 +187,28 @@ return [
             'ignore' => [
                 // '#^http://127\.0\.0\.1:13714#', // Inertia SSR...
             ],
+
+            /*
+            | STRIP THE QUERY STRING. This is a privacy control, not tidiness.
+            |
+            | This recorder writes the outgoing URL into `pulse_entries.key`, and one
+            | of our outgoing URLs carries a user's precise position in its query:
+            | Open-Meteo is a GET with `?latitude=..&longitude=..`. So a weather call
+            | that happened to run slow wrote where a person was standing into a table
+            | that the retention job does not touch and account deletion does not clear.
+            |
+            | Worse than the retention gap: the home zone promises a coordinate inside
+            | it is NEVER written — "not for thirty days, not for thirty seconds"
+            | (DPIA §5.1). A slow weather lookup near someone's home broke that promise
+            | in a diagnostics table nobody thinks of as storage.
+            |
+            | Grouping by the path alone means the dashboard still tells us "Open-Meteo
+            | is slow", which is the entire reason the recorder exists, while the thing
+            | that identifies a person never reaches the row. Telemetry should measure
+            | the request, not the requester.
+            */
             'groups' => [
-                // '#^https://api\.github\.com/repos/.*$#' => 'api.github.com/repos/*',
-                // '#^https?://([^/]*).*$#' => '\1',
-                // '#/\d+#' => '/*',
+                '#^(https?://[^?]+)\?.*$#' => '\1',
             ],
         ],
 

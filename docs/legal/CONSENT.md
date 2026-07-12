@@ -52,8 +52,11 @@ calibration pairs, above the only button on the screen. The checkbox starts **un
 > ☐ **I'm happy for you to build a picture of my taste from these answers and from what I
 > do next.**
 > *It's a guess about what you'd enjoy — but because it learns from the kinds of places you
-> pick, it can end up reflecting personal things, like an interest in religious sites. You
-> can see exactly what I've concluded, and delete it, at any time.*
+> pick, it can end up reflecting personal things: an interest in religious sites, for
+> example, or somewhere you go for your health. You can see exactly what I've concluded,
+> and delete it, at any time.*
+>
+> What I collect, who sees it, and how long I keep it: [the privacy notice](/privacy-policy).
 >
 > [ Show me the first pair ]  ← disabled until the box is ticked
 >
@@ -202,11 +205,18 @@ because *after* is too late by construction.
 
 ## 5. Open items
 
-| # | Item | Severity |
-|---|---|---|
-| **C-1** | **Link the consent screen to the privacy notice** (§2.3). Requires the notice to exist and be routable at `/privacy`. | High — it is what makes the consent *informed* |
-| **C-2** | Widen the C1 text from "religious sites" to the mechanism (§2.4) | Medium |
-| **C-3** | Version the research consent (§3.3) | Low now, structural later |
+| # | Item | Severity | Status |
+|---|---|---|---|
+| **C-1** | Link the consent screen to the privacy notice (§2.3) — it is what makes the consent *informed* (Art. 13(1)(e)) | High | **DONE** — links to `/privacy-policy`; the sign-up form does too, because Art. 13 wants the notice available *when the data is obtained* |
+| **C-2** | Widen the C1 text from "religious sites" to the mechanism (§2.4) | Medium | **DONE** — now names health as well. A text change within `v1`: it widens the *disclosure*, not the *processing*, so existing consents remain valid |
+| **C-3** | Version the research consent (§3.3) | Low now, structural later | OPEN |
+
+**A note on C-2 and why the version did not bump.** Widening what a user is *told* does not
+invalidate what they agreed to — they were told less than the new text says, and nothing we
+do exceeds what they agreed to. Widening what the profile *infers* is the opposite case, and
+that is a `v2` and a re-ask. `UserProfilingConsent::granted()` will correctly report `false`
+for everyone the moment `profiling_consent_version` moves, which is the intended behaviour and
+not a bug to be worked around.
 
 ---
 

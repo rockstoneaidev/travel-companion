@@ -5,12 +5,23 @@ person, not by a regulator — but it has to satisfy both, so every Art. 13 elem
 here somewhere. The internal record behind it is [`ROPA.md`](ROPA.md); the assessment is
 [`DPIA.md`](../DPIA.md).
 
-**Status: DRAFT — must not be published until ROPA §9 B1 and B3 are fixed.** Two statements
-below ("we delete precise location after 30 days", "deleting your account deletes
-everything") are **not true today** because of a telemetry leak. Publishing them now would
-be a false statement to data subjects, which is worse than having no notice.
+**Status: LIVE at `/privacy-policy`** (and `/terms-of-service`), served by `LegalController`.
+Both routes sit outside the `auth` group on purpose: Art. 13 wants the notice available "at the
+time when personal data are obtained", so the sign-up form and the consent screen both link to
+it. A notice you can only read once you already have an account is a receipt, not a notice.
 
-**Last updated:** — (unpublished) · **Version:** 0.1
+The retention figure is read from `config/privacy.php` rather than typed into the page — a
+notice that says "30 days" while the job enforces 60 is a false statement to a data subject.
+
+**Publication gate — cleared.** v0.1 of this file said it must not ship until ROPA **B1** and
+**B3** were fixed, because "we destroy precise location" and "deleting your account deletes
+everything" were not true while Pulse recorded coordinates from the Open-Meteo URL. **B1 is
+fixed** (query strings stripped from recorded URLs; `tests/Feature/Privacy/TelemetryLeakTest.php`).
+**B3** — Open-Meteo should receive a tile centroid, not a person — is in progress, and until it
+lands the "Who else sees your data" section below tells the truth about it rather than the
+intention. That is the right way round.
+
+**Last updated:** 2026-07-12 · **Version:** 0.2
 
 ---
 

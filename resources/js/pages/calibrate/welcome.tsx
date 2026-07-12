@@ -53,11 +53,23 @@ export default function CalibrateWelcome({ consented }: { consented: boolean }) 
                             I'm happy for you to build a picture of my taste from these answers and from what I do next.
                             <span className="text-meta mt-1.5 block">
                                 It's a guess about what you'd enjoy — but because it learns from the kinds of places you pick, it can end up
-                                reflecting personal things, like an interest in religious sites. You can see exactly what I've concluded, and delete
-                                it, at any time.
+                                reflecting personal things: an interest in religious sites, for example, or somewhere you go for your health. You can
+                                see exactly what I've concluded, and delete it, at any time.
                             </span>
                         </span>
                     </label>
+
+                    {/* Informed consent means informed about where the data GOES, not only
+                        about what is inferred (Art. 13(1)(e)). The screen said the second
+                        and not the first, and there was no route from here to the page that
+                        would have told them. One line closes it. */}
+                    <p className="text-meta -mt-4">
+                        What I collect, who sees it, and how long I keep it:{' '}
+                        <a href="/privacy-policy" className="text-ink underline underline-offset-[3px]">
+                            the privacy notice
+                        </a>
+                        .
+                    </p>
 
                     <div className="space-y-4">
                         <PrimaryPill disabled={!agreed} onClick={() => router.post('/calibrate/consent')}>

@@ -115,6 +115,22 @@ export default function Register() {
                     <GoogleButton label="Sign up with Google" tabIndex={6} />
                 </div>
 
+                {/* Art. 13 wants the notice available AT THE TIME the data is obtained —
+                    and this form is that moment. A privacy notice you can only reach once
+                    you already have an account arrives after the decision it exists to
+                    inform, which is not a notice. It is a receipt. */}
+                <p className="text-muted-foreground text-center text-xs">
+                    By creating an account you agree to the{' '}
+                    <TextLink href="/terms-of-service" tabIndex={7}>
+                        terms
+                    </TextLink>
+                    , and to how I handle your data — including your location — as described in the{' '}
+                    <TextLink href="/privacy-policy" tabIndex={7}>
+                        privacy notice
+                    </TextLink>
+                    .
+                </p>
+
                 <div className="text-muted-foreground text-center text-sm">
                     Already have an account?{' '}
                     <TextLink href={route('login')} tabIndex={6}>
