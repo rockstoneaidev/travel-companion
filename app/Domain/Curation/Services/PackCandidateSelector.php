@@ -62,6 +62,7 @@ final class PackCandidateSelector
         $region = IngestRegion::named($regionKey);
 
         $rows = DB::table('places_core as p')
+            ->select(['p.id', 'p.name', 'p.type', 'p.type_domain', 'p.facets', 'p.h3_index'])
             ->whereRaw(
                 'ST_Intersects(p.location::geometry, ST_MakeEnvelope(?, ?, ?, ?, 4326))',
                 [$region->west, $region->south, $region->east, $region->north],
@@ -86,7 +87,19 @@ final class PackCandidateSelector
                     ->from('curated_items as ci')
                     ->whereColumn('ci.place_id', 'p.id');
             })
-            ->get(['p.id', 'p.name', 'p.type', 'p.type_domain', 'p.facets', 'p.h3_index']);
+            // Does this place have PROSE somebody wrote, or only a database record?
+            // It is the difference between a draft worth reading and a formulaic one
+            // — see richness() below.
+            ->selectRaw(
+                "EXISTS (
+                    SELECT 1 FROM place_source_ids psi
+                    JOIN source_items si ON si.source = psi.source AND si.external_id = psi.external_id
+                    WHERE psi.place_id = p.id
+                      AND si.source = 'datatourisme'
+                      AND si.payload->'source_tags'->>'description' IS NOT NULL
+                ) AS has_prose",
+            )
+            ->get();
 
         $scored = [];
         foreach ($rows as $row) {
@@ -95,7 +108,7 @@ final class PackCandidateSelector
             $scored[] = [
                 'row' => $row,
                 'facets' => $facets,
-                'score' => $this->priority($facets),
+                'score' => $this->priority($facets) + $this->richness($row),
             ];
         }
 
@@ -171,5 +184,27 @@ final class PackCandidateSelector
     private function priority(array $facets): int
     {
         return count(array_intersect($facets, self::PRIORITY_FACETS));
+    }
+
+    /**
+     * Prefer places somebody has actually WRITTEN about.
+     *
+     * A draft is only as good as the evidence under it, and our two French sources
+     * are not equivalent. DATAtourisme carries a tourism board's prose — "housed in
+     * a former 1920s butcher shop that still preserves its original period decor".
+     * Mérimée carries a structured protection record and no prose at all, so the
+     * best a draft can honestly do with it is "a protected fountain, dated 1710".
+     *
+     * That second kind is TRUE, and it is nearly worthless: the first Paris pack had
+     * a run of town halls and fountains all saying the same formulaic thing, and
+     * every one of them was a review minute spent to reach a rejection.
+     *
+     * So prose outranks a record. Mérimée-only places still get drafted — they are
+     * the chapels and dolmens Google does not have — but they queue behind the ones
+     * a curator is likely to keep.
+     */
+    private function richness(object $row): int
+    {
+        return $row->has_prose ? 2 : 0;
     }
 }

@@ -72,6 +72,68 @@ function packPlace(string $name, string $type, string $domain, array $facets, ?s
     return $place;
 }
 
+function merimeeOnlyPlace(string $name, string $type, string $domain, array $facets, float $lat = 48.8700, float $lng = 2.3700): Place
+{
+    $cell = DB::selectOne('SELECT h3_lat_lng_to_cell(POINT(?, ?), 8)::text AS c', [$lng, $lat])->c;
+
+    $place = Place::factory()->create([
+        'name' => $name, 'type' => $type, 'type_domain' => $domain,
+        'facets' => $facets, 'h3_index' => $cell, 'source_tags' => ['merimee' => []],
+    ]);
+
+    DB::statement('UPDATE places_core SET location = ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography WHERE id = ?', [$lng, $lat, $place->id]);
+
+    $externalId = 'PA'.substr((string) $place->id, 0, 8);
+
+    $item = SourceItem::factory()->create([
+        'source' => 'merimee',
+        'external_id' => $externalId,
+        'credibility_tier' => CredibilityTier::Official,
+        'license' => SourceLicense::LicenceOuverte,
+        'h3_index' => $cell,
+        'payload' => [
+            'name' => $name, 'lat' => $lat, 'lng' => $lng,
+            'type' => $type, 'type_domain' => $domain,
+            'alt_names' => [], 'facets' => $facets,
+            // A protection record: structured, true, and no prose at all.
+            'source_tags' => ['denomination' => $type, 'datation' => '1710', 'protection' => '1862 : classé MH'],
+            'external_refs' => [], 'taxonomy_version' => 1,
+        ],
+    ]);
+
+    DB::statement('UPDATE source_items SET location = ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography WHERE id = ?', [$lng, $lat, $item->id]);
+
+    DB::table('place_source_ids')->insert([
+        'place_id' => $place->id, 'source' => 'merimee', 'external_id' => $externalId,
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    return $place;
+}
+
+it('puts the place someone WROTE about ahead of the one with only a record', function () {
+    // Both are draftable. But Mérimée gives a protection record and no prose, so
+    // the best an honest draft can do is "a protected fountain, dated 1710" — true,
+    // formulaic, and a review minute spent to reach a rejection. DATAtourisme
+    // carries a tourism board's actual sentences.
+    //
+    // Same domain and same facets on both, so ONLY richness can separate them.
+    merimeeOnlyPlace('Fontaine Trogneux', 'fountain', 'architecture_urban', ['history'], 48.8700, 2.3700);
+    packPlace('Passage du Grand-Cerf', 'notable_building', 'architecture_urban', ['history'], 'A glazed arcade of 1825, its ironwork still carrying the original sign brackets.', 48.8650, 2.3650);
+
+    $candidates = app(PackCandidateSelector::class)->forRegion('paris', 10);
+
+    expect($candidates[0]->name)->toBe('Passage du Grand-Cerf');
+});
+
+it('still drafts the Mérimée-only chapel — it just queues behind the prose', function () {
+    // These are the dolmens and chapels Google does not have. They are the point
+    // of the source; they are simply not the first call on a review hour.
+    merimeeOnlyPlace('Chapelle Saint-Roch', 'chapel', 'religious_sacred', ['history']);
+
+    expect(app(PackCandidateSelector::class)->forRegion('paris', 10))->toHaveCount(1);
+});
+
 it('refuses to draft a place nothing is written about', function () {
     // No evidence ⇒ no draft. A draft not written from evidence is a
     // hallucination with a review queue in front of it (conventions/10). It is
