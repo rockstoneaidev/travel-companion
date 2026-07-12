@@ -1,43 +1,89 @@
 import { AppHeader, EditorialLede, PrimaryPill, SectionLabel, TextAction, Thumb, type ThumbImage } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, Link, router } from '@inertiajs/react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 
 /**
  * Home — "today".
  *
- * It was the starter kit's empty skeleton (three <PlaceholderPattern> boxes). The
- * tempting fix was "nearby things and a map", but that is Explore at a second URL,
- * and duplicating the primary surface is how an app stops making sense.
+ * It was the starter kit's empty skeleton, then it was honest and dull: a lede, a
+ * button, a count. The obvious fix is "more photographs", and the world model cannot
+ * pay for it — 1,479 of 53,133 places carry an image (2.8%), and even among our
+ * approved curated items only 25 of 98 do. A photo grid would be three-quarters
+ * empty boxes, which is worse than plain text because it looks broken.
  *
- * So home is the digest (PRD §12.4 — the daily habit surface, which was built and
- * then ORPHANED: nothing in the app linked to it), plus where you left off, plus
- * what you kept. Three questions a person actually has when they open the app, and
- * no wall of cards competing with the feed.
+ * Every place has a LOCATION, though. Geography is the only picture we can always
+ * draw, so the map is this screen's imagery and the photographs are the accent on
+ * top of it.
  *
- * Deliberately NOT a map of everything we know about. That would be Google Maps
- * with our pins, and it would undo the only promise this product makes. The map
- * belongs to a session, where it has a reason to exist (S3).
+ * The map shows YOU, what you KEPT (solid pins), and what the ranker PASSED OVER
+ * (hollow dots — visible, not shouted). It does not show the other 53,000 places we
+ * know about: that map is a different product, one that hands the choosing back to
+ * the user, which is the single job this one claims to do for them.
+ *
+ * Evening is the state that looked broken — a near-empty page at 23:15 reading
+ * "Nothing needs deciding tonight". The words are right (inventing urgency at
+ * midnight would be the product lying), but silence is not the same as a blank page.
+ * So evening keeps the map and drops the nudge: where you are, and what is still
+ * standing around you. Orientation is not an interruption.
  */
+
+// ~200KB gzipped. Lazy here exactly as on S3, and never through the barrel, or every
+// screen pays for a map most of them never draw (DESIGN §3).
+const PaperMap = lazy(() => import('@/components/app/paper-map'));
+
+interface DigestCard {
+    opportunity_id: string;
+    title: string;
+    note: string | null;
+    image: ThumbImage | null;
+}
+
+interface MapPin {
+    id: string;
+    lat: number;
+    lng: number;
+    label: string;
+    dimmed: boolean;
+    href: string | null;
+}
 
 interface DashboardProps {
     digest: {
         variant: 'morning' | 'evening';
         lede: string;
         subline: string;
-        items: { opportunity_id: string; title: string; note: string | null; image: ThumbImage | null }[];
+        items: DigestCard[];
     };
+    hero: DigestCard | null;
     session: string | null;
+    map: { origin: { lat: number; lng: number } | null; pins: MapPin[] };
     kept: { still_possible: number; total: number };
 }
 
-export default function Dashboard({ digest, session, kept }: DashboardProps) {
+export default function Dashboard({ digest, hero, session, map, kept }: DashboardProps) {
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const evening = digest.variant === 'evening';
+
+    // A new array on every render would tear down the GL context on each pin tap —
+    // the bug S3 already paid for once.
+    const pins = useMemo(
+        () => map.pins.map((pin) => ({ id: pin.id, lat: pin.lat, lng: pin.lng, label: pin.label, urgent: false, dimmed: pin.dimmed })),
+        [map.pins],
+    );
+
+    const selected = map.pins.find((pin) => pin.id === selectedId) ?? null;
+
+    // The rest — the hero is already showing the first one.
+    const rest = digest.items.filter((item) => item.opportunity_id !== hero?.opportunity_id);
+
     return (
         <ProductLayout>
             <div className="bg-paper min-h-full flex-1">
                 <Head title="Today" />
 
                 <div className="mx-auto max-w-md space-y-8 px-5 py-8 lg:max-w-2xl">
-                    <AppHeader contextStamp={digest.variant === 'evening' ? 'Tonight' : 'Today'} />
+                    <AppHeader contextStamp={evening ? 'Tonight' : 'Today'} />
 
                     <div className="space-y-2">
                         {/* Written from real context, never generated — "it's dry until four"
@@ -45,6 +91,34 @@ export default function Dashboard({ digest, session, kept }: DashboardProps) {
                         <h1 className="text-headline text-ink font-serif font-medium italic">{digest.lede}</h1>
                         <p className="text-body-card text-body">{digest.subline}</p>
                     </div>
+
+                    {/* THE HERO. One thing, big, with its picture — not a grid. Scarcity is
+                        the product (PRD §12.1); a wall of cards would say "here is
+                        everything, you decide", which is the job we took off the user. */}
+                    {hero !== null && (
+                        <button
+                            type="button"
+                            onClick={() => router.visit(`/opportunities/${hero.opportunity_id}`)}
+                            className="rounded-card border-border shadow-card group relative block w-full overflow-hidden border text-left"
+                        >
+                            {hero.image !== null ? (
+                                <img
+                                    src={hero.image.url}
+                                    alt=""
+                                    className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] lg:h-72"
+                                />
+                            ) : (
+                                <div className="paper-stripe h-56 w-full lg:h-72" />
+                            )}
+
+                            {/* The scrim exists so the words stay readable over a photograph we
+                                did not art-direct and cannot re-shoot. */}
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent p-5 pt-16">
+                                <h2 className="font-serif text-xl font-medium text-white drop-shadow-sm">{hero.title}</h2>
+                                {hero.note !== null && <p className="mt-1 line-clamp-2 text-sm text-white/85">{hero.note}</p>}
+                            </div>
+                        </button>
+                    )}
 
                     {/* The single most useful thing this screen can say — and it used to say
                         nothing at all: you have a session open, and here is the way back. */}
@@ -64,12 +138,41 @@ export default function Dashboard({ digest, session, kept }: DashboardProps) {
                         )}
                     </div>
 
-                    {digest.items.length > 0 && (
+                    {/* THE MAP. Not a widget — the imagery. And not a map of everything: you,
+                        what you kept, and the ones the ranker weighed and held back. */}
+                    {map.origin !== null && (
                         <section className="space-y-2">
-                            <SectionLabel>{digest.variant === 'evening' ? 'What I passed over' : 'Worth knowing today'}</SectionLabel>
+                            <SectionLabel>Around you</SectionLabel>
+
+                            <div className="rounded-card border-border shadow-card relative h-72 overflow-hidden border lg:h-80">
+                                <Suspense fallback={<div className="bg-map-bg h-full w-full" />}>
+                                    <PaperMap items={pins} origin={map.origin} selectedId={selectedId} onSelect={setSelectedId} />
+                                </Suspense>
+
+                                {/* Tapping a pin should go somewhere. A map you can only look at
+                                    is a picture of a product. */}
+                                {selected !== null && selected.href !== null && (
+                                    <button
+                                        type="button"
+                                        onClick={() => router.visit(selected.href!)}
+                                        className="rounded-card border-border bg-card shadow-card absolute inset-x-3 bottom-3 border p-3 text-left"
+                                    >
+                                        <span className="text-ink block font-serif text-base font-medium">{selected.label}</span>
+                                        <span className="text-body-card text-meta">Open</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            <p className="text-body-card text-meta">You, what you kept, and — hollow — what I weighed and passed over.</p>
+                        </section>
+                    )}
+
+                    {rest.length > 0 && (
+                        <section className="space-y-2">
+                            <SectionLabel>{evening ? 'What I passed over' : 'Also worth knowing'}</SectionLabel>
 
                             <div className="rounded-card border-border bg-card divide-border-soft shadow-card divide-y border">
-                                {digest.items.map((item) => (
+                                {rest.map((item) => (
                                     <button
                                         key={item.opportunity_id}
                                         type="button"

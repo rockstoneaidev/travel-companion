@@ -18,5 +18,12 @@ final readonly class DigestItem
         public string $reason,
         /** The photo. A digest without pictures is a to-do list. */
         public ?array $image = null,
+        /**
+         * Where it is. Only 2.8% of places carry a photograph, but every one of them
+         * has a location — so geography is the only picture we can always draw, and
+         * the dashboard map is built from these.
+         */
+        public ?float $lat = null,
+        public ?float $lng = null,
     ) {}
 }

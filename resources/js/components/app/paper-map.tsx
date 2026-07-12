@@ -24,6 +24,8 @@ export interface MapItem {
     lng: number;
     label: string;
     urgent: boolean;
+    /** Weighed and held back (the home map's "passed over"). Rendered as a quiet hollow dot. */
+    dimmed?: boolean;
 }
 
 export interface PaperMapProps {
@@ -55,7 +57,7 @@ export default function PaperMap({ items, origin, selectedId, onSelect, classNam
      * tore the whole GL context down and rebuilt it each time you tapped a pin: your
      * pan and zoom were thrown away and every tile refetched, mid-interaction.
      */
-    const signature = JSON.stringify([origin, items.map((item) => [item.id, item.lat, item.lng, item.urgent, item.label])]);
+    const signature = JSON.stringify([origin, items.map((item) => [item.id, item.lat, item.lng, item.urgent, item.dimmed, item.label])]);
 
     const live = useRef({ items, origin });
     live.current = { items, origin };
@@ -146,7 +148,11 @@ export default function PaperMap({ items, origin, selectedId, onSelect, classNam
                 const pin = item.urgent ? (
                     <GoNowPin label="Go now" className="cursor-pointer" />
                 ) : (
-                    <PlacePin label={item.label} className={cn('cursor-pointer', selectedId !== null && selectedId !== item.id && 'opacity-50')} />
+                    <PlacePin
+                        label={item.label}
+                        dimmed={item.dimmed === true}
+                        className={cn('cursor-pointer', selectedId !== null && selectedId !== item.id && 'opacity-50')}
+                    />
                 );
 
                 return createPortal(pin, node, item.id);

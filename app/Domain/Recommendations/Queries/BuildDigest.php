@@ -101,13 +101,25 @@ final class BuildDigest
         // Join to the live opportunity for the title, the note and — the thing that
         // makes a digest useful rather than a list — the window.
         $opportunities = DB::table('opportunities')
-            ->whereIn('place_id', array_keys($byPlace))
-            ->whereNotIn('status', array_map(
+            ->join('places_core', 'places_core.id', '=', 'opportunities.place_id')
+            ->whereIn('opportunities.place_id', array_keys($byPlace))
+            ->whereNotIn('opportunities.status', array_map(
                 static fn (OpportunityStatus $s): string => $s->value,
                 OpportunityStatus::terminal(),
             ))
-            ->where('expires_at', '>', $at)
-            ->get(['id', 'place_id', 'title', 'summary', 'window_ends_at']);
+            ->where('opportunities.expires_at', '>', $at)
+            ->get([
+                'opportunities.id',
+                'opportunities.place_id',
+                'opportunities.title',
+                'opportunities.summary',
+                'opportunities.window_ends_at',
+                // Geometry, for the dashboard map. Every place has this; a photograph
+                // is the exception (2.8% of the world model), so the map is the only
+                // picture we can always draw.
+                DB::raw('ST_Y(places_core.location::geometry) AS lat'),
+                DB::raw('ST_X(places_core.location::geometry) AS lng'),
+            ]);
 
         $images = $this->images->forPlaces(array_keys($byPlace));
 
@@ -133,6 +145,8 @@ final class BuildDigest
                 windowEndsAt: $window,
                 reason: $meta['reason'],
                 image: $images[$opportunity->place_id] ?? null,
+                lat: (float) $opportunity->lat,
+                lng: (float) $opportunity->lng,
             );
 
             if (count($items) >= self::MAX_ITEMS) {

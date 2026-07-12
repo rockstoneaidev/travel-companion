@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Queries;
 
+use App\Console\Commands\CurationDraftPackCommand;
 use App\Domain\Curation\Services\PackCandidateSelector;
 use App\Domain\Sources\Data\IngestRegion;
 use Illuminate\Support\Facades\DB;
@@ -57,10 +58,23 @@ final class RegionWorldModelStats
             // review, the other means the pack was never drafted.
             'curated_in_review' => (int) ($curated->in_review ?? 0),
 
-            // How many places have enough evidence to be worth drafting. Shown next to
-            // the button, so it is honest about what pressing it will cost: this is
-            // roughly the number of LLM calls.
-            'pack_candidates' => count($this->candidates->forRegion($region->key, 100)),
+            // How many places have enough evidence to be worth drafting AT ALL.
+            //
+            // The selector already excludes anything a human has ruled on, so this IS
+            // "how many are left" — not "how many exist". Curated 31, left 88 is the
+            // pair of numbers that tells you whether you are nearly done or nowhere
+            // near, and the page showed neither.
+            'pack_candidates' => $candidates = count($this->candidates->forRegion($region->key, 1000)),
+
+            // What a click actually produces — and therefore what it actually costs.
+            //
+            // The button used to be labelled with `pack_candidates` ("~100 LLM calls"),
+            // which was never the number: 100 is just the cap on the candidate QUERY,
+            // while a draft run stops at CurationDraftPackCommand::TARGETS (30 for
+            // Stockholm). So the one button on the site that spends money overstated
+            // its own cost by 3-5x. It is a click, one place at a time, on a paid LLM —
+            // that is precisely the number that has to be true.
+            'pack_target' => min(CurationDraftPackCommand::TARGETS[$region->key] ?? 20, $candidates),
         ];
     }
 }

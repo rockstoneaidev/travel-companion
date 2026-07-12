@@ -18,7 +18,21 @@ export function GoNowPin({ label, className, ...props }: React.ComponentProps<'d
     );
 }
 
-export function PlacePin({ label, className, ...props }: React.ComponentProps<'div'> & { label: string }) {
+/**
+ * `dimmed` is the "passed over" pin on the home map: something the ranker weighed and
+ * held back. It has to be legible without competing — a hollow dot and no label, so the
+ * eye reads the solid pins first and finds these only when it goes looking. A pin that
+ * shouts as loudly as a served one would quietly undo the ranking it came from.
+ */
+export function PlacePin({ label, dimmed = false, className, ...props }: React.ComponentProps<'div'> & { label: string; dimmed?: boolean }) {
+    if (dimmed) {
+        return (
+            <div className={cn('flex flex-col items-center', className)} {...props} title={label}>
+                <div className="border-meta/70 bg-card/80 size-[11px] rounded-full border-[1.5px]" />
+            </div>
+        );
+    }
+
     return (
         <div className={cn('flex flex-col items-center gap-1', className)} {...props}>
             <div className="bg-ink ring-card size-[18px] rounded-full ring-[2.5px]" />

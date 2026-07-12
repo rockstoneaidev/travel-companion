@@ -19,6 +19,8 @@ interface RegionStatus {
     curated_approved: number;
     curated_in_review: number;
     pack_candidates: number;
+    /** What a click actually drafts: min(target, candidates). The honest cost. */
+    pack_target: number;
     build: { phase: string; started_at: string } | null;
     boxes: { done: number; total: number; failed: number } | null;
     draft: { target: number; started_at: string } | null;
@@ -74,6 +76,10 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                             <span>
                                 curated: {region.curated_approved} approved
                                 {region.curated_in_review > 0 && ` · ${region.curated_in_review} awaiting review`}
+                                {/* The number that says whether you are nearly done or nowhere near.
+                                    The selector already excludes anything a human has ruled on, so
+                                    this is genuinely "left", not "exists". */}
+                                {` · ${region.pack_candidates} left with evidence`}
                                 {region.curated_approved === 0 && region.curated_in_review === 0 && ' · none drafted yet'}
                             </span>
                         </div>
@@ -131,14 +137,24 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                              * empty for days looking broken. Drafting is deliberate — it calls
                              * the LLM once per candidate and costs real money — but it was also
                              * INVISIBLE, which is a different thing and not a good one.
+                             *
+                             * NOT disabled while a build runs, and that is deliberate too. Drafting
+                             * during an ingest is safe: the resolver only ever creates a place or
+                             * attaches a source item to an existing one — it never deletes a place
+                             * or re-issues an id — so a box finishing later cannot orphan a draft
+                             * made now. And the candidate selector skips any place that already has
+                             * a curated item, so drafting again later picks up only what is new.
+                             * You never pay for the same place twice.
                              */}
                             <Button
                                 size="sm"
                                 variant="outline"
-                                disabled={region.pack_candidates === 0}
+                                disabled={region.pack_target === 0}
                                 onClick={() => router.post(`/admin/world-model/${region.key}/draft-pack`, {}, { preserveScroll: true })}
                             >
-                                {region.pack_candidates === 0 ? 'Nothing to draft yet' : `Draft curation pack (~${region.pack_candidates} LLM calls)`}
+                                {region.pack_target === 0
+                                    ? 'Nothing to draft yet'
+                                    : `Draft ${region.pack_target} items (${region.pack_target} LLM calls)`}
                             </Button>
 
                             <a href="/horizon/dashboard" target="_blank" rel="noreferrer" className="text-xs underline">
@@ -149,6 +165,16 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                         <p className="text-muted-foreground mt-2 text-xs">
                             Ingests each open source in turn — OSM one grid box at a time, so no single job can outlive the queue — then resolves into
                             canonical places, fetches photos, and warms the tile cache. Safe to re-run: every phase is idempotent.
+                        </p>
+
+                        {/* The question this page kept provoking: can I draft while it is still
+                            building? Yes — so say so, instead of leaving it to be guessed. */}
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            {region.pack_candidates > region.pack_target
+                                ? `${region.pack_candidates}+ candidates have evidence; a draft run takes the best ${region.pack_target}. `
+                                : ''}
+                            Drafting works during a build — it covers whatever is already resolved, and a later run picks up only the new places,
+                            never the ones already drafted.
                         </p>
                     </div>
                 ))}
