@@ -1,13 +1,34 @@
-name: CI (quality gate)
+name: CI & Deploy (staging → travel.bergsten.net)
+
+# One workflow, one story: the checks and the deploy that they authorise.
+#
+# They used to be two workflows on the same `push: main` trigger, which meant they
+# ran in PARALLEL and the deploy had no idea the gate existed. A commit could fail
+# Pint, PHPUnit, ESLint, tsc, Prettier and Vitest and still be serving traffic on
+# staging minutes later — the build only runs `vite build`, which does not care
+# whether the tests passed. That is not a gate, it is a decoration.
+#
+# Now: backend + frontend must BOTH be green before the image is built, and the
+# image must exist before the server is touched. Nothing reaches staging that the
+# checks rejected, and the run graph shows exactly why a deploy did or did not
+# happen.
 
 on:
   pull_request:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs — they are pure cost. But NEVER cancel a run on main:
+  # that run can be inside `artisan migrate --force` on the staging box, and killing
+  # the SSH session mid-migration is how you get a half-applied schema. On main, runs
+  # queue instead (see the deploy job's own concurrency group).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -118,3 +139,138 @@ jobs:
       # in a French dead zone (SCREENS S11). It gets a real test runner.
       - name: Vitest
         run: npm run test:js
+
+  build-and-push:
+    name: Build image
+    runs-on: ubuntu-latest
+
+    # THE GATE. Both checks, green, or no image is built and nothing below runs.
+    needs: [backend, frontend]
+
+    # Never on a pull request: PRs get the gate, not the server.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push (SHA + latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deployment/docker/Dockerfile
+          build-args: |
+            APP_ENV=production
+            GH_PACKAGES_TOKEN=${{ secrets.GH_PACKAGES_TOKEN }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    # One deploy at a time, and NOT cancellable: this job runs migrations on the
+    # staging box over SSH. A cancelled `migrate --force` is a half-applied schema
+    # nobody asked for. Overlapping pushes queue behind each other instead.
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Keep the server's compose file in lockstep with the repo (secrets stay in
+      # the server-only .env.docker, which this never touches).
+      - name: Sync compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: deployment/staging/docker-compose.yml
+          target: /srv/staging/apps/travel-companion/
+          strip_components: 2
+
+      - name: Deploy on server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,SHA
+          script: |
+            set -euo pipefail
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            cd /srv/staging/apps/travel-companion
+
+            # Pin the exact image this commit built (SHA-pinned deploy → real rollbacks).
+            echo "IMAGE_TAG=${SHA}" > .env
+
+            # Retry pull: on the very first deploy the postgres-image workflow may
+            # still be pushing travel-postgres:pg18 in parallel.
+            for i in 1 2 3 4 5; do
+              if docker compose pull; then break; fi
+              echo "pull failed (attempt $i), retrying in 20s..."; sleep 20
+            done
+
+            # Postgres first, and healthy, before anything talks to it.
+            docker compose up -d postgres
+
+            # ---------------------------------------------------------------
+            # Migrate BEFORE the new app starts — not after.
+            #
+            # Horizon autostarts inside the app container (supervisord). If we
+            # `up -d` first and migrate second, then for the whole window between
+            # container start and migration completing there are workers running
+            # NEW code against an OLD schema. A job touching a new column fails
+            # into failed_jobs, and nothing surfaces it — the deploy reports
+            # success while generations quietly die.
+            #
+            # A one-off container runs the new image's migrations without
+            # disturbing the currently-serving app.
+            # ---------------------------------------------------------------
+            docker compose run --rm --no-deps app php artisan migrate --force
+
+            # Now swap. Recreating the app container restarts Horizon with the
+            # new code — long-running workers never pick up a new binding or job
+            # class on their own, so a worker that is not restarted is a worker
+            # running last week's code.
+            docker compose up -d
+
+            # Belt and braces: if compose decided the app container did not need
+            # recreating (identical tag on a re-run), tell Horizon to cycle its
+            # workers anyway. Graceful — supervisord's stopsignal=QUIT lets
+            # in-flight jobs finish.
+            docker compose exec -T app php artisan horizon:terminate || true
+
+            # A queue that fails silently is the whole problem we are fixing, so
+            # say so out loud. Not fatal: a pre-existing failure should not block
+            # a deploy that might be the fix for it.
+            FAILED=$(docker compose exec -T app php artisan queue:failed --json 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ')
+            if [ "${FAILED:-0}" -gt 0 ]; then
+              echo "::warning::${FAILED} job(s) in failed_jobs on staging — inspect with 'artisan queue:failed'"
+            fi
+
+            docker image prune -f
