@@ -9,7 +9,7 @@ export { NavMenu } from './nav-menu';
 export { OpportunityCard, type OpportunityCardProps } from './opportunity-card';
 export { PlaceSearch, type PlaceSuggestion } from './place-search';
 export { ProgressSegments } from './progress-segments';
-export { VisitPromptCard } from './visit-prompt-card';
 export { SectionLabel } from './section-label';
 export { TabBar, type TabItem } from './tab-bar';
+export { VisitPromptCard } from './visit-prompt-card';
 export { WhyYou } from './why-you';

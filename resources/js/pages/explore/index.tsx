@@ -146,8 +146,8 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                             {destinationLabel !== null ? (
                                 <>
                                     <p className="text-body-card text-body">
-                                        Heading to <span className="text-ink font-semibold">{destinationLabel}</span>. I'll look for things on
-                                        the way.
+                                        Heading to <span className="text-ink font-semibold">{destinationLabel}</span>. I'll look for things on the
+                                        way.
                                     </p>
                                     <QuietAction onClick={clearDestination}>Not heading anywhere</QuietAction>
                                 </>
