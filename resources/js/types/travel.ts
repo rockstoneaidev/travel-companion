@@ -77,8 +77,23 @@ export interface SessionOpportunity {
         starts_at: string | null;
         ends_at: string | null;
     };
+    /** The GO NOW slot — the server's call, at most one per feed (SCREENS S1). */
+    urgent: boolean;
     expires_at: string;
     recommendation_id: string | null;
     walk_minutes: number | null;
     place: Place;
+}
+
+/**
+ * A pending "Were you there?" question (SCREENS S4).
+ * Mirrors app/Http/Resources/Api/V1/VisitPromptResource.php.
+ *
+ * The server has already applied the time half of the rule; the client applies
+ * the proximity half, which is why the place's coordinates travel with it.
+ */
+export interface VisitPrompt {
+    recommendation_id: string;
+    place_name: string;
+    location: { lat: number; lng: number };
 }

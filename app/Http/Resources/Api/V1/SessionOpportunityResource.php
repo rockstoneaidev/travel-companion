@@ -31,6 +31,9 @@ final class SessionOpportunityResource extends JsonResource
                 'starts_at' => $this->windowStartsAt?->toIso8601String(),
                 'ends_at' => $this->windowEndsAt?->toIso8601String(),
             ],
+            // The GO NOW slot is the server's call, not the client's: at most one
+            // per feed, already promoted to the top (SCREENS S1).
+            'urgent' => $this->urgent,
             'expires_at' => $this->expiresAt->toIso8601String(),
             'recommendation_id' => $this->recommendationId,
             'walk_minutes' => $this->walkMinutes,

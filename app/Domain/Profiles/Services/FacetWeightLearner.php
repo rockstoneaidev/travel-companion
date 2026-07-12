@@ -32,6 +32,14 @@ final class FacetWeightLearner
     /** @param list<string> $facets the place's facets */
     public function apply(UserTasteProfile $profile, FeedbackEvent $event, array $facets): UserTasteProfile
     {
+        // Some events are recorded but teach nothing — "Didn't go" is the one
+        // that matters (SCREENS S4). It must not move a weight, and it must not
+        // count toward n_eff either: it is not evidence about this user's taste,
+        // so it may not warm them out of cold start (SCORING §6).
+        if (! $event->teachesTaste()) {
+            return $profile;
+        }
+
         $rule = self::LEARNING[$event->value];
 
         $weights = $profile->facet_weights;

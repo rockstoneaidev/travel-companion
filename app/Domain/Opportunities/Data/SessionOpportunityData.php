@@ -33,5 +33,26 @@ final readonly class SessionOpportunityData
         public CarbonImmutable $expiresAt,
         public ?string $recommendationId = null,   // E7: the trace row feedback posts against
         public ?float $walkMinutes = null,         // Stage-A final approach (reachability trace)
+        public bool $urgent = false,               // the GO NOW slot — at most one per feed (SCREENS S1)
     ) {}
+
+    /** The one item that wins the GO NOW slot (Opportunities\Services\UrgentSlot). */
+    public function asUrgent(): self
+    {
+        return new self(
+            id: $this->id,
+            kind: $this->kind,
+            status: $this->status,
+            title: $this->title,
+            summary: $this->summary,
+            place: $this->place,
+            distanceMeters: $this->distanceMeters,
+            windowStartsAt: $this->windowStartsAt,
+            windowEndsAt: $this->windowEndsAt,
+            expiresAt: $this->expiresAt,
+            recommendationId: $this->recommendationId,
+            walkMinutes: $this->walkMinutes,
+            urgent: true,
+        );
+    }
 }

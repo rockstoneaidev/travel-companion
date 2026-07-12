@@ -50,4 +50,20 @@ return [
         'max_reach_meters' => 120_000,
     ],
 
+    'feed' => [
+        // An opportunity wins the GO NOW slot only if its window closes within
+        // this horizon (SCREENS S1). Wider, and "go now" stops meaning now.
+        'urgent_horizon_minutes' => 120,
+    ],
+
+    /*
+    | "Were you there?" (SCREENS S4) — the single most valuable tap in the
+    | learning loop. Asked only after a "Take me", once enough time has passed
+    | that the answer is meaningful, and only near the place. §18.5 tunables.
+    */
+    'visit_prompt' => [
+        'min_minutes_since_take_me' => 20,
+        'within_meters' => 150,
+    ],
+
 ];

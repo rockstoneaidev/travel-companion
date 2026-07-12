@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Opportunities\Queries\ListOpportunitiesForSession;
+use App\Domain\Recommendations\Queries\PendingVisitPrompts;
 use App\Domain\Trips\Actions\StartExploreSession;
 use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Enums\TravelMode;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ExploreSessions\StoreExploreSessionRequest;
 use App\Http\Resources\Api\V1\ExploreSessionResource;
 use App\Http\Resources\Api\V1\SessionOpportunityResource;
+use App\Http\Resources\Api\V1\VisitPromptResource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,13 +52,21 @@ final class ExploreSessionController extends Controller
         return to_route('explore.show', $session);
     }
 
-    public function show(ExploreSession $exploreSession, ListOpportunitiesForSession $listOpportunities): Response
-    {
+    public function show(
+        ExploreSession $exploreSession,
+        ListOpportunitiesForSession $listOpportunities,
+        PendingVisitPrompts $pendingVisitPrompts,
+    ): Response {
         $opportunities = $listOpportunities(ExploreSessionData::fromModel($exploreSession));
 
         return Inertia::render('explore/show', [
             'session' => new ExploreSessionResource($exploreSession->load('trip')),
             'opportunities' => SessionOpportunityResource::collection($opportunities),
+            // "Were you there?" — the time half of the rule is settled here; the
+            // client applies the proximity half (SCREENS S4).
+            'visitPrompts' => VisitPromptResource::collection(
+                $pendingVisitPrompts->forUser((int) $exploreSession->user_id),
+            ),
         ]);
     }
 }

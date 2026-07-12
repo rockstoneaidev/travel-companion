@@ -1,8 +1,8 @@
-import { AppHeader, ChoicePill, EditorialLede, PrimaryPill } from '@/components/app';
+import { AppHeader, ChoicePill, EditorialLede, PlaceSearch, PrimaryPill, QuietAction, type PlaceSuggestion } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { type TravelMode } from '@/types/enums';
 import { Head, useForm } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 /**
  * S2 — session start (SCREENS.md): one screen, no wizard. Geolocation is
@@ -23,13 +23,6 @@ interface ExploreIndexProps {
     travelModeOptions: TravelModeOption[];
 }
 
-interface PlaceSuggestion {
-    id: string;
-    name: string;
-    location: { lat: number; lng: number };
-    type: string;
-}
-
 const TIME_CHIPS = [
     { label: '45 min', minutes: 45 },
     { label: '2 h', minutes: 120 },
@@ -39,12 +32,17 @@ const TIME_CHIPS = [
 
 type LocationState = 'idle' | 'locating' | 'located' | 'manual';
 
+type Point = { lat: number; lng: number };
+
 export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
     const [state, setState] = useState<LocationState>('idle');
     const [originLabel, setOriginLabel] = useState<string | null>(null);
+    const [destinationLabel, setDestinationLabel] = useState<string | null>(null);
+    const [headingSomewhere, setHeadingSomewhere] = useState(false);
 
     const { data, setData, post, processing } = useForm({
-        origin: null as { lat: number; lng: number } | null,
+        origin: null as Point | null,
+        destination_point: null as Point | null,
         time_budget_minutes: 180,
         travel_mode: 'walk' as TravelMode,
     });
@@ -70,9 +68,15 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
         );
     };
 
-    const choosePlace = (place: PlaceSuggestion) => {
-        setData('origin', place.location);
-        setOriginLabel(place.name);
+    const chooseDestination = (place: PlaceSuggestion) => {
+        setData('destination_point', place.location);
+        setDestinationLabel(place.name);
+    };
+
+    const clearDestination = () => {
+        setData('destination_point', null);
+        setDestinationLabel(null);
+        setHeadingSomewhere(false);
     };
 
     return (
@@ -121,13 +125,52 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                             state={state}
                             originLabel={originLabel}
                             onUseMyLocation={useMyLocation}
-                            onChoosePlace={choosePlace}
+                            onChoosePlace={(place) => {
+                                setData('origin', place.location);
+                                setOriginLabel(place.name);
+                            }}
                             onStartOver={() => {
                                 setData('origin', null);
                                 setOriginLabel(null);
                                 setState('manual');
                             }}
                         />
+
+                        {/*
+                         * Optional destination (SCREENS S2). Collapsed by default —
+                         * most sessions are a wander, not a commute. When set, the
+                         * session becomes a "route" context and route_fit enters
+                         * the composite (SCORING §6).
+                         */}
+                        <div className="space-y-2">
+                            {destinationLabel !== null ? (
+                                <>
+                                    <p className="text-body-card text-body">
+                                        Heading to <span className="text-ink font-semibold">{destinationLabel}</span>. I'll look for things on
+                                        the way.
+                                    </p>
+                                    <QuietAction onClick={clearDestination}>Not heading anywhere</QuietAction>
+                                </>
+                            ) : headingSomewhere ? (
+                                <>
+                                    <p className="text-body-card text-body">Where are you headed?</p>
+                                    <PlaceSearch
+                                        onChoose={chooseDestination}
+                                        placeholder="Search for where you're going"
+                                        label="Search for your destination"
+                                    />
+                                    <QuietAction onClick={() => setHeadingSomewhere(false)}>Never mind</QuietAction>
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setHeadingSomewhere(true)}
+                                    className="text-ink text-xs font-semibold underline underline-offset-[3px]"
+                                >
+                                    Heading somewhere?
+                                </button>
+                            )}
+                        </div>
 
                         <div className="space-y-4">
                             <PrimaryPill type="submit" disabled={processing || data.origin === null}>
@@ -168,7 +211,7 @@ function OriginField({ state, originLabel, onUseMyLocation, onChoosePlace, onSta
         return (
             <div className="space-y-3">
                 <p className="text-body-card text-body">Tell me where you're starting from and I'll take it from there.</p>
-                <PlaceSearch onChoose={onChoosePlace} />
+                <PlaceSearch onChoose={onChoosePlace} label="Search for your starting point" />
                 {/* One quiet affordance remains — no nagging (SCREENS S2). */}
                 <button type="button" onClick={onUseMyLocation} className="text-ink text-xs font-semibold underline underline-offset-[3px]">
                     Use my location
@@ -187,84 +230,6 @@ function OriginField({ state, originLabel, onUseMyLocation, onChoosePlace, onSta
             >
                 {state === 'locating' ? 'Finding you…' : 'Use my location'}
             </button>
-        </div>
-    );
-}
-
-function PlaceSearch({ onChoose }: { onChoose: (place: PlaceSuggestion) => void }) {
-    const [term, setTerm] = useState('');
-    const [results, setResults] = useState<PlaceSuggestion[]>([]);
-    const [searching, setSearching] = useState(false);
-    const latest = useRef(0);
-
-    useEffect(() => {
-        const query = term.trim();
-
-        if (query.length < 2) {
-            setResults([]);
-
-            return;
-        }
-
-        // Debounced: a typeahead must not fire a query per keystroke.
-        const handle = window.setTimeout(async () => {
-            const ticket = ++latest.current;
-            setSearching(true);
-
-            try {
-                const response = await fetch(`/places/search?q=${encodeURIComponent(query)}`, {
-                    headers: { Accept: 'application/json' },
-                });
-                const body = await response.json();
-
-                // Ignore a slow response that a newer keystroke has superseded.
-                if (ticket === latest.current) {
-                    setResults(response.ok ? (body.data ?? []) : []);
-                }
-            } catch {
-                if (ticket === latest.current) {
-                    setResults([]);
-                }
-            } finally {
-                if (ticket === latest.current) {
-                    setSearching(false);
-                }
-            }
-        }, 250);
-
-        return () => window.clearTimeout(handle);
-    }, [term]);
-
-    return (
-        <div className="space-y-2">
-            <input
-                type="search"
-                value={term}
-                onChange={(event) => setTerm(event.target.value)}
-                placeholder="Search for a place nearby"
-                autoComplete="off"
-                aria-label="Search for your starting point"
-                className="border-rule text-ink placeholder:text-quiet focus-visible:border-ink w-full border-b bg-transparent py-2 text-base outline-none"
-            />
-
-            {searching && results.length === 0 && <p className="text-meta-row text-quiet">Looking…</p>}
-
-            {results.length > 0 && (
-                <ul className="divide-rule divide-y">
-                    {results.map((place) => (
-                        <li key={place.id}>
-                            <button
-                                type="button"
-                                onClick={() => onChoose(place)}
-                                className="flex w-full items-baseline justify-between gap-3 py-2 text-left"
-                            >
-                                <span className="text-body-card text-ink">{place.name}</span>
-                                <span className="text-meta-row text-quiet shrink-0">{place.type.replace(/_/g, ' ')}</span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
         </div>
     );
 }

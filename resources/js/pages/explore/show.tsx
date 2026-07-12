@@ -1,6 +1,6 @@
-import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, TabBar } from '@/components/app';
+import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, TabBar, VisitPromptCard } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
-import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
+import { type ExploreSession, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 interface ExploreShowProps {
     session: { data: ExploreSession };
     opportunities: { data: SessionOpportunity[] };
+    visitPrompts: { data: VisitPrompt[] };
 }
 
 const TABS = (sessionId: string, tripId: string) => [
@@ -20,13 +21,42 @@ const TABS = (sessionId: string, tripId: string) => [
     { label: 'Trip', href: `/trips/${tripId}` },
 ];
 
-export default function ExploreShow({ session, opportunities }: ExploreShowProps) {
+/** Metres between two points — enough precision for a 150 m proximity gate. */
+function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+    const R = 6_371_000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const h =
+        Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+const VISIT_PROMPT_RADIUS_M = 150;
+
+export default function ExploreShow({ session, opportunities, visitPrompts }: ExploreShowProps) {
     const exploreSession = session.data;
     const [dismissing, setDismissing] = useState<string | null>(null);
     const [hidden, setHidden] = useState<string[]>([]);
+    const [answered, setAnswered] = useState<string[]>([]);
+    const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
     const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => () => clearTimeout(undoTimer.current ?? undefined), []);
+
+    // The proximity half of the "Were you there?" rule (SCREENS S4). Only asked
+    // for if there is something to ask about, and never a permission prompt of
+    // its own — if we cannot place the user, we simply do not ask.
+    useEffect(() => {
+        if (visitPrompts.data.length === 0 || !navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => setHere({ lat: position.coords.latitude, lng: position.coords.longitude }),
+            () => setHere(null),
+            { timeout: 10_000, maximumAge: 300_000 },
+        );
+    }, [visitPrompts.data.length]);
 
     const feedback = (recommendationId: string | null, event: string, metadata: Record<string, string | number | boolean> = {}) => {
         if (recommendationId === null) return;
@@ -58,7 +88,22 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
         setHidden((h) => h.filter((id) => id !== item.id));
     };
 
+    const answerVisitPrompt = (prompt: VisitPrompt, wasThere: boolean) => {
+        setAnswered((a) => [...a, prompt.recommendation_id]);
+        // "Didn't go" is recorded but teaches nothing — the user accepted this
+        // item, so it must never be wired to `dismissed` (SCREENS S4).
+        feedback(prompt.recommendation_id, wasThere ? 'visited' : 'visit_prompt_declined');
+    };
+
     const items = opportunities.data.filter((item) => !hidden.includes(item.id));
+
+    const prompts = visitPrompts.data.filter((prompt) => {
+        if (answered.includes(prompt.recommendation_id)) return false;
+        if (here === null) return false; // cannot confirm they are near it — don't ask
+
+        return metresBetween(here, prompt.location) <= VISIT_PROMPT_RADIUS_M;
+    });
+
     const budget =
         exploreSession.time_budget_minutes >= 60
             ? `${Math.round(exploreSession.time_budget_minutes / 60)} h`
@@ -72,6 +117,16 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
 
                 <div className="mx-auto max-w-md space-y-6 px-5 py-8">
                     <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
+
+                    {/* Top of NOW, above the feed — quiet, dismissible, never a modal. */}
+                    {prompts.map((prompt) => (
+                        <VisitPromptCard
+                            key={prompt.recommendation_id}
+                            placeName={prompt.place_name}
+                            onWasThere={() => answerVisitPrompt(prompt, true)}
+                            onDidntGo={() => answerVisitPrompt(prompt, false)}
+                        />
+                    ))}
 
                     {items.length === 0 ? (
                         <EmptyFeed
@@ -98,6 +153,7 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
                                                 }
                                                 facets={item.place.facets}
                                                 meta={`${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} min walk`}
+                                                urgency={urgencyFor(item)}
                                                 onTakeMe={() => takeMe(item)}
                                                 onKeep={() => feedback(item.recommendation_id, 'saved')}
                                             />
@@ -136,4 +192,27 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
             </div>
         </ProductLayout>
     );
+}
+
+/**
+ * The GO NOW ring (SCREENS S1). `urgent` is the server's decision — at most one
+ * per feed, already first in the list — so we only render what it tells us.
+ * Ring fraction = remaining / total window.
+ */
+function urgencyFor(item: SessionOpportunity): { remaining: number; note: string } | undefined {
+    if (!item.urgent || item.time_window.ends_at === null) return undefined;
+
+    const now = Date.now();
+    const endsAt = new Date(item.time_window.ends_at).getTime();
+    const startsAt = item.time_window.starts_at !== null ? new Date(item.time_window.starts_at).getTime() : null;
+
+    const remainingMs = Math.max(0, endsAt - now);
+    const totalMs = startsAt !== null ? Math.max(1, endsAt - startsAt) : remainingMs;
+
+    const minutesLeft = Math.round(remainingMs / 60_000);
+
+    return {
+        remaining: Math.min(1, remainingMs / totalMs),
+        note: minutesLeft >= 60 ? `${Math.round(minutesLeft / 60)} h left` : `${minutesLeft} min left`,
+    };
 }

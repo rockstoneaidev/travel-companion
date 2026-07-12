@@ -129,7 +129,7 @@ export type OpportunityKind = (typeof OPPORTUNITY_KINDS)[number];
 export const TRAVEL_MODES = ['walk', 'bike', 'drive'] as const;
 export type TravelMode = (typeof TRAVEL_MODES)[number];
 
-export const FEEDBACK_EVENTS = ['accepted', 'saved', 'dismissed', 'visited', 'ignored'] as const;
+export const FEEDBACK_EVENTS = ['accepted', 'saved', 'dismissed', 'visited', 'ignored', 'visit_prompt_declined'] as const;
 export type FeedbackEvent = (typeof FEEDBACK_EVENTS)[number];
 
 // --- Trips & explore sessions (E4) ---

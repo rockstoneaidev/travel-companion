@@ -146,6 +146,26 @@ it('refuses to start a session without an origin, rather than guessing one', fun
     expect(ExploreSession::query()->count())->toBe(0);
 });
 
+it('carries an optional destination through to the session, making it a route', function () {
+    $user = User::factory()->create();
+
+    // "Heading somewhere?" on S2 — the session becomes a route context, and
+    // route_fit enters the composite (SCORING §6).
+    $this->actingAs($user)->post('/explore', [
+        'origin' => ['lat' => LILJEHOLMEN_LAT, 'lng' => LILJEHOLMEN_LNG],
+        'destination_point' => ['lat' => 59.3251, 'lng' => 18.0705],   // Gamla stan
+        'travel_mode' => 'walk',
+        'time_budget_minutes' => 180,
+    ])->assertRedirect();
+
+    $session = ExploreSession::query()->where('user_id', $user->id)->sole();
+
+    expect($session->destination_point)->not->toBeNull();
+
+    $props = $this->actingAs($user)->get("/explore/{$session->id}")->viewData('page')['props'];
+    expect($props['session']['data']['destination_point'])->not->toBeNull();
+});
+
 it('sends you back to your open session instead of a second start form', function () {
     $user = User::factory()->create();
 

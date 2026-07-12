@@ -6,6 +6,7 @@ namespace App\Domain\Opportunities\Queries;
 
 use App\Domain\Opportunities\Data\SessionOpportunityData;
 use App\Domain\Opportunities\Models\Opportunity;
+use App\Domain\Opportunities\Services\UrgentSlot;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Places\Data\PlaceData;
 use App\Domain\Places\Enums\PlaceType;
@@ -109,6 +110,8 @@ final class ListOpportunitiesForSession
             );
         }
 
-        return $out;
+        // Server order is the order — except for the one exception the spec
+        // allows: the GO NOW slot is promoted to the top (SCREENS S1).
+        return UrgentSlot::fromConfig()->apply($out);
     }
 }
