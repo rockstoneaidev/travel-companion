@@ -122,6 +122,38 @@ the problem being fixed here.
 The dedicated Postgres image (`ghcr.io/rockstoneaidev/travel-postgres:pg18`) is built and pushed
 by a separate, rarely-run workflow (`.github/workflows/postgres-image.yml`), not on every deploy.
 
+### Changing a secret or a config value on staging
+
+**Edit `.env.docker`, then `docker compose up -d`.** Not `restart`. Not `config:clear`.
+
+```bash
+cd /srv/staging/apps/travel-companion
+vi .env.docker
+docker compose up -d          # RECREATES the containers, re-reading env_file
+```
+
+Config has exactly **one** source on staging: `env_file: .env.docker`, injected as real process
+environment variables when a container is **created** and frozen for its lifetime. There is no
+bind-mounted `.env` — deliberately (see the note at the top of
+`deployment/staging/docker-compose.yml`).
+
+**Why this rule exists (2026-07-14).** The compose file used to wire `.env.docker` *both* ways —
+`env_file:` *and* a bind-mount to `/var/www/app/.env`. Laravel's Dotenv will not override a process
+variable that already exists, so the **frozen env silently won**: editing `.env.docker` appeared to
+do nothing, and `config:clear` did not help either, because config reads `env()` and `env()` was
+returning the stale process variable.
+
+It surfaced as a bug that looked nothing like a config problem: **Google sign-in bounced every user
+back to the login screen, with nothing in the log.** The container was still running an old
+`ALLOWED_REGISTRATION_EMAILS`, so the app was politely *refusing* addresses that were on the list in
+the file — a refusal, not an error, which is why it logged nothing.
+
+The tempting inverse fix (drop `env_file:`, keep the bind-mount) is **much worse**: `APP_KEY` would
+stop being a process variable, the entrypoint's `if [ -z "$APP_KEY" ]` branch would fire, and the key
+would be regenerated on **every boot** — logging everyone out and making every encrypted value
+unreadable, while the container looked perfectly healthy. `start-container` now refuses to boot in
+production rather than generate a key, so that trap cannot be re-entered silently.
+
 ### GitHub repository secrets (set on `rockstoneaidev/travel-companion`)
 
 | Secret | Value |

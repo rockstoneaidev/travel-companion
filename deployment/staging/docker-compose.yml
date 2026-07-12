@@ -2,6 +2,36 @@
 # Hetzner box. Joins the shared Traefik (`web`) and data (`internal`) networks. Reuses
 # the shared `staging-redis`; runs its OWN Postgres because the shared one lacks PostGIS.
 # IMAGE_TAG is written by CI (commit SHA) into the sibling .env file.
+#
+# -----------------------------------------------------------------------------
+# CONFIG HAS ONE SOURCE: env_file. Do not also bind-mount .env.docker into the
+# container. (Fixed 2026-07-14.)
+#
+# It used to be wired BOTH ways, and the two do not behave the same:
+#
+#   env_file:  injected as real process environment variables when the container
+#              is CREATED, and then frozen for its lifetime.
+#   bind-mount live — edit the file and the container sees it immediately.
+#
+# Laravel's Dotenv will not override a process variable that already exists. So
+# the frozen env silently won, and editing .env.docker appeared to do nothing:
+# `config:clear` did not help either, because config reads env(), and env() was
+# returning the stale process variable.
+#
+# That cost a real afternoon. Google sign-in bounced everyone back to the login
+# screen with nothing in the log, because the container was still running an old
+# ALLOWED_REGISTRATION_EMAILS and politely refusing addresses that WERE on the
+# list in the file.
+#
+# The tempting inverse fix — drop env_file, keep the bind-mount — is much worse:
+# APP_KEY would no longer be a process variable, so the entrypoint's
+# `if [ -z "$APP_KEY" ]` branch would fire and regenerate the key on EVERY boot,
+# invalidating every session and making every encrypted column unreadable.
+#
+# Consequence of the rule: **changing a secret requires recreating the container**
+# (`docker compose up -d`), not `restart` and not `config:clear`. The deploy
+# workflow already does exactly that.
+# -----------------------------------------------------------------------------
 services:
   app:
     image: ghcr.io/rockstoneaidev/travel-companion:${IMAGE_TAG:-latest}
@@ -9,8 +39,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env.docker
-    volumes:
-      - ./.env.docker:/var/www/app/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,10 +63,9 @@ services:
     image: ghcr.io/rockstoneaidev/travel-companion:${IMAGE_TAG:-latest}
     container_name: travel-companion-scheduler
     restart: unless-stopped
+    # env_file only — see the note at the top of this file.
     env_file:
       - .env.docker
-    volumes:
-      - ./.env.docker:/var/www/app/.env
     depends_on:
       postgres:
         condition: service_healthy

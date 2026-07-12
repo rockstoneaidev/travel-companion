@@ -33,8 +33,27 @@ find "$PROJECT_ROOT/storage" "$PROJECT_ROOT/bootstrap/cache" -type f -exec chmod
 # Idempotent storage symlink
 php artisan storage:link --force >&2 || echo "storage:link failed; continuing." >&2
 
-# Generate APP_KEY only if none was provided via env
+# APP_KEY.
+#
+# Generating one on the fly is fine in dev and catastrophic in production: the
+# key encrypts sessions and any encrypted column, so a container that quietly
+# mints a fresh one on every boot logs everybody out and makes existing
+# ciphertext unreadable — while looking perfectly healthy.
+#
+# So in production a missing key is a hard failure, not something to paper over.
+# It is also a load-bearing guard on the staging compose file: config comes from
+# `env_file:` there precisely so APP_KEY is a real process variable. If someone
+# rewires that to a bind-mounted .env, this refuses to boot instead of silently
+# rotating the key.
 if [ -z "${APP_KEY:-}" ]; then
+    if [ "$APP_ENVIRONMENT" = "production" ]; then
+        echo "FATAL: APP_KEY is not set. Refusing to boot rather than generate one:" >&2
+        echo "       a new key would invalidate every session and every encrypted value." >&2
+        echo "       Set APP_KEY in .env.docker and recreate the container." >&2
+        exit 1
+    fi
+
+    echo "APP_KEY missing (non-production) — generating one." >&2
     php artisan key:generate --force >&2 || echo "key:generate failed; continuing." >&2
 fi
 
