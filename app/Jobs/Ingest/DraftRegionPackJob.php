@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs\Ingest;
 
 use App\Domain\Curation\Actions\DraftPackFromWorldModel;
+use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -49,13 +50,28 @@ final class DraftRegionPackJob implements ShouldBeUnique, ShouldQueue
         return "draft-pack:{$this->regionKey}";
     }
 
-    public function handle(DraftPackFromWorldModel $draft): void
+    public function handle(DraftPackFromWorldModel $draft, RegionBuildStatus $status): void
     {
-        $result = $draft($this->regionKey, $this->target);
+        try {
+            $result = $draft($this->regionKey, $this->target);
 
-        Log::info("curation draft-pack {$this->regionKey}", [
-            ...$result,
-            'target' => $this->target,
-        ]);
+            Log::info("curation draft-pack {$this->regionKey}", [
+                ...$result,
+                'target' => $this->target,
+            ]);
+        } finally {
+            // Release the claim whatever happened. A draft that died must not leave the
+            // button disabled forever — the cache TTL would eventually free it, but
+            // "eventually" is not a user experience.
+            $status->finishDraft($this->regionKey);
+        }
+    }
+
+    /** Same reason as above: a dead job must not wedge the button. */
+    public function failed(\Throwable $e): void
+    {
+        app(RegionBuildStatus::class)->finishDraft($this->regionKey);
+
+        Log::warning("curation draft-pack {$this->regionKey} failed", ['error' => $e->getMessage()]);
     }
 }

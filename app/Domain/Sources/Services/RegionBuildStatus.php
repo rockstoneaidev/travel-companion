@@ -91,8 +91,59 @@ final class RegionBuildStatus
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Drafting — the same problem, and it deserved the same answer
+    |--------------------------------------------------------------------------
+    |
+    | The build button got progress and the draft button did not, so pressing it
+    | looked exactly like pressing nothing. A button that gives no feedback is a
+    | button people press again — that is the entire lesson of the build button, and
+    | I shipped the draft button without applying it.
+    |
+    | Drafting is worse to double-fire than building, too: each press is N calls to a
+    | paid LLM.
+    */
+
+    /** @return array{target: int, started_at: string}|null */
+    public function currentDraft(string $regionKey): ?array
+    {
+        return Cache::get($this->draftKey($regionKey));
+    }
+
+    public function isDrafting(string $regionKey): bool
+    {
+        return $this->currentDraft($regionKey) !== null;
+    }
+
+    /** Claim the region for drafting. False if a draft is already running. */
+    public function startDraft(string $regionKey, int $target): bool
+    {
+        if ($this->isDrafting($regionKey)) {
+            return false;
+        }
+
+        Cache::put(
+            $this->draftKey($regionKey),
+            ['target' => $target, 'started_at' => now()->toIso8601String()],
+            now()->addHours(self::TTL_HOURS),
+        );
+
+        return true;
+    }
+
+    public function finishDraft(string $regionKey): void
+    {
+        Cache::forget($this->draftKey($regionKey));
+    }
+
     private function key(string $regionKey): string
     {
         return "world-model:build:{$regionKey}";
+    }
+
+    private function draftKey(string $regionKey): string
+    {
+        return "world-model:draft:{$regionKey}";
     }
 }

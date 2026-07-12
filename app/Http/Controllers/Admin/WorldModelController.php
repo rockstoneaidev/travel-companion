@@ -36,6 +36,10 @@ final class WorldModelController extends Controller
                 // people press again — which is exactly what happened.
                 'build' => $builds->current($region->key),
                 'boxes' => $builds->boxes($region->key),
+
+                // Drafting has to show progress too — a button that looks like it did
+                // nothing is a button people press again, and each press costs money.
+                'draft' => $builds->currentDraft($region->key),
             ])
             ->values()
             ->all();
@@ -74,11 +78,17 @@ final class WorldModelController extends Controller
      * button. But it was also INVISIBLE — a command you had to know existed and run
      * over SSH — which is why the review queue sat empty for days looking broken.
      */
-    public function draft(string $region): RedirectResponse
+    public function draft(string $region, RegionBuildStatus $builds): RedirectResponse
     {
         abort_unless(array_key_exists($region, IngestRegion::all()), 404);
 
         $target = CurationDraftPackCommand::TARGETS[$region] ?? 20;
+
+        // Claim BEFORE dispatching. Double-firing a draft is worse than double-firing a
+        // build: each press is N calls to a paid LLM.
+        if (! $builds->startDraft($region, $target)) {
+            return back()->with('status', "A draft for {$region} is already running.");
+        }
 
         DraftRegionPackJob::dispatch($region, $target);
 

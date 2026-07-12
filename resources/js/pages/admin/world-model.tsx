@@ -21,6 +21,7 @@ interface RegionStatus {
     pack_candidates: number;
     build: { phase: string; started_at: string } | null;
     boxes: { done: number; total: number; failed: number } | null;
+    draft: { target: number; started_at: string } | null;
 }
 
 interface WorldModelProps {
@@ -31,18 +32,18 @@ interface WorldModelProps {
 export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
     const { flash } = usePage<{ flash?: { status?: string } }>().props;
 
-    const anyBuilding = regions.some((region) => region.build !== null);
+    const anyWorking = regions.some((region) => region.build !== null || region.draft !== null);
 
     // A build takes an hour. Poll while one is running, so the page can say what is
     // happening instead of nothing — which is what a person stares at right before
     // they press the button a second time.
     useEffect(() => {
-        if (!anyBuilding) return;
+        if (!anyWorking) return;
 
         const timer = setInterval(() => router.reload({ only: ['regions'] }), 5000);
 
         return () => clearInterval(timer);
-    }, [anyBuilding]);
+    }, [anyWorking]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -56,6 +57,7 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                             <span className="font-medium">{region.name}</span>
                             <Badge variant="outline">{region.key}</Badge>
                             {region.build !== null && <Badge>building · {region.build.phase}</Badge>}
+                            {region.draft !== null && <Badge>drafting</Badge>}
                             {region.unresolved_tiles > 0 && <Badge variant="secondary">{region.unresolved_tiles} tiles unresolved</Badge>}
                         </div>
 
@@ -87,6 +89,28 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                                 <p className="text-muted-foreground mt-1 text-xs">
                                     box {region.boxes.done} of {region.boxes.total}
                                     {region.boxes.failed > 0 && ` · ${region.boxes.failed} failed (the rest continue)`}
+                                </p>
+                            </div>
+                        )}
+
+                        {/*
+                         * Drafting progress, measured by the drafts actually appearing in
+                         * review — the LLM answers one candidate at a time, so the count
+                         * climbing IS the progress. A spinner would only prove the page is
+                         * animating.
+                         */}
+                        {region.draft !== null && (
+                            <div className="mt-3">
+                                <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                                    <div
+                                        className="bg-primary h-full transition-all"
+                                        style={{
+                                            width: `${Math.min(100, Math.round((region.curated_in_review / Math.max(1, region.draft.target)) * 100))}%`,
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                    drafted {region.curated_in_review} of ~{region.draft.target} · asking the LLM one place at a time
                                 </p>
                             </div>
                         )}

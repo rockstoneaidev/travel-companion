@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Places\Models\Place;
 use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\DraftRegionPackJob;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,4 +95,42 @@ it('shows what the build is doing, and frees the button when it is done', functi
     $status->finish('nice');
 
     expect($status->isBuilding('nice'))->toBeFalse();
+});
+
+it('will not fire a second draft while one is running — each press costs money', function () {
+    Queue::fake();
+    $this->actingAs(admin());
+
+    $this->post('/admin/world-model/nice/draft-pack')->assertRedirect();
+    $this->post('/admin/world-model/nice/draft-pack')->assertRedirect();
+    $this->post('/admin/world-model/nice/draft-pack')->assertRedirect();
+
+    /*
+     * The build button got progress and a guard; the draft button got neither, so
+     * pressing it looked exactly like pressing nothing — which is precisely the
+     * condition that makes people press again.
+     *
+     * And double-firing a draft is worse than double-firing a build: every press is
+     * N calls to a paid LLM, drafting the same places a second time.
+     */
+    Queue::assertPushed(DraftRegionPackJob::class, 1);
+
+    expect(app(RegionBuildStatus::class)->isDrafting('nice'))->toBeTrue();
+});
+
+it('shows drafting progress, and frees the button when the job is done', function () {
+    $this->actingAs(admin());
+
+    $status = app(RegionBuildStatus::class);
+    $status->startDraft('nice', 30);
+
+    $this->get('/admin/world-model')
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('regions.5.draft.target', 30));
+
+    // A dead draft must not wedge the button forever. The job releases the claim in a
+    // `finally`, and again in failed() — the cache TTL would free it eventually, but
+    // "eventually" is not a user experience.
+    $status->finishDraft('nice');
+
+    expect($status->isDrafting('nice'))->toBeFalse();
 });
