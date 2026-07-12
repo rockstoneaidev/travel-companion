@@ -1,10 +1,14 @@
 /**
- * Passo shell service worker (E8): cache-first for immutable build assets,
+ * App shell service worker (E8): cache-first for immutable build assets,
  * network-first for navigations with an honest cached fallback.
  * Offline *data* (last feed, KEPT, journal — SCREENS S11) arrives with E15;
  * this worker only makes the shell installable and resilient.
  */
-const SHELL_CACHE = 'passo-shell-v1';
+// Renamed from the dropped "passo" codename. The activate handler below deletes
+// every cache whose key is not this one, so the old passo-shell-v1 cache is
+// evicted on the next activation rather than orphaned. Bump the version suffix
+// whenever the shell's caching contract changes.
+const SHELL_CACHE = 'app-shell-v1';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
