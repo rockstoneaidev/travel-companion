@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
+import GoogleButton from '@/components/google-button';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,13 @@ export default function Register() {
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
                         Create account
                     </Button>
+
+                    <div className="relative text-center text-sm">
+                        <span className="bg-background text-muted-foreground relative z-10 px-2">or</span>
+                        <span className="border-border absolute inset-x-0 top-1/2 border-t" aria-hidden="true" />
+                    </div>
+
+                    <GoogleButton label="Sign up with Google" tabIndex={6} />
                 </div>
 
                 <div className="text-muted-foreground text-center text-sm">

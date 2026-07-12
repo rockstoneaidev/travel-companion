@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\Services\RegistrationAllowlist;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -30,17 +31,17 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, RegistrationAllowlist $allowlist): RedirectResponse
     {
-        $allowedEmails = config('auth.allowed_registration_emails');
-
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
                 'required', 'string', 'lowercase', 'email', 'max:255',
                 'unique:'.User::class,
-                // Empty allowlist => open registration; otherwise restrict.
-                ...(empty($allowedEmails) ? [] : [Rule::in($allowedEmails)]),
+                // Empty allowlist => open registration; otherwise restrict. The
+                // Google callback consults the same object (E22) — one rule, two
+                // registration paths.
+                ...($allowlist->isOpen() ? [] : [Rule::in($allowlist->emails())]),
             ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [

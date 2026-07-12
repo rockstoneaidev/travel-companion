@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Live — the work plan is on GitHub; this file is the map |
-| **Created** | 2026-07-12 · issue numbers match epic codes (E1 = #1 … E19 = #19) |
+| **Created** | 2026-07-12 · issue numbers match epic codes (E1 = #1 … E19 = #19; later epics continue the pattern, e.g. E22 = #22) |
 | **Milestones** | [M1 — Stockholm walking skeleton](https://github.com/rockstoneaidev/travel-companion/milestone/1) (due Jul 18) · [M2 — France-ready](https://github.com/rockstoneaidev/travel-companion/milestone/2) (freeze Jul 25; trip Jul 27–Aug 7) · [M3 — Phase 1 complete](https://github.com/rockstoneaidev/travel-companion/milestone/3) |
 
 Working agreement: pick up an epic by assigning yourself / commenting on the issue; reference
@@ -25,6 +25,7 @@ authoritative — epics carry scope, not design.
 | [#9](https://github.com/rockstoneaidev/travel-companion/issues/9) | Core screens: session start, feed, detail, empty | frontend | 4, 7, 8 |
 | [#10](https://github.com/rockstoneaidev/travel-companion/issues/10) | Replayer, decision traces & cost instrumentation | platform | 7 |
 | [#11](https://github.com/rockstoneaidev/travel-companion/issues/11) | Curation pipeline & the stockholm-test pack | content | 1, 3 |
+| [#22](https://github.com/rockstoneaidev/travel-companion/issues/22) | Sign in with Google (Socialite) + mail transport | platform | — |
 
 ## M2 — France-ready (in hand in Paris)
 
@@ -53,6 +54,7 @@ Frontend:       #8 → #9 → #15 (+#18)      (parallel from day 1; mock data un
 Content:        #11 → #14                  (founder review-hours — the scarcest resource;
                                             start harvesting week 1)
 France:         #13 → #14 · #16 · #17      (M2)
+Auth/mail:      #22                        (independent — no dependencies, nothing waits on it)
 ```
 
 The France-ready cut line (decided): NOW + session start + detail + KEPT + offline + calibration +

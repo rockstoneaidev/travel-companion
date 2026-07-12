@@ -12,7 +12,8 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
-        title: 'Password',
+        // Password *and* connected accounts — everything about how you get in.
+        title: 'Sign-in',
         url: '/settings/password',
         icon: null,
     },
