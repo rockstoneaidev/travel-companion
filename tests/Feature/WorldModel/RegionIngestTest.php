@@ -35,7 +35,7 @@ function fakeOverpass(): void
 it('ingests a region source into tiled, licensed source items', function () {
     fakeOverpass();
 
-    $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm-test'), 'osm');
+    $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm'), 'osm');
 
     expect($result['candidates'])->toBeGreaterThan(5)
         ->and($result['tiles'])->toBeGreaterThan(0);
@@ -60,7 +60,7 @@ it('re-running the same region refreshes rows instead of duplicating them', func
     fakeOverpass();
 
     $ingest = app(RegionIngest::class);
-    $region = IngestRegion::named('stockholm-test');
+    $region = IngestRegion::named('stockholm');
 
     $first = $ingest->ingest($region, 'osm');
     $countAfterFirst = SourceItem::query()->count();
@@ -74,7 +74,7 @@ it('re-running the same region refreshes rows instead of duplicating them', func
 it('reports overture as unsupported (degraded, not failed) when no extract exists', function () {
     Storage::fake('local'); // the real disk may hold a downloaded extract
 
-    $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm-test'), 'overture');
+    $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm'), 'overture');
 
     expect($result)->toBe(['fetched' => 0, 'candidates' => 0, 'tiles' => 0]);
 });

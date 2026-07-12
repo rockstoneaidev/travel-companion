@@ -24,7 +24,7 @@ uses(RefreshDatabase::class);
 |--------------------------------------------------------------------------
 |
 | Two bugs conspired to make curated content unreachable in a real feed, both
-| found only by driving the live pipeline after the stockholm-test pack was
+| found only by driving the live pipeline after the stockholm pack was
 | approved and published:
 |
 |   1. RankSession::dedupe() kept the FIRST scout's candidate and dropped every
@@ -52,7 +52,7 @@ function curatedPlace(string $name, float $lat, float $lng, string $type, string
 
     CuratedItem::query()->create([
         'place_id' => $place->id,
-        'region_slug' => 'stockholm-test',
+        'region_slug' => 'stockholm',
         'title' => $name,
         'claim' => $claim,
         'facets' => ['nature'],

@@ -61,7 +61,7 @@ function approveClaim(Place $place, string $claim): void
 {
     CuratedItem::query()->create([
         'place_id' => $place->id,
-        'region_slug' => 'stockholm-test',
+        'region_slug' => 'stockholm',
         'title' => $place->name,
         'claim' => $claim,
         'facets' => ['art'],

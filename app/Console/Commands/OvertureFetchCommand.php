@@ -21,7 +21,7 @@ use Symfony\Component\Process\Process;
  */
 final class OvertureFetchCommand extends Command
 {
-    protected $signature = 'ingest:overture-fetch {region : Region key, e.g. stockholm-test} {--force : Re-download even if the extract exists}';
+    protected $signature = 'ingest:overture-fetch {region : Region key, e.g. stockholm} {--force : Re-download even if the extract exists}';
 
     protected $description = 'Download the Overture places extract for a region (requires the `overturemaps` CLI)';
 
@@ -62,6 +62,17 @@ final class OvertureFetchCommand extends Command
 
             return self::FAILURE;
         }
+
+        // Record WHAT WAS FETCHED, so a later widening of the region is caught
+        // instead of silently under-covering it (see OvertureAdapter::search).
+        Storage::disk('local')->put($relative.'.state', json_encode([
+            'region' => $region->key,
+            'south' => $region->south,
+            'west' => $region->west,
+            'north' => $region->north,
+            'east' => $region->east,
+            'fetched_at' => now()->toIso8601String(),
+        ], JSON_PRETTY_PRINT));
 
         $features = count(json_decode(Storage::disk('local')->get($relative), true)['features'] ?? []);
         $this->components->info("Wrote {$features} features to storage/app/{$relative}");

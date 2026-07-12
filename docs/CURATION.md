@@ -73,7 +73,7 @@ Reality check: the trip starts ~2 weeks out. Curation effort is nights-weighted 
 
 | Pack | Nights | Target (approved items) | Priority notes |
 |---|---|---|---|
-| `stockholm-test` | (home) | 25–40 | **First — this week.** Liljeholmen base; test loops: Södermalm, Gamla stan, Djurgården, Vinterviken/Gröndal. Validates pipeline + app end-to-end |
+| `stockholm` | (home) | 25–40 | **Done** (31 approved, published v1). Renamed from `stockholm-test` and widened to the whole municipality, 2026-07-14 — see note below. |
 | `paris` | 3 total (1+2) | 40+ | Two stays (arrival + final); deepest pack |
 | `nice-riviera` | 2 | 30 | Includes walkable old town + coastal opportunities (tide/light moments) |
 | `nantes` | 2 | 30 | |
@@ -86,6 +86,17 @@ Per-city focus: items within walking range of the likely exploration zones (old 
 areas), weighted toward `offbeat`/`local_life`/`food_drink` — the facets Google Maps is worst at.
 The trip itself doubles as the **concierge test** (PRD §8.0): every "we found this ourselves and the
 app missed it" moment becomes a curated item + gold trace.
+
+**Stockholm is the home region, not a test region (2026-07-14).** It was originally `stockholm-test`,
+a 93 km² box around Liljeholmen/Södermalm/Gamla stan — right while it was a pipeline test, wrong now
+that it is where the app is actually used. A feed that goes quiet the moment you walk to Farsta or
+Kista has failed. It now covers **Stockholms kommun** (~584 km²: Skärholmen and Farsta in the south up
+to Kista and Akalla, Hässelby west to Djurgården east) and is keyed `stockholm`. The rename was a
+migration, not a re-do: `region_slug` is only a label — CuratedScout serves by `place_id` and tile —
+so the published pack and all 31 approved items carried over untouched.
+
+It stops at the municipal boundary on purpose. Solna, Sundbyberg, Lidingö and Nacka are their own
+municipalities: real places worth having, but as their own region rather than a quietly expanding box.
 
 Sweden note: Stockholm runs on the global open core (OSM is excellent in Sweden) + visitstockholm
 events + Riksantikvarieämbetet/K-samsök open heritage data — see DATA-SOURCES addendum.

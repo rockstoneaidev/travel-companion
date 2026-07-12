@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
  */
 final class ResolveRegionCommand extends Command
 {
-    protected $signature = 'resolve:region {region : Region key, e.g. stockholm-test}';
+    protected $signature = 'resolve:region {region : Region key, e.g. stockholm}';
 
     protected $description = 'Run entity resolution over all tiles of a region';
 

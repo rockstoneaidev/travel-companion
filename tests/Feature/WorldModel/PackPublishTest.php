@@ -21,11 +21,11 @@ uses(RefreshDatabase::class);
 |
 */
 
-function packWithApproved(int $approved, string $region = 'stockholm-test'): Pack
+function packWithApproved(int $approved, string $region = 'stockholm'): Pack
 {
     $pack = Pack::query()->create([
         'region_slug' => $region,
-        'name' => 'Stockholm Test',
+        'name' => 'Stockholm',
         'status' => 'draft',
         'pack_version' => 0,
         'h3_set' => [],
@@ -58,10 +58,10 @@ function packWithApproved(int $approved, string $region = 'stockholm-test'): Pac
 it('publishes a pack, bumping the version and mapping its tiles', function () {
     packWithApproved(25);
 
-    $this->artisan('curation:publish', ['region' => 'stockholm-test', '--effort' => 90])
+    $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 90])
         ->assertSuccessful();
 
-    $pack = Pack::query()->where('region_slug', 'stockholm-test')->sole();
+    $pack = Pack::query()->where('region_slug', 'stockholm')->sole();
 
     expect($pack->status)->toBe('published')
         ->and($pack->pack_version)->toBe(1)
@@ -70,10 +70,10 @@ it('publishes a pack, bumping the version and mapping its tiles', function () {
 });
 
 it('refuses to ship a pack with almost nothing approved in it', function () {
-    // The live stockholm-test pack is in exactly this state: 2 approved of 40.
+    // The live stockholm pack is in exactly this state: 2 approved of 40.
     packWithApproved(2);
 
-    $this->artisan('curation:publish', ['region' => 'stockholm-test'])
+    $this->artisan('curation:publish', ['region' => 'stockholm'])
         ->assertFailed();
 
     expect(Pack::query()->sole()->status)->toBe('draft');
@@ -82,7 +82,7 @@ it('refuses to ship a pack with almost nothing approved in it', function () {
 it('publishes an under-target pack when that is deliberate', function () {
     packWithApproved(2);
 
-    $this->artisan('curation:publish', ['region' => 'stockholm-test', '--force' => true])
+    $this->artisan('curation:publish', ['region' => 'stockholm', '--force' => true])
         ->assertSuccessful();
 
     expect(Pack::query()->sole()->status)->toBe('published');
@@ -91,8 +91,8 @@ it('publishes an under-target pack when that is deliberate', function () {
 it('accumulates review effort across versions', function () {
     packWithApproved(25);
 
-    $this->artisan('curation:publish', ['region' => 'stockholm-test', '--effort' => 90])->assertSuccessful();
-    $this->artisan('curation:publish', ['region' => 'stockholm-test', '--effort' => 30])->assertSuccessful();
+    $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 90])->assertSuccessful();
+    $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 30])->assertSuccessful();
 
     $pack = Pack::query()->sole();
 

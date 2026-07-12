@@ -17,7 +17,7 @@ use Throwable;
  */
 final class IngestRegionCommand extends Command
 {
-    protected $signature = 'ingest:region {region : Region key, e.g. stockholm-test} {--source=* : Limit to specific source keys}';
+    protected $signature = 'ingest:region {region : Region key, e.g. stockholm} {--source=* : Limit to specific source keys}';
 
     protected $description = 'Ingest open-core sources for a bounded region into source_items';
 

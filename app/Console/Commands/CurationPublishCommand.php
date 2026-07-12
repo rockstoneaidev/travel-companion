@@ -20,7 +20,7 @@ use Illuminate\Console\Command;
  */
 final class CurationPublishCommand extends Command
 {
-    protected $signature = 'curation:publish {region=stockholm-test} {--effort=0 : Review minutes spent on this version} {--force : Publish even if under the target item count}';
+    protected $signature = 'curation:publish {region=stockholm} {--effort=0 : Review minutes spent on this version} {--force : Publish even if under the target item count}';
 
     protected $description = 'Publish a regional knowledge pack — approved items become Tier-A evidence in the feed';
 

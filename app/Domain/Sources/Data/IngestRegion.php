@@ -40,15 +40,32 @@ final readonly class IngestRegion
     public static function all(): array
     {
         return [
-            // Central Stockholm covering the CURATION §4 test loops: Liljeholmen
-            // base, Södermalm, Gamla stan, Djurgården, Vinterviken/Gröndal.
-            'stockholm-test' => new self(
-                key: 'stockholm-test',
-                name: 'Stockholm test region',
-                south: 59.290,
-                west: 17.950,
-                north: 59.360,
-                east: 18.160,
+            /*
+            | Stockholm — the home region (renamed from `stockholm-test`, and
+            | widened from a 93 km² central slice to the whole municipality,
+            | 2026-07-14).
+            |
+            | The old box stopped at Liljeholmen/Södermalm/Gamla stan, which was
+            | right while it was a pipeline test. It is not right now: this is
+            | where the app is actually used, and a feed that goes quiet the
+            | moment you walk to Farsta or Kista is a feed that has failed.
+            |
+            | Bounds are Stockholms kommun: Skärholmen and Farsta in the south up
+            | to Kista and Akalla in the north, Hässelby in the west out to
+            | Djurgården in the east. ~584 km², six times the old region and three
+            | times Paris.
+            |
+            | It deliberately stops at the municipal boundary. Solna, Sundbyberg,
+            | Lidingö and Nacka are their own municipalities — real places worth
+            | having, but a separate region rather than a quietly expanding box.
+            */
+            'stockholm' => new self(
+                key: 'stockholm',
+                name: 'Stockholm',
+                south: 59.220,
+                west: 17.760,
+                north: 59.430,
+                east: 18.200,
                 locale: 'sv',
             ),
 

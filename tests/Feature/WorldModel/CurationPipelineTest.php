@@ -52,8 +52,8 @@ it('grounds drafts against canonical places and gates approval on grounding', fu
     $place = seedCuratedPlace();
     $reviewer = User::factory()->create();
 
-    [$matched] = app(DraftCuratedItems::class)('stockholm-test', [harvestRow('Skinnarviksberget')]);
-    [$unmatched] = app(DraftCuratedItems::class)('stockholm-test', [harvestRow('Nonexistent Grotto of Xyzzy')]);
+    [$matched] = app(DraftCuratedItems::class)('stockholm', [harvestRow('Skinnarviksberget')]);
+    [$unmatched] = app(DraftCuratedItems::class)('stockholm', [harvestRow('Nonexistent Grotto of Xyzzy')]);
 
     app(GroundCuratedItem::class)($matched);
     app(GroundCuratedItem::class)($unmatched);
@@ -71,7 +71,7 @@ it('serves ONLY approved items through the scout — the review gate is the moat
     $place = seedCuratedPlace();
     $reviewer = User::factory()->create();
 
-    [$item] = app(DraftCuratedItems::class)('stockholm-test', [harvestRow('Skinnarviksberget')]);
+    [$item] = app(DraftCuratedItems::class)('stockholm', [harvestRow('Skinnarviksberget')]);
     app(GroundCuratedItem::class)($item);
 
     // In review: invisible to the scout, whatever the cache thinks.
@@ -105,12 +105,12 @@ it('queues the world-model build from the admin console', function () {
     $admin->assignRole(Role::Superadmin->value);
 
     $this->actingAs($admin)
-        ->post('/admin/world-model/stockholm-test/build')
+        ->post('/admin/world-model/stockholm/build')
         ->assertRedirect();
 
-    Queue::assertPushed(BuildRegionWorldModelJob::class, fn ($job) => $job->regionKey === 'stockholm-test' && $job->phase === 'ingest');
+    Queue::assertPushed(BuildRegionWorldModelJob::class, fn ($job) => $job->regionKey === 'stockholm' && $job->phase === 'ingest');
 
     // Unknown regions 404 before anything queues; non-admins never reach it.
     $this->actingAs($admin)->post('/admin/world-model/atlantis/build')->assertNotFound();
-    $this->actingAs(User::factory()->create())->post('/admin/world-model/stockholm-test/build')->assertForbidden();
+    $this->actingAs(User::factory()->create())->post('/admin/world-model/stockholm/build')->assertForbidden();
 });

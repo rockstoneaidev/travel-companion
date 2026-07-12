@@ -20,7 +20,7 @@ use Illuminate\Console\Command;
  */
 final class ResolverGoldBuildCommand extends Command
 {
-    protected $signature = 'resolver:gold-build {region=stockholm-test} {--negatives=400} {--human=60}';
+    protected $signature = 'resolver:gold-build {region=stockholm} {--negatives=400} {--human=60}';
 
     protected $description = 'Sample and auto-label entity-resolution pairs; surface the ambiguous ones for review';
 

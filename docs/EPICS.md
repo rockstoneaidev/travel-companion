@@ -24,7 +24,7 @@ authoritative — epics carry scope, not design.
 | [#8](https://github.com/rockstoneaidev/travel-companion/issues/8) | UI foundation & PWA shell | frontend | — (parallel from day 1) |
 | [#9](https://github.com/rockstoneaidev/travel-companion/issues/9) | Core screens: session start, feed, detail, empty | frontend | 4, 7, 8 |
 | [#10](https://github.com/rockstoneaidev/travel-companion/issues/10) | Replayer, decision traces & cost instrumentation | platform | 7 |
-| [#11](https://github.com/rockstoneaidev/travel-companion/issues/11) | Curation pipeline & the stockholm-test pack | content | 1, 3 |
+| [#11](https://github.com/rockstoneaidev/travel-companion/issues/11) | Curation pipeline & the stockholm pack | content | 1, 3 |
 | [#22](https://github.com/rockstoneaidev/travel-companion/issues/22) | Sign in with Google (Socialite) + mail transport | platform | — |
 
 ## M2 — France-ready (in hand in Paris)

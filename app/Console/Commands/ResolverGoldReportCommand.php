@@ -22,7 +22,7 @@ use Illuminate\Console\Command;
  */
 final class ResolverGoldReportCommand extends Command
 {
-    protected $signature = 'resolver:gold-report {region=stockholm-test} {--rv= : Score against a specific resolver_version (default: active)}';
+    protected $signature = 'resolver:gold-report {region=stockholm} {--rv= : Score against a specific resolver_version (default: active)}';
 
     protected $description = 'Precision/recall of the resolver against the labeled gold set';
 

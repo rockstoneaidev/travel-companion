@@ -47,9 +47,56 @@ final class OvertureAdapter implements ScoutSource
             ));
         }
 
+        $this->assertExtractCoversRegion($request);
+
         $geojson = json_decode(Storage::disk('local')->get($path), true, flags: JSON_THROW_ON_ERROR);
 
         return $geojson['features'] ?? [];
+    }
+
+    /**
+     * An extract is a SNAPSHOT of a bbox, and a region's bbox can change.
+     *
+     * Stockholm's did: it was widened from a 93 km² central slice to the whole
+     * municipality (584 km²). The extract on disk still covered the old box — so
+     * Overture would have quietly returned data for the inner city and nothing at
+     * all for Farsta, Kista or Hässelby, and the region would have looked fully
+     * ingested. A source that silently covers a fraction of its region is worse
+     * than a source that is absent, because absence is visible.
+     *
+     * So a stale extract is a hard failure with an instruction, not a shrug.
+     * (`ingest:region` still treats a failed source as degraded — the region gets
+     * OSM and Wikidata and carries on. It just says so out loud.)
+     */
+    private function assertExtractCoversRegion(ScoutRequest $request): void
+    {
+        $statePath = $this->extractPath($request->regionKey).'.state';
+
+        if (! Storage::disk('local')->exists($statePath)) {
+            return;   // fetched before this guard existed; nothing to check against
+        }
+
+        $state = json_decode((string) Storage::disk('local')->get($statePath), true);
+
+        if (! isset($state['south'], $state['west'], $state['north'], $state['east'])) {
+            return;
+        }
+
+        $covers = $state['south'] <= $request->south
+            && $state['west'] <= $request->west
+            && $state['north'] >= $request->north
+            && $state['east'] >= $request->east;
+
+        if (! $covers) {
+            throw new RuntimeException(sprintf(
+                'Overture extract for "%s" covers %F,%F..%F,%F but the region is now %F,%F..%F,%F. '
+                .'Re-fetch it: php artisan ingest:overture-fetch %s --force',
+                $request->regionKey,
+                $state['south'], $state['west'], $state['north'], $state['east'],
+                $request->south, $request->west, $request->north, $request->east,
+                $request->regionKey,
+            ));
+        }
     }
 
     public function normalize(array $raw, string $locale): array

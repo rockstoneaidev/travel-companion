@@ -28,7 +28,7 @@ final class CurationDraftPackCommand extends Command
         'lyon' => 20,
         'bordeaux' => 20,
         'toulouse' => 20,
-        'stockholm-test' => 30,
+        'stockholm' => 30,
     ];
 
     public function handle(DraftPackFromWorldModel $draft): int

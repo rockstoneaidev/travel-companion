@@ -143,7 +143,7 @@ $versions = [
 | 0.70 earns precision 1.0 by construction, having never been shown a pair that
 | could plausibly false-merge.
 |
-| The pairs that could are the 60 sitting in stockholm-test.todo.json awaiting a
+| The pairs that could are the 60 sitting in stockholm.todo.json awaiting a
 | human, 14 of which already score above 0.82. Until those are labeled, this set
 | can prove the absence of false merges only among pairs incapable of producing
 | one. Threshold changes wait for that; a mechanism fix does not.

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\File;
  */
 final class CurationDraftCommand extends Command
 {
-    protected $signature = 'curation:draft {region : Region slug, e.g. stockholm-test} {file : Harvest JSON path}';
+    protected $signature = 'curation:draft {region : Region slug, e.g. stockholm} {file : Harvest JSON path}';
 
     protected $description = 'Draft curated items from a harvest file and ground them against the canonical places';
 
