@@ -24,10 +24,19 @@ interface CalibratePairProps {
     pair: { number: number; a: PairSide; b: PairSide };
     total: number;
     answered: number;
+    preload: string[];
 }
 
-export default function CalibratePair({ pair, total, answered }: CalibratePairProps) {
+export default function CalibratePair({ pair, total, answered, preload }: CalibratePairProps) {
     const [chosen, setChosen] = useState<'a' | 'b' | null>(null);
+
+    // Fetch the next pair's photographs while this one is being looked at. A person
+    // deciding between two pictures should never watch them arrive.
+    useEffect(() => {
+        preload.forEach((src) => {
+            new Image().src = src;
+        });
+    }, [preload]);
 
     // Inertia re-renders THIS SAME component with new props rather than remounting
     // it, so `chosen` survives the navigation to the next pair. Without this reset

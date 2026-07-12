@@ -112,6 +112,14 @@ final class CalibrationController extends Controller
             'pair' => $pair->toArray(),
             'total' => $content->count(),
             'answered' => $number - 1,
+
+            // Each pair is a fresh visit, so without this the next screen opens on two
+            // empty cards while its photographs load. Warmed from the server because the
+            // client has no business knowing how image paths are built.
+            'preload' => array_values(array_filter([
+                $content->pair($number + 1)?->aImage,
+                $content->pair($number + 1)?->bImage,
+            ])),
         ]);
     }
 
