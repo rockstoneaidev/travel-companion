@@ -52,13 +52,22 @@ it('never hard-codes the market-facing name into the bundle', function () {
     expect($sources)->not->toContain('Travel Companion');
 });
 
-it('keeps the service worker free of the dropped codename', function () {
-    $sw = (string) file_get_contents(public_path('sw.js'));
+it('keeps the service worker free of the dropped codename, and its cache tied to the build', function () {
+    // The TEMPLATE, not public/sw.js: the worker is generated at build time
+    // (scripts/build-sw.mjs) and public/sw.js therefore does not exist in a checkout
+    // that has not run `npm run build` — including CI's backend job.
+    $sw = (string) file_get_contents(base_path('resources/sw/sw.template.js'));
 
-    // The cache key is what actually matters: a stale key means a stale shell.
-    // Pinned to the NAME, not the version — bumping the version is the correct
-    // response to a change in the caching contract (S11 added Inertia fetches to
-    // it), and a test that forbids that is a test that punishes the right move.
-    expect($sw)->toMatch("/const SHELL_CACHE = 'app-shell-v\d+'/")
+    /*
+     * The cache key is what actually matters: a stale key means a stale shell. It used
+     * to be the constant 'app-shell-v2' and that is what wedged in-app navigation on
+     * staging — the activate handler only evicts caches that are NOT the current name,
+     * so a name that never changes evicts nothing, ever, and a worker from an old
+     * deploy served its own stale bodies forever.
+     *
+     * So the placeholder is the invariant now: the build stamps the manifest hash into
+     * it, and a hand-written constant here would silently bring the bug back.
+     */
+    expect($sw)->toContain("const SHELL_CACHE = 'app-shell-__BUILD_ID__'")
         ->and($sw)->not->toContain('passo');
 });

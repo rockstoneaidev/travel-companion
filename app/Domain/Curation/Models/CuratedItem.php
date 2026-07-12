@@ -22,6 +22,8 @@ final class CuratedItem extends Model
             'status' => CurationStatus::class,
             'facets' => 'array',
             'evidence' => 'array',
+            'verdict' => 'array',
+            'verified_at' => 'immutable_datetime',
         ];
     }
 

@@ -193,22 +193,56 @@ it('spreads a pack across the city, not down one street', function () {
     expect(count($candidates))->toBeLessThanOrEqual(3);   // PER_TILE_CAP
 });
 
-it('drafts into review, grounded, versioned — and never straight to a traveller', function () {
-    app()->instance(LlmClient::class, new FakeLlmClient('A bookbinder still working by hand.'));
+it('drafts grounded and versioned, and never reaches a traveller without a verdict', function () {
+    /*
+     * THE RULE CHANGED HERE, DELIBERATELY.
+     *
+     * This test used to assert that a draft lands in_review and waits for a human. That
+     * gate approved 149 items and rejected zero — which is not a gate, it is a queue,
+     * and the work it did (does the claim say only what the evidence says?) is
+     * entailment: mechanical, and done better by something that does not get tired at
+     * midnight.
+     *
+     * What has NOT changed is the thing the old rule was protecting: nothing reaches a
+     * traveller unchecked. The check is now the verifier, and its verdict is on the row.
+     * An approval with no verdict would be the actual regression, so that is what this
+     * pins.
+     */
+    app()->instance(LlmClient::class, new FakeLlmClient('A bookbinder still working by hand.', supported: true));
 
     $place = packPlace('Backstreet workshop', 'artisan_workshop', 'shops_craft', ['craft'], 'A bookbinder still working by hand.');
 
     $result = app(DraftPackFromWorldModel::class)('paris', 5);
 
-    expect($result['drafted'])->toBe(1);
+    expect($result['drafted'])->toBe(1)
+        ->and($result['auto_approved'])->toBe(1);
 
     $item = CuratedItem::query()->sole();
 
-    expect($item->status)->toBe(CurationStatus::InReview)   // NOT approved, NOT served
+    expect($item->status)->toBe(CurationStatus::Approved)
+        ->and($item->verdict['supported'])->toBeTrue()      // checked, not waved through
+        ->and($item->verifier_version)->toBe('claim_verification.v1')
+        ->and($item->reviewed_by)->toBeNull()               // a machine did this, and says so
         ->and($item->place_id)->toBe($place->id)            // grounded by construction
         ->and($item->authored_by)->toBe('llm')
         ->and($item->prompt_version)->toBe('curated_claim.v1')
         ->and($item->evidence)->toHaveCount(1);             // what the model actually saw
+});
+
+it('holds a draft the evidence does not support, for a human', function () {
+    // The verifier is the gate now, so it has to be a real one: when it cannot find the
+    // claim in the evidence, the item waits for a person. It never rejects — "unsupported"
+    // is a question, not an answer.
+    app()->instance(LlmClient::class, new FakeLlmClient('A bookbinder still working by hand.', supported: false));
+
+    packPlace('Backstreet workshop', 'artisan_workshop', 'shops_craft', ['craft'], 'A bookbinder still working by hand.');
+
+    $result = app(DraftPackFromWorldModel::class)('paris', 5);
+
+    expect($result['drafted'])->toBe(1)
+        ->and($result['auto_approved'])->toBe(0);
+
+    expect(CuratedItem::query()->sole()->status)->toBe(CurationStatus::InReview);
 });
 
 it('never re-drafts a place a human has already ruled on', function () {

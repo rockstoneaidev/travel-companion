@@ -36,10 +36,11 @@ final class DraftPackFromWorldModel
         private readonly PackCandidateSelector $selector,
         private readonly EvidenceBundleBuilder $bundles,
         private readonly AgentOrchestrator $agent,
+        private readonly AutoReviewCuratedItem $autoReview,
     ) {}
 
     /**
-     * @return array{drafted: int, skipped: int, considered: int}
+     * @return array{drafted: int, auto_approved: int, skipped: int, considered: int}
      */
     public function __invoke(string $regionKey, int $target): array
     {
@@ -53,6 +54,7 @@ final class DraftPackFromWorldModel
         $candidates = $this->selector->forRegion($regionKey, (int) ceil($target * 1.4));
 
         $drafted = 0;
+        $approved = 0;
         $skipped = 0;
 
         foreach ($candidates as $candidate) {
@@ -76,7 +78,7 @@ final class DraftPackFromWorldModel
                 continue;
             }
 
-            CuratedItem::query()->create([
+            $item = CuratedItem::query()->create([
                 'pack_id' => $pack->id,
                 'place_id' => $candidate->placeId,   // grounded by construction
                 'region_slug' => $regionKey,
@@ -90,9 +92,30 @@ final class DraftPackFromWorldModel
                 'language' => 'en',
             ]);
 
+            /*
+             * The machine reviewer, immediately (CURATION §4).
+             *
+             * A draft lands in_review; the verifier reads it against the very evidence
+             * bundle the writer saw and either waves it through or leaves it for a human.
+             * The human gate had approved 149 items and rejected zero — that is not a
+             * gate, it is a queue, and the work it was doing (does the claim say only
+             * what the evidence says?) is mechanical enough to be done properly by
+             * something that does not get tired at midnight.
+             */
+            $verdict = ($this->autoReview)($item);
+
+            if ($verdict['status'] === CurationStatus::Approved) {
+                $approved++;
+            }
+
             $drafted++;
         }
 
-        return ['drafted' => $drafted, 'skipped' => $skipped, 'considered' => count($candidates)];
+        return [
+            'drafted' => $drafted,
+            'auto_approved' => $approved,
+            'skipped' => $skipped,
+            'considered' => count($candidates),
+        ];
     }
 }

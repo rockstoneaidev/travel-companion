@@ -31,6 +31,7 @@ final class CurationController extends Controller
                 'curated_items.id', 'curated_items.title', 'curated_items.claim', 'curated_items.facets',
                 'curated_items.evidence', 'curated_items.status', 'curated_items.authored_by',
                 'curated_items.region_slug', 'places_core.name as place_name',
+                'curated_items.verdict',
             ]);
 
         return Inertia::render('admin/curation', [
@@ -42,6 +43,14 @@ final class CurationController extends Controller
                 'evidence' => $item->evidence,
                 'status' => $item->status->value,
                 'authored_by' => $item->authored_by,
+
+                // WHY the machine could not approve it. Without this the human is doing
+                // the verifier's job again from scratch — and the queue is now precisely
+                // the items where the reason is the whole point.
+                'verdict' => $item->verdict === null ? null : [
+                    'reason' => $item->verdict['reason'] ?? null,
+                    'gate_violations' => $item->verdict['gate_violations'] ?? [],
+                ],
                 'region' => $item->region_slug,
                 'place_name' => $item->getAttribute('place_name'),
             ])->all(),

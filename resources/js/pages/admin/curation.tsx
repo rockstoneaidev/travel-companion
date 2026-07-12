@@ -20,6 +20,7 @@ interface CurationItem {
     id: string;
     title: string;
     claim: string;
+    verdict: { reason: string | null; gate_violations: string[] } | null;
     facets: string[];
     evidence: EvidenceRow[];
     status: string;
@@ -53,6 +54,15 @@ export default function AdminCuration({ items, approvedCount }: { items: Curatio
                         </div>
 
                         <p className="mt-2 text-sm">{item.claim}</p>
+
+                        {/* The verifier already read this claim against its evidence and
+                            could not support it. Saying WHY turns a re-review into a
+                            two-second decision instead of the same work done twice. */}
+                        {item.verdict?.reason && (
+                            <p className="border-muted-foreground/30 text-muted-foreground mt-2 border-l-2 pl-3 text-xs">
+                                <span className="font-medium">The verifier held this back:</span> {item.verdict.reason}
+                            </p>
+                        )}
                         <p className="text-muted-foreground mt-1 text-xs">{item.facets.join(' · ')}</p>
 
                         {item.evidence.map((row, i) => (

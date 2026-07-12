@@ -21,6 +21,8 @@ final class FakeLlmClient implements LlmClient
     public function __construct(
         private readonly ?string $summary = 'A quiet courtyard behind the church.',
         private readonly bool $fails = false,
+        /** What the claim verifier should answer (claim_verification.*). */
+        private readonly bool $supported = true,
     ) {}
 
     public function generate(
@@ -43,15 +45,25 @@ final class FakeLlmClient implements LlmClient
 
         // Each prompt has its own schema, and a fake that ignores that is a fake
         // that passes tests the real client would fail.
-        $output = str_starts_with($promptVersion, 'curated_claim')
-            ? [
+        $output = match (true) {
+            str_starts_with($promptVersion, 'curated_claim') => [
                 'title' => 'Backstreet workshop',
                 'claim' => $this->summary,
                 'facets' => ['craft'],
                 'grounded_in' => ['datatourisme'],
                 'confidence_note' => '',
-            ]
-            : ['summary' => $this->summary, 'grounded_in' => ['curated']];
+            ],
+            str_starts_with($promptVersion, 'claim_verification') => [
+                'supported' => $this->supported,
+                'assertions' => [[
+                    'assertion' => 'the claim',
+                    'supported' => $this->supported,
+                    'evidence_span' => $this->supported ? 'a quoted span from the evidence' : null,
+                ]],
+                'reason' => $this->supported ? 'Every assertion is in the evidence.' : 'The date is not in the evidence.',
+            ],
+            default => ['summary' => $this->summary, 'grounded_in' => ['curated']],
+        };
 
         return new GenerationResult(
             output: $output,
