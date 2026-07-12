@@ -78,7 +78,7 @@ it('shows a diff when a scoring constant changes (a new version, never an edit)'
     $ref = new ReflectionClass(ScoringModel::class);
     $ctor = $ref->getConstructor();
     $ctor->setAccessible(true);
-    $ctor->invoke($mutated, 'v2-test', $props['weights'], $props['penaltyWeights'], $props['friction'], $props['urgency'], $props['novelty'], $props['uniqueness'], $props['confidence'], $props['routeFit'], $props['alpha'], $props['feed']);
+    $ctor->invoke($mutated, 'v2-test', $props['weights'], $props['penaltyWeights'], $props['friction'], $props['urgency'], $props['novelty'], $props['uniqueness'], $props['confidence'], $props['routeFit'], $props['alpha'], $props['feed'], $props['decide']);
 
     $v2 = $rank->plan($data, $at, $mutated);
 

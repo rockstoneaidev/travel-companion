@@ -23,6 +23,7 @@ final readonly class ScoringModel
         public array $routeFit,         // on_route_minutes, allowance_fraction
         public array $alpha,            // n_eff weights, divisor, floor_after_calibration
         public array $feed,             // cold_alpha_threshold, repetition_step, duration buckets
+        public array $decide,           // the Decide-step evidence gates (SCORING §2.1)
     ) {}
 
     public static function v1(): self
@@ -64,6 +65,7 @@ final readonly class ScoringModel
                 'full_warm_n_eff' => 20.0, 'floor_after_calibration' => 0.4],
             feed: ['cold_alpha_threshold' => 0.7, 'repetition_step' => 0.5,
                 'duration_buckets_min' => [45, 120]],
+            decide: ['confidence_floor' => 0.25],
         );
     }
 }

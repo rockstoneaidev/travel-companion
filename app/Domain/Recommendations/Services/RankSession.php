@@ -66,7 +66,7 @@ final class RankSession
      * an injectable clock and scoring model — the replayer's entry point.
      * Warms the shared tile cache but never writes recommendations.
      *
-     * @return array{picked: list<array<string, mixed>>, model: ScoringModel, alpha: float, context: string, scout_summary: array, rank_ms: int}
+     * @return array{picked: list<array<string, mixed>>, held: list<array<string, mixed>>, model: ScoringModel, alpha: float, context: string, scout_summary: array, rank_ms: int}
      */
     public function plan(ExploreSessionData $session, ?CarbonImmutable $at = null, ?ScoringModel $modelOverride = null): array
     {
@@ -77,6 +77,7 @@ final class RankSession
         $subScores = new SubScores($model);
         $scorer = new CompositeScorer($model);
         $selector = new FeedSelector($model, $scorer);
+        $evidence = new EvidenceGate($model);
 
         $profile = $this->profiles->forUser($session->userId);
         $alpha = $scorer->alpha($profile->eventCounts, $profile->calibrated);
@@ -104,10 +105,15 @@ final class RankSession
             $scored[] = $this->score($candidate, $session, $subScores, $profile->facetWeights, $profile->walkToleranceMinutes, $remaining, $tripEvents, $at);
         }
 
-        $picked = $selector->select($scored, $context, $alpha, (int) config('trips.session.feed_size'));
+        // Decide (PRD §10 step 10): evidence gates decide membership, before
+        // selection ever sees a candidate — a held item must not merely rank low.
+        $decided = $evidence->partition($scored);
+
+        $picked = $selector->select($decided['served'], $context, $alpha, (int) config('trips.session.feed_size'));
 
         return [
             'picked' => $picked,
+            'held' => $decided['held'],
             'model' => $model,
             'alpha' => $alpha,
             'context' => $context,
@@ -117,7 +123,7 @@ final class RankSession
     }
 
     /**
-     * @param  array{picked: list<array<string, mixed>>, model: ScoringModel, scout_summary: array, rank_ms: int}  $plan
+     * @param  array{picked: list<array<string, mixed>>, held: list<array<string, mixed>>, model: ScoringModel, scout_summary: array, rank_ms: int}  $plan
      * @return list<Recommendation>
      */
     private function persist(ExploreSessionData $session, array $plan): array
@@ -228,6 +234,7 @@ final class RankSession
         return [
             ...$candidate,
             'sub_scores' => $scores,
+            'tiers' => $tiers,   // the Decide evidence gates read these (SCORING §2.1)
             'friction_raw' => $friction['value'],
             'raw_inputs' => [...$raw, 'friction' => $friction['inputs']],
             'missing' => $missing,

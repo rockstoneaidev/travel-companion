@@ -39,7 +39,11 @@ final class PlaceFactory extends Factory
             'type' => $type,
             'type_domain' => $type->domain(),
             'facets' => $type->baseFacets(),
-            'source_tags' => [],
+            // Every real place comes from at least one source — RegionIngest never
+            // writes a row without one, and the Decide evidence gate (SCORING §2.1)
+            // correctly refuses to serve a place nothing asserts the existence of.
+            // An empty default would model a state the world model cannot be in.
+            'source_tags' => ['osm' => []],
             'taxonomy_version' => 1,
             'source' => 'osm',
             'attribute_sources' => [],
