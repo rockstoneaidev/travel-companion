@@ -2,11 +2,12 @@
 
 /**
  * Makes clicking a table name open its data (select) instead of the structure
- * page. Rewrites the table-name links in the sidebar and the database
- * overview (both carry title="Show structure"); the select page's own
- * "Show structure" link has no title attribute and is left alone, so the
- * structure view stays one click away. Local-dev convenience only — mounted
- * into the adminer container's plugins-enabled/ directory.
+ * page. Rewrites the table-name links in the sidebar (class="structure") and
+ * the database overview (id="Table-<name>") — locale-independent hooks, since
+ * the title attribute is translated. The select page's own "Show structure"
+ * link has neither and is left alone, so the structure view stays one click
+ * away. Local-dev convenience only — mounted into the adminer container's
+ * plugins-enabled/ directory.
  */
 final class SelectByDefaultPlugin extends \Adminer\Plugin
 {
@@ -14,9 +15,9 @@ final class SelectByDefaultPlugin extends \Adminer\Plugin
     {
         echo \Adminer\script(<<<'JS'
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('a[title="Show structure"]').forEach(function (a) {
+    document.querySelectorAll('#tables a.structure, a[id^="Table-"]').forEach(function (a) {
         a.href = a.getAttribute('href').replace(/([?&])table=/, '$1select=');
-        a.title = 'Select data';
+        a.removeAttribute('title');
     });
 });
 JS);
