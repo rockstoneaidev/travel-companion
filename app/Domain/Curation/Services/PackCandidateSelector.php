@@ -78,7 +78,18 @@ final class PackCandidateSelector
                     ->whereColumn('psi.place_id', 'p.id')
                     ->where(function ($w): void {
                         $w->whereRaw("si.source = 'datatourisme' AND si.payload->'source_tags'->>'description' IS NOT NULL")
-                            ->orWhereRaw("si.source = 'merimee' AND si.payload->'source_tags'->>'datation' IS NOT NULL");
+                            ->orWhereRaw("si.source = 'merimee' AND si.payload->'source_tags'->>'datation' IS NOT NULL")
+                            // Wikipedia — the narrative layer (DATA-SOURCES §2, P1).
+                            //
+                            // Without it this rule accepted only DATAtourisme and Mérimée,
+                            // which are both FRENCH — so Stockholm, the home region, could
+                            // never produce a single candidate however many times its world
+                            // model was rebuilt. "OSM has no stories", as DATA-SOURCES puts
+                            // it, and Wikidata's p31 is a type code, not prose.
+                            //
+                            // CC BY-SA: quotable WITH attribution, never merged into the
+                            // core (conventions/09).
+                            ->orWhereRaw("si.source = 'wikipedia' AND si.payload->'source_tags'->>'description' IS NOT NULL");
                     });
             })
             // Never re-draft what a human has already ruled on.
@@ -95,7 +106,7 @@ final class PackCandidateSelector
                     SELECT 1 FROM place_source_ids psi
                     JOIN source_items si ON si.source = psi.source AND si.external_id = psi.external_id
                     WHERE psi.place_id = p.id
-                      AND si.source = 'datatourisme'
+                      AND si.source IN ('datatourisme', 'wikipedia')
                       AND si.payload->'source_tags'->>'description' IS NOT NULL
                 ) AS has_prose",
             )

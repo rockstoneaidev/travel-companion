@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs\Ingest;
 
 use App\Domain\Places\Services\FetchCommonsImages;
+use App\Domain\Places\Services\FetchWikipediaExtracts;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionBuildStatus;
@@ -75,8 +76,14 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         return 600;
     }
 
-    public function handle(RegionIngest $ingest, SourceRegistry $registry, ResolveRegion $resolve, FetchCommonsImages $photos, RegionBuildStatus $status): void
-    {
+    public function handle(
+        RegionIngest $ingest,
+        SourceRegistry $registry,
+        ResolveRegion $resolve,
+        FetchCommonsImages $photos,
+        RegionBuildStatus $status,
+        FetchWikipediaExtracts $wikipedia,
+    ): void {
         $region = IngestRegion::named($this->regionKey);
 
         // So the admin console can say what is happening instead of nothing at all.
@@ -134,7 +141,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             $tiles = $resolve->unresolvedTiles($region, self::RESOLVE_BATCH_TILES);
 
             if ($tiles === []) {
-                self::dispatch($this->regionKey, 'photos');
+                self::dispatch($this->regionKey, 'evidence');
 
                 return;
             }
@@ -143,6 +150,28 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             Log::info("world-model resolve {$this->regionKey} batch", [...$totals, 'tiles' => count($tiles)]);
 
             self::dispatch($this->regionKey, 'resolve');
+
+            return;
+        }
+
+        /*
+         * The NARRATIVE layer (DATA-SOURCES §2 — Wikipedia, P1, and it was never built).
+         *
+         * Without it the curation selector only accepted DATAtourisme and Mérimée,
+         * which are both FRENCH — so Stockholm, the home region, could not produce a
+         * single curation candidate however many times it was rebuilt. "OSM has no
+         * stories", as DATA-SOURCES puts it, and Wikidata's p31 is a type code.
+         *
+         * The concordance was already there: places carry a `wikipedia` external id from
+         * OSM's tags. We knew which article described each place; we had never read it.
+         *
+         * CC BY-SA → evidence store only, never places_core (conventions/09).
+         */
+        if ($this->phase === 'evidence') {
+            $result = $wikipedia->fetchBatch();
+            Log::info("world-model evidence {$this->regionKey} batch", $result);
+
+            self::dispatch($this->regionKey, $result['candidates'] > 0 ? 'evidence' : 'photos');
 
             return;
         }
@@ -201,7 +230,8 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
 
         match ($this->phase) {
             'ingest' => $this->chainOnwardFromIngest(app(SourceRegistry::class), $this->source ?? app(SourceRegistry::class)->keys()[0]),
-            'resolve' => self::dispatch($this->regionKey, 'photos'),
+            'resolve' => self::dispatch($this->regionKey, 'evidence'),
+            'evidence' => self::dispatch($this->regionKey, 'photos'),
             'photos' => self::dispatch($this->regionKey, 'warm'),
             default => null,   // `warm` is the last phase; there is nowhere to go
         };

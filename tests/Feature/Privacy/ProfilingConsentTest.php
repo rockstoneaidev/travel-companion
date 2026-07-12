@@ -198,3 +198,41 @@ it('lets someone who declined turn it on later, on their own initiative', functi
 
     expect(app(ProfilingConsent::class)->granted($user->id))->toBeTrue();
 });
+
+it('does not trap a calibrated-but-never-asked user in a redirect loop', function () {
+    /*
+     * ERR_TOO_MANY_REDIRECTS, and it was mine.
+     *
+     * /welcome sent anyone with a finished calibration on to /explore, and the
+     * ask-once middleware sent them straight back, because they had never been ASKED
+     * about consent. Round and round.
+     *
+     * This is not an edge case: it is EXACTLY the existing pilot accounts, calibrated
+     * long before consent existed. The bug hit the only users there are.
+     *
+     * "Finished calibration" and "answered the consent question" are different facts.
+     * Treating them as one is what made the loop.
+     */
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    // Calibrate fully, then wind consent back to "never asked" — the state every
+    // existing account was in the moment the gate shipped.
+    foreach (range(1, 9) as $number) {
+        $this->post("/calibrate/{$number}", ['side' => 'a']);
+    }
+    $this->post('/calibrate/practical', ['walk_minutes' => 20, 'price_band' => 2]);
+
+    DB::table('users')->where('id', $user->id)->update([
+        'profiling_consent_at' => null,
+        'profiling_consent_version' => null,
+        'profiling_consent_asked_at' => null,
+    ]);
+
+    // The question gets asked — and asking it does not bounce them straight out again.
+    $this->get('/explore')->assertRedirect('/welcome');
+    $this->get('/welcome')->assertOk();
+
+    // Answering it lets them through.
+    $this->post('/calibrate/consent')->assertRedirect('/calibrate/1');
+    $this->get('/explore')->assertOk();
+});

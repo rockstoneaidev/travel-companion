@@ -40,14 +40,26 @@ it('carries the chain to the next source when an ingest job is killed', function
     });
 });
 
-it('moves a dead resolve on to photos rather than stranding the region', function () {
+it('moves a dead resolve on to the next phase rather than stranding the region', function () {
     Queue::fake();
 
     new BuildRegionWorldModelJob('nice', 'resolve')->failed(new TimeoutExceededException('killed'));
 
+    // resolve → evidence (Wikipedia, the narrative layer) → photos → warm.
     Queue::assertPushed(
         BuildRegionWorldModelJob::class,
-        fn (BuildRegionWorldModelJob $job): bool => $job->phase === 'photos' && $job->regionKey === 'nice',
+        fn (BuildRegionWorldModelJob $job): bool => $job->phase === 'evidence' && $job->regionKey === 'nice',
+    );
+});
+
+it('carries a dead evidence phase on to photos', function () {
+    Queue::fake();
+
+    new BuildRegionWorldModelJob('nice', 'evidence')->failed(new TimeoutExceededException('killed'));
+
+    Queue::assertPushed(
+        BuildRegionWorldModelJob::class,
+        fn (BuildRegionWorldModelJob $job): bool => $job->phase === 'photos',
     );
 });
 

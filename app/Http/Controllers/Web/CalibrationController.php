@@ -35,7 +35,21 @@ final class CalibrationController extends Controller
     {
         $userId = (int) $request->user()->id;
 
-        if ($progress->isComplete($userId)) {
+        /*
+         * INFINITE REDIRECT, and it was mine.
+         *
+         * This used to send anyone with a finished calibration on to /explore — and
+         * the ask-once middleware sent them straight back here, because they had never
+         * been ASKED about consent. Round and round: ERR_TOO_MANY_REDIRECTS.
+         *
+         * The existing pilot accounts are exactly that case: calibrated months before
+         * consent existed. So the bug hit the only users there are.
+         *
+         * A user is only sent away once the question has been ANSWERED. "Finished
+         * calibration" and "has answered the consent question" are different facts,
+         * and treating them as one is what made the loop.
+         */
+        if ($consent->asked($userId) && $progress->isComplete($userId)) {
             return to_route('explore.index');
         }
 

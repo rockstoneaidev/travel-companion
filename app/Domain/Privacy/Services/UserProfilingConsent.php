@@ -25,4 +25,10 @@ final class UserProfilingConsent implements ProfilingConsent
         return $row?->profiling_consent_at !== null
             && $row->profiling_consent_version === config('privacy.profiling_consent_version');
     }
+
+    public function asked(int $userId): bool
+    {
+        return DB::table('users')->where('id', $userId)->value('profiling_consent_asked_at') !== null
+            || $this->granted($userId);
+    }
 }

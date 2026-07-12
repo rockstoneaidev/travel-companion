@@ -15,4 +15,14 @@ namespace App\Domain\Privacy\Contracts;
 interface ProfilingConsent
 {
     public function granted(int $userId): bool;
+
+    /**
+     * Have we ever ASKED? A different fact from whether they said yes.
+     *
+     * Conflating the two is what caused an infinite redirect: /welcome sent a user
+     * who had already finished calibration on to /explore, and the ask-once
+     * middleware sent them straight back, because "has not consented" and "has not
+     * been asked" looked identical.
+     */
+    public function asked(int $userId): bool;
 }
