@@ -341,16 +341,36 @@ terms also incorporate SCCs as a fallback.
 
 Being honest here is the whole point of the exercise.
 
-### 7.1 OPEN — Art. 9 consent (§3.2) · **BLOCKER**
-The taste profile can infer religious belief. Explicit consent must be obtained, and the consent
-text must say so. **Do not onboard a user outside the pilot until this is done.**
+### 7.1 ~~OPEN~~ IMPLEMENTED — Art. 9 consent (§3.2)
+The taste profile can infer religious belief, so explicit consent is now required before any weight
+moves. The gate lives in `FacetWeightLearner` — the one place a facet weight can change — so a caller
+added later cannot bypass it (`tests/Feature/Privacy/ProfilingConsentTest.php`).
+
+- **Explicit and separate**: an unticked box on the calibration welcome screen, naming plainly that
+  the profile can reflect personal things such as an interest in religious sites. Not a side effect
+  of pressing "start".
+- **Asked once.** `profiling_consent_asked_at` is a distinct fact from consent itself, because
+  without it there is no way to stop asking — and a choice you are shown until you pick the right
+  answer is not freely given (Art. 4(11)). Declining is final; the user can opt in later from
+  Settings → Privacy, on their own initiative.
+- **Withdrawal deletes the profile**, not merely the learning: holding a vector from which religious
+  belief can be deduced is itself processing, and without consent there is no basis for it.
+- **Refusal costs personalisation, not the product** — α stays 0 and the honest cold-start ranking
+  applies (SCORING §6).
+
+**Still OPEN:** the consent *wording* has not been reviewed by a lawyer. What is implemented is a
+plain-language attempt, not a vetted one.
 
 ### 7.2 OPEN — consent text and a privacy notice (Arts. 13–14)
 Neither exists. A DPIA is not a privacy notice, and this document is not user-facing.
 
-### 7.3 OPEN — Records of processing (Art. 30)
+### 7.3 ~~OPEN~~ DONE — Records of processing (Art. 30)
 The <250-person exemption does **not** apply: our processing is not occasional, and (per §3.2) may
-involve Art. 9 data. A ROPA is required. Most of it can be lifted from §2 of this document.
+involve Art. 9 data. A ROPA is therefore required, and one now exists: **[legal/ROPA.md](legal/ROPA.md)**.
+
+It must be kept in step with §2 of this document and with `config/privacy.php`. If the categories of
+data, the processors, or the retention numbers change and the ROPA does not, the ROPA is worse than
+nothing — a record of processing that no longer records the processing.
 
 ### 7.4 OPEN — breach procedure (Arts. 33–34)
 72 hours is not long, and there is currently no written procedure and no rehearsed path to the
