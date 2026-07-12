@@ -63,11 +63,40 @@ return [
             'after_commit' => false,
         ],
 
+        /*
+        | THE RULE, and it is not negotiable: `retry_after` must be GREATER than
+        | the longest job timeout served by this connection.
+        |
+        | retry_after is how long the queue waits before deciding a reserved job
+        | has died and giving it to somebody else. If a job's timeout exceeds it,
+        | the queue hands a still-running job to a second worker — the job runs
+        | twice, attempts climb, and it dies as MaxAttemptsExceeded while doing
+        | absolutely nothing wrong. That is exactly what killed the Dijon
+        | world-model build on staging (retry_after 90 vs a 420s job).
+        |
+        | It is a property of the CONNECTION, not the queue. So a workload that
+        | needs a long retry_after needs its OWN connection — otherwise a genuinely
+        | dead push notification would sit unretried for half an hour.
+        |
+        | Hence two connections. Enforced by tests/Arch/QueueConfigTest.php.
+        */
+
+        // Short work: realtime, default, voice, scouts. Longest timeout is 90s.
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 150),
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
+        // Long work: world-model ingest. Minutes per job, sometimes many.
+        'redis-long' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'ingest',
+            'retry_after' => (int) env('REDIS_LONG_QUEUE_RETRY_AFTER', 1800),
             'block_for' => null,
             'after_commit' => false,
         ],

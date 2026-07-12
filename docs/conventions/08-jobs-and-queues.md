@@ -97,14 +97,57 @@ public function handle(): void
 
 ## Queues, retries, failure
 
-Name the queue after the stage, and give Horizon the ability to scale them independently:
+### The lanes
+
+Lanes are separated by the **shape of the work** — how long it runs, how badly it can wait, how bad
+it is if it runs twice — not by the feature that queued it. They live in `App\Enums\QueueLane`, and
+each has its own Horizon supervisor (`config/horizon.php`).
+
+| Lane | Connection | Timeout | Processes | What it carries |
+|---|---|---|---|---|
+| `realtime` | `redis` | 30s | 2–3 | Push, broadcast. Someone is waiting. **Dormant until Phase 2** (PRD §8) — the lane exists so pushes never land behind a world-model build. |
+| `default` | `redis` | 60s | 3–6 | Short work off the back of a request: feedback, taste updates, session close. |
+| `voice` | `redis` | 90s | 3–4 | LLM generations. Retryable, and must never block a feed. |
+| `scouts` | `redis` | 60s | 4–6 | Tile warming. Thousands of tiny DB jobs; wide and short. |
+| `ingest` | **`redis-long`** | 900s | **1** | World-model builds. Minutes per job. **Serial on purpose.** |
 
 ```php
 public function __construct(public readonly string $tileId)
 {
-    $this->onQueue('scouts');       // scouts | enrichment | ranking | delivery | default
+    $this->onQueue(QueueLane::Scouts->value);
 }
 ```
+
+### `retry_after` > timeout. Always.
+
+**This is the invariant, and breaking it is invisible in review and obvious in production.**
+
+`retry_after` is how long the queue waits before deciding a reserved job has died and giving it to
+somebody else. If a job's `timeout` exceeds its connection's `retry_after`, the queue hands a
+**still-running** job to a second worker: it runs twice, `attempts` climbs past `tries`, and it fails
+as `MaxAttemptsExceeded` **while doing nothing wrong**.
+
+That is exactly how the Dijon world-model build died on staging (2026-07-14): a 420-second job on a
+connection whose `retry_after` was 90 seconds. Attempts 2, Retries 0, and a stack trace that says
+nothing about the actual cause.
+
+`retry_after` is a property of the **connection**, not the queue — which is *why* `ingest` has its own
+connection. Forcing a 30-minute `retry_after` onto the shared connection would mean a genuinely dead
+push notification waits half an hour to be retried.
+
+Enforced by `tests/Feature/QueueConfigTest.php`, which also asserts every lane has a supervisor
+listening to it: a lane nobody consumes is a queue that fills up forever in silence.
+
+### Keep jobs short enough that the queue never has to guess
+
+`BuildRegionWorldModelJob` used to run **every source in one job** — Mérimée, DATAtourisme, Wikidata,
+then OSM with its adaptive splits and politeness sleeps. For a real city that is many minutes, and a
+job that long is a job the queue starts guessing about. It now chains **one source per job**, then
+`resolve` in tile batches, then `photos`, then `warm`. Each hop is bounded; the chain is what is long.
+
+`ingest` runs **one process**, and that is a product constraint rather than tidiness: public Overpass
+returned 504s when the corridor cities ran back to back, and two region ingests at once is how you get
+rate-limited off a source you do not pay for.
 
 - `$tries` and `$backoff` are **explicit** on every job. Exponential backoff for external APIs:
   `public $backoff = [10, 60, 300];`

@@ -10,6 +10,7 @@ use App\Domain\Agent\Services\EvidenceBundleBuilder;
 use App\Domain\Opportunities\Actions\RecordOpportunityVoice;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Places\Contracts\PlaceLookup;
+use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,7 +40,9 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         public readonly string $partOfDay,
         public readonly string $travelMode,
         public readonly ?int $walkMinutes,
-    ) {}
+    ) {
+        $this->onQueue(QueueLane::Voice->value);
+    }
 
     /** A five-item feed re-read on every poll must not queue the same generation five times. */
     public function uniqueId(): string

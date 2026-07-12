@@ -11,6 +11,7 @@ use App\Domain\Curation\Enums\CurationStatus;
 use App\Domain\Curation\Models\CuratedItem;
 use App\Domain\Curation\Models\Pack;
 use App\Domain\Curation\Services\PackCandidateSelector;
+use App\Support\PlainText;
 
 /**
  * Fills a pack's review queue from the world model (CURATION §3 steps 2–3, E14).
@@ -79,8 +80,8 @@ final class DraftPackFromWorldModel
                 'pack_id' => $pack->id,
                 'place_id' => $candidate->placeId,   // grounded by construction
                 'region_slug' => $regionKey,
-                'title' => trim((string) $result->output['title']),
-                'claim' => trim((string) $result->output['claim']),
+                'title' => PlainText::clean((string) $result->output['title']),
+                'claim' => PlainText::clean((string) $result->output['claim']),
                 'facets' => $result->output['facets'] ?? [],
                 'evidence' => $bundle->toArray(),    // what the model actually saw
                 'status' => CurationStatus::InReview,

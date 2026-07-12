@@ -9,6 +9,7 @@ use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Domain\Sources\Services\SourceRegistry;
+use App\Enums\QueueLane;
 use App\Jobs\Scouts\WarmTileJob;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,18 +33,30 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
 
     private const RESOLVE_BATCH_TILES = 12;
 
-    public int $timeout = 420;
+    /**
+     * Must stay BELOW the `redis-long` connection's retry_after (1800s).
+     *
+     * The old value was 420s on a connection whose retry_after was 90s, which is
+     * how Dijon died: after 90 seconds the queue decided the still-running job was
+     * dead, handed it to a second worker, and it failed as MaxAttemptsExceeded
+     * having done nothing wrong. Enforced now by tests/Arch/QueueConfigTest.php.
+     */
+    public int $timeout = 900;
 
     public int $tries = 1;
 
     public function __construct(
         public readonly string $regionKey,
         public readonly string $phase = 'ingest',
-    ) {}
+        public readonly ?string $source = null,
+    ) {
+        $this->onQueue(QueueLane::Ingest->value);
+        $this->onConnection(QueueLane::Ingest->connection());
+    }
 
     public function uniqueId(): string
     {
-        return "{$this->regionKey}:{$this->phase}";
+        return implode(':', array_filter([$this->regionKey, $this->phase, $this->source]));
     }
 
     public function uniqueFor(): int
@@ -56,16 +69,32 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         $region = IngestRegion::named($this->regionKey);
 
         if ($this->phase === 'ingest') {
-            foreach ($registry->keys() as $source) {
-                try {
-                    $result = $ingest->ingest($region, $source);
-                    Log::info("world-model ingest {$this->regionKey}/{$source}", $result);
-                } catch (Throwable $e) {
-                    Log::warning("world-model ingest {$this->regionKey}/{$source} degraded: {$e->getMessage()}");
-                }
+            // ONE SOURCE PER JOB, chained.
+            //
+            // This used to run every source in a single job — Mérimée, then
+            // DATAtourisme, then Wikidata, then OSM with its adaptive splits and
+            // politeness sleeps. For a real city that is many minutes in one job,
+            // and a job that long is a job the queue starts guessing about.
+            //
+            // A failed source is still degraded, never fatal (conventions/09):
+            // the chain moves to the next source regardless, because a region with
+            // three of four sources is a usable region and a region with none is not.
+            $sources = $registry->keys();
+            $source = $this->source ?? $sources[0];
+            $index = array_search($source, $sources, true);
+
+            try {
+                $result = $ingest->ingest($region, $source);
+                Log::info("world-model ingest {$this->regionKey}/{$source}", $result);
+            } catch (Throwable $e) {
+                Log::warning("world-model ingest {$this->regionKey}/{$source} degraded: {$e->getMessage()}");
             }
 
-            self::dispatch($this->regionKey, 'resolve');
+            $next = $sources[$index + 1] ?? null;
+
+            $next === null
+                ? self::dispatch($this->regionKey, 'resolve')
+                : self::dispatch($this->regionKey, 'ingest', $next);
 
             return;
         }

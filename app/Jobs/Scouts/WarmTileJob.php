@@ -6,6 +6,7 @@ namespace App\Jobs\Scouts;
 
 use App\Domain\Places\Contracts\TileScout;
 use App\Domain\Places\Services\TileCache;
+use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -22,7 +23,11 @@ final class WarmTileJob implements ShouldBeUnique, ShouldQueue
     public function __construct(
         public readonly string $scoutClass,
         public readonly string $h3Index,
-    ) {}
+    ) {
+        // Thousands of tiny DB jobs; they get their own wide, short lane so they
+        // never queue behind a world-model build (conventions/08).
+        $this->onQueue(QueueLane::Scouts->value);
+    }
 
     public function uniqueId(): string
     {

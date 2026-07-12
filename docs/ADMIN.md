@@ -63,6 +63,48 @@ what an account may *do*. Moving the allowlist into a DB-backed admin page is st
 
 The first superadmin is granted from the CLI: `php artisan user:assign-role <email> superadmin`.
 
+#### Why there is no `user` role — and why we should not add one
+
+This comes up (2026-07-14), so: **the absence is the design, not an oversight.**
+
+Every product action is authorised by **ownership**, not by permission:
+
+```php
+// app/Domain/Trips/Policies/ExploreSessionPolicy.php
+public function view(User $user, ExploreSession $session): bool
+{
+    return $session->user_id === $user->id;
+}
+```
+
+There are **zero** product permissions. Every entry in `App\Enums\Permission` is an operator
+concern — `admin_access`, `ops_view`, `users_view`, `users_manage_roles`, `activity_view`. Nothing a
+traveller does (start a session, read the feed, tap *Take me*, leave feedback) is permission-gated,
+and nothing should be: what protects your trip is not a role, it is that the trip is **yours**.
+
+So a `user` role would grant nothing and gate nothing. That is worse than useless, in two specific
+ways:
+
+1. **It is ceremony that looks like security.** A future reader sees `assignRole('user')` and
+   reasonably concludes something is gated on it. Nothing is. That is how people stop trusting an
+   authorization model — and then stop reading it.
+2. **It invents a failure mode that does not currently exist.** If the app *needs* a role to work,
+   then any path that forgets to assign it — social sign-in, a seeder ordering bug, a factory in a
+   test — silently produces a broken account. Today that is impossible, because there is nothing to
+   forget.
+
+It would also break the rule this codebase already keeps: **gate on permission, never on a role
+name.** The only `hasRole()` in the whole application is the superadmin `Gate::before`.
+
+If a future need looks like it wants a `user` role, it is almost certainly something else wearing a
+role's clothing, and should be modelled as itself:
+
+| The actual need | The right shape |
+|---|---|
+| "Has completed onboarding / taste calibration" | A user attribute — `TasteProfiles` already tracks `calibrated` |
+| "Beta tester", "has feature X" | A feature flag |
+| "Paid vs free tier" | A subscription concept (Phase 3), with its own model |
+
 ### 3.2 Permissions (v1 set)
 
 | Permission | `admin` | `superadmin` | Guards |

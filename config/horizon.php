@@ -196,35 +196,114 @@ return [
     |
     */
 
+    /*
+    | One supervisor per lane (App\Enums\QueueLane). Lanes are separated by the
+    | SHAPE of the work — how long it runs, how badly it can wait, how bad it is
+    | if it runs twice — not by the feature that queued it.
+    |
+    | INVARIANT: every supervisor's `timeout` must be LESS than its connection's
+    | `retry_after` (config/queue.php). Break that and the queue hands a
+    | still-running job to a second worker, and it dies as MaxAttemptsExceeded
+    | while doing nothing wrong. tests/Arch/QueueConfigTest.php enforces it.
+    */
     'defaults' => [
-        'supervisor-1' => [
+        // Someone is waiting. Dormant until Phase 2 (no push in Phase 1, PRD §8)
+        // — the lane exists so pushes never land behind a world-model build.
+        'supervisor-realtime' => [
+            'connection' => 'redis',
+            'queue' => ['realtime'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 30,
+            'nice' => 0,
+        ],
+
+        // Short work off the back of a request: feedback, taste updates.
+        'supervisor-default' => [
             'connection' => 'redis',
             'queue' => ['default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 1,
+            'maxProcesses' => 3,
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
-            'tries' => 1,
+            'tries' => 2,
             'timeout' => 60,
             'nice' => 0,
+        ],
+
+        // LLM generations. Retryable, and must never block a feed — the feed is
+        // served from the template and the voice catches up (conventions/10).
+        'supervisor-voice' => [
+            'connection' => 'redis',
+            'queue' => ['voice'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 3,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 192,
+            'tries' => 2,
+            'timeout' => 90,
+            'nice' => 5,
+        ],
+
+        // Tile warming: thousands of tiny DB jobs. Wide and short.
+        'supervisor-scouts' => [
+            'connection' => 'redis',
+            'queue' => ['scouts'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'size',
+            'maxProcesses' => 4,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 192,
+            'tries' => 2,
+            'timeout' => 60,
+            'nice' => 10,
+        ],
+
+        // World-model builds. Minutes per job, on the long connection.
+        //
+        // SERIAL on purpose (maxProcesses 1). Not tidiness: public Overpass
+        // returned 504s when the corridor cities ran back to back, and two region
+        // ingests at once is how you get rate-limited off a source you do not pay
+        // for. `nice 19` keeps it off the web worker's back.
+        'supervisor-ingest' => [
+            'connection' => 'redis-long',
+            'queue' => ['ingest'],
+            'balance' => false,
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 900,
+            'nice' => 19,
         ],
     ],
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
-                'maxProcesses' => 10,
-                'balanceMaxShift' => 1,
-                'balanceCooldown' => 3,
-            ],
+            'supervisor-realtime' => ['maxProcesses' => 3],
+            'supervisor-default' => ['maxProcesses' => 6, 'balanceMaxShift' => 1, 'balanceCooldown' => 3],
+            'supervisor-voice' => ['maxProcesses' => 4, 'balanceMaxShift' => 1, 'balanceCooldown' => 3],
+            'supervisor-scouts' => ['maxProcesses' => 6, 'balanceMaxShift' => 2, 'balanceCooldown' => 3],
+            'supervisor-ingest' => ['maxProcesses' => 1],
         ],
 
         'local' => [
-            'supervisor-1' => [
-                'maxProcesses' => 3,
-            ],
+            'supervisor-realtime' => ['maxProcesses' => 1],
+            'supervisor-default' => ['maxProcesses' => 2],
+            'supervisor-voice' => ['maxProcesses' => 2],
+            'supervisor-scouts' => ['maxProcesses' => 2],
+            'supervisor-ingest' => ['maxProcesses' => 1],
         ],
     ],
 

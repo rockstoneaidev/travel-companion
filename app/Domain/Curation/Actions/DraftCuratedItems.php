@@ -7,6 +7,7 @@ namespace App\Domain\Curation\Actions;
 use App\Domain\Curation\Enums\CurationStatus;
 use App\Domain\Curation\Models\CuratedItem;
 use App\Domain\Curation\Models\Pack;
+use App\Support\PlainText;
 
 /**
  * Pipeline step 2 (CURATION §3): drafts from harvested evidence bundles ONLY
@@ -31,8 +32,11 @@ final class DraftCuratedItems
         foreach ($harvested as $candidate) {
             $items[] = CuratedItem::query()->create([
                 'pack_id' => $pack->id,
-                'title' => $candidate['title'],
-                'claim' => $candidate['claim'],
+                // Harvested prose carries its source's markup — Wikivoyage's
+                // [[links]], a CMS's <p> tags. A curator should be judging whether
+                // a claim is TRUE, not proofreading somebody else's wiki syntax.
+                'title' => PlainText::clean($candidate['title']),
+                'claim' => PlainText::clean($candidate['claim']),
                 'facets' => $candidate['facets'],
                 'evidence' => $candidate['evidence'],
                 'status' => CurationStatus::Draft,

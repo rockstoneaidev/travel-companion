@@ -9,6 +9,7 @@ use App\Domain\Agent\Data\EvidenceBundle;
 use App\Domain\Agent\Data\EvidenceItem;
 use App\Enums\CredibilityTier;
 use App\Enums\SourceLicense;
+use App\Support\PlainText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -67,7 +68,7 @@ final class EvidenceBundleBuilder
                 source: 'curated',
                 license: SourceLicense::Own,
                 credibilityTier: CredibilityTier::Official,
-                excerpt: $row->claim,
+                excerpt: (string) PlainText::clean($row->claim),
                 url: null,
                 attribution: null,
                 retrievedAt: CarbonImmutable::parse($row->updated_at),
@@ -140,11 +141,18 @@ final class EvidenceBundleBuilder
             return null;
         }
 
-        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        // Strip the source's markup BEFORE truncating. Truncating first is how the
+        // "[[water sports" bug happened: the cut landed mid-link and orphaned the
+        // opening brackets, so nothing downstream could recognise them any more.
+        $text = PlainText::clean($text);
+
+        if ($text === null) {
+            return null;
+        }
 
         // Long tourism-board copy is mostly marketing; the first few hundred
         // characters carry the substance, and a shorter prompt is a cheaper one.
-        return $text === '' ? null : mb_substr($text, 0, 600);
+        return mb_substr($text, 0, 600);
     }
 
     /** @param array<string, mixed> $tags */
