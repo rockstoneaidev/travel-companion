@@ -11,8 +11,8 @@ interface AppHeaderProps extends React.ComponentProps<'header'> {
 /**
  * Menu + wordmark + context stamp (DESIGN §3). The wordmark renders the shared `name`
  * prop (config('app.name') ← APP_NAME) — the market name is provisional and must
- * never be hard-coded (DESIGN §1). The hamburger is the only way into the app
- * navigation on these screens: they carry no sidebar.
+ * never be hard-coded (DESIGN §1). The hamburger sits on the left and is the way
+ * into the navigation on mobile; from md up <ProductLayout />'s sidebar takes over.
  */
 export function AppHeader({ contextStamp, className, ...props }: AppHeaderProps) {
     const { name } = usePage<SharedData>().props;

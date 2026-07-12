@@ -13,9 +13,10 @@ import { SectionLabel } from './section-label';
 const itemClasses = 'text-body hover:text-ink flex min-h-11 items-center gap-3 text-sm';
 
 /**
- * The app menu for the product screens, which carry no sidebar: a hamburger that
- * opens the same navigation as <AppSidebar />, dressed as paper (DESIGN §3). Nav
- * items come from @/lib/nav so the two menus can't drift apart.
+ * The mobile menu for the product screens: a hamburger that opens the same
+ * navigation as <AppSidebar />, dressed as paper (DESIGN §3). Nav items come
+ * from @/lib/nav so the two menus can't drift apart. Hidden from md up, where
+ * the sidebar itself appears (ui/sidebar switches at the same breakpoint).
  */
 export function NavMenu({ className }: { className?: string }) {
     const { auth, name } = usePage<SharedData>().props;
@@ -49,7 +50,7 @@ export function NavMenu({ className }: { className?: string }) {
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
                 aria-label="Open menu"
-                className={cn('text-ink hover:bg-card -ml-2 flex size-11 shrink-0 items-center justify-center rounded-full', className)}
+                className={cn('text-ink hover:bg-card -ml-2 flex size-11 shrink-0 items-center justify-center rounded-full md:hidden', className)}
             >
                 <Menu className="size-5" />
             </SheetTrigger>
