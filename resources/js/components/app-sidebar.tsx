@@ -41,6 +41,9 @@ const footerNavItems: NavItem[] = [
 function adminNavItems(permissions: SharedData['auth']['permissions']): NavItem[] {
     const items: NavItem[] = [{ title: 'Overview', url: '/admin', icon: Shield }];
 
+    items.push({ title: 'Curation', url: '/admin/curation', icon: BookOpen });
+    items.push({ title: 'World model', url: '/admin/world-model', icon: Map });
+
     if (permissions.includes('users_view')) {
         items.push({ title: 'Users', url: '/admin/users', icon: Users });
     }

@@ -9,9 +9,13 @@ use App\Domain\Curation\Enums\CurationStatus;
 use App\Domain\Curation\Services\ApprovedCuratedItems;
 use App\Domain\Places\Models\Place;
 use App\Domain\Places\Services\Scouts\CuratedScout;
+use App\Enums\Role;
+use App\Jobs\Ingest\BuildRegionWorldModelJob;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -91,4 +95,22 @@ it('locks the review queue behind admin access', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/curation')
         ->assertForbidden();
+});
+
+it('queues the world-model build from the admin console', function () {
+    Queue::fake();
+
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $admin = User::factory()->create();
+    $admin->assignRole(Role::Superadmin->value);
+
+    $this->actingAs($admin)
+        ->post('/admin/world-model/stockholm-test/build')
+        ->assertRedirect();
+
+    Queue::assertPushed(BuildRegionWorldModelJob::class, fn ($job) => $job->regionKey === 'stockholm-test' && $job->phase === 'ingest');
+
+    // Unknown regions 404 before anything queues; non-admins never reach it.
+    $this->actingAs($admin)->post('/admin/world-model/atlantis/build')->assertNotFound();
+    $this->actingAs(User::factory()->create())->post('/admin/world-model/stockholm-test/build')->assertForbidden();
 });

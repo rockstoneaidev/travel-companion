@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Domain\Places\Services\EntityResolver;
+use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 /**
- * Thin wrapper over the EntityResolver (conventions/01): resolves every tile
- * in a region that still has unresolved source items. Idempotent —
- * re-running only touches items without a decision at the current
- * resolver_version (ENTITY-RESOLUTION §5).
+ * Thin wrapper over ResolveRegion (conventions/01) — the same service the
+ * admin console's build job uses. Idempotent (ENTITY-RESOLUTION §5).
  */
 final class ResolveRegionCommand extends Command
 {
@@ -21,34 +18,22 @@ final class ResolveRegionCommand extends Command
 
     protected $description = 'Run entity resolution over all tiles of a region';
 
-    public function handle(EntityResolver $resolver): int
+    public function handle(ResolveRegion $resolve): int
     {
         $region = IngestRegion::named($this->argument('region'));
-
-        $tiles = DB::table('source_items')
-            ->selectRaw('DISTINCT h3_index')
-            ->whereRaw(
-                'ST_Intersects(location::geometry, ST_MakeEnvelope(?, ?, ?, ?, 4326))',
-                [$region->west, $region->south, $region->east, $region->north],
-            )
-            ->orderBy('h3_index')
-            ->pluck('h3_index');
-
         $totals = ['items' => 0, 'created' => 0, 'merged' => 0, 'review' => 0, 'explicit' => 0];
-        $bar = $this->output->createProgressBar(count($tiles));
+        $tileCount = 0;
 
-        foreach ($tiles as $tile) {
-            $stats = $resolver->resolveTile($tile);
-            foreach ($stats as $key => $value) {
+        while (($tiles = $resolve->unresolvedTiles($region, 25)) !== []) {
+            foreach ($resolve->resolveTiles($tiles) as $key => $value) {
                 $totals[$key] += $value;
             }
-            $bar->advance();
+            $tileCount += count($tiles);
+            $this->output->write('.');
         }
 
-        $bar->finish();
-        $this->newLine(2);
-
-        $this->components->twoColumnDetail('Tiles', number_format(count($tiles)));
+        $this->newLine();
+        $this->components->twoColumnDetail('Tiles', number_format($tileCount));
         foreach ($totals as $key => $value) {
             $this->components->twoColumnDetail(ucfirst($key), number_format($value));
         }

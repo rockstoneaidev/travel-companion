@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CurationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
+use App\Http\Controllers\Admin\WorldModelController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,4 +40,8 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     Route::put('curation/{item}/approve', [CurationController::class, 'approve'])->name('curation.approve');
     Route::put('curation/{item}/reject', [CurationController::class, 'reject'])->name('curation.reject');
     Route::post('curation/{item}/ground', [CurationController::class, 'ground'])->name('curation.ground');
+
+    // World-model ops: the ingest/resolve buttons (runs on Horizon).
+    Route::get('world-model', [WorldModelController::class, 'index'])->name('world-model.index');
+    Route::post('world-model/{region}/build', [WorldModelController::class, 'build'])->name('world-model.build');
 });
