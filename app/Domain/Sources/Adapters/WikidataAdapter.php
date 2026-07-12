@@ -8,6 +8,7 @@ use App\Domain\Places\Taxonomy\WikidataClassMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
+use App\Support\Http\Harvest;
 use DateInterval;
 use Illuminate\Support\Facades\Http;
 
@@ -23,6 +24,8 @@ final class WikidataAdapter implements ScoutSource
 
     public const VERSION = 'v1';
 
+    public function __construct(private readonly Harvest $harvest) {}
+
     private const SPARQL_URL = 'https://query.wikidata.org/sparql';
 
     public function supports(ScoutRequest $request): bool
@@ -32,17 +35,20 @@ final class WikidataAdapter implements ScoutSource
 
     public function search(ScoutRequest $request): array
     {
-        $response = Http::timeout(120)
-            ->withHeaders([
+        // Was a bare Http::post with NO retry at all — so a single WDQS throttle or
+        // 5xx lost the region's Wikidata layer and reported success. Harvest is the
+        // ingest lane's policy: exponential backoff, jitter, Retry-After (conventions/09).
+        $result = $this->harvest->postForm(
+            self::SPARQL_URL,
+            ['query' => $this->sparql($request)],
+            [
                 'User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)',
                 'Accept' => 'application/sparql-results+json',
-            ])
-            ->asForm()
-            ->post(self::SPARQL_URL, ['query' => $this->sparql($request)]);
+            ],
+            timeout: 120,
+        )->throwIfUnknown('wikidata search');
 
-        $response->throw();
-
-        return $response->json('results.bindings') ?? [];
+        return $result->json('results.bindings') ?? [];
     }
 
     public function normalize(array $raw, string $locale): array

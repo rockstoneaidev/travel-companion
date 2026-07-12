@@ -23,7 +23,7 @@ function datatourismeFixture(): array
 }
 
 it('normalizes tourism-board POIs into typed candidates', function () {
-    $candidates = new DatatourismeAdapter()->normalize(datatourismeFixture(), 'fr');
+    $candidates = app(DatatourismeAdapter::class)->normalize(datatourismeFixture(), 'fr');
 
     expect($candidates)->not->toBeEmpty();
 
@@ -40,7 +40,7 @@ it('types the Centre Pompidou as a museum, despite the ontology list being unord
     // — generic last, specific in the middle. Reading the list in either
     // direction gives "cultural site" or "local business". Only scanning our own
     // priority map gives "museum".
-    $candidates = new DatatourismeAdapter()->normalize(datatourismeFixture(), 'fr');
+    $candidates = app(DatatourismeAdapter::class)->normalize(datatourismeFixture(), 'fr');
 
     $pompidou = collect($candidates)->firstWhere('name', 'Centre Pompidou');
 
@@ -68,7 +68,7 @@ it('does not serve hotels — a tourism board lists them, we do not', function (
 it('keeps the tourism board description as grounded evidence, never as a fact', function () {
     // The curation pipeline drafts a claim FROM this (CURATION §3). It is
     // open-licensed evidence with an author, not something we assert ourselves.
-    $candidates = new DatatourismeAdapter()->normalize(datatourismeFixture(), 'fr');
+    $candidates = app(DatatourismeAdapter::class)->normalize(datatourismeFixture(), 'fr');
 
     $withDescription = collect($candidates)->first(
         fn (array $c): bool => ($c['source_tags']['description'] ?? null) !== null,
@@ -79,7 +79,7 @@ it('keeps the tourism board description as grounded evidence, never as a fact', 
 });
 
 it('reads the French label, because that is the one that exists', function () {
-    $candidates = new DatatourismeAdapter()->normalize([[
+    $candidates = app(DatatourismeAdapter::class)->normalize([[
         'uuid' => 'abc-123',
         'label' => ['@fr' => 'Musée de la chasse et de la nature'],
         'type' => ['PointOfInterest', 'Museum'],

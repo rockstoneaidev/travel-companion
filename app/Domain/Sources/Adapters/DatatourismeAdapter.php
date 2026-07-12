@@ -8,8 +8,8 @@ use App\Domain\Places\Taxonomy\DatatourismeTypeMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
+use App\Support\Http\Harvest;
 use DateInterval;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
@@ -38,6 +38,8 @@ final class DatatourismeAdapter implements ScoutSource
 
     public const VERSION = 'v1';
 
+    public function __construct(private readonly Harvest $harvest) {}
+
     private const BASE = 'https://api.datatourisme.fr/v1/catalog';
 
     // The API pages at 20. Paris alone holds 4,285 POIs, so 120 pages silently
@@ -65,15 +67,16 @@ final class DatatourismeAdapter implements ScoutSource
         ]);
 
         for ($page = 0; $page < self::MAX_PAGES && $url !== null; $page++) {
-            $response = Http::timeout(60)
-                ->retry(3, 5000)
-                ->withHeaders([
+            // Was retry(3, 5000): a FIXED five-second delay, no jitter, and no regard
+            // for Retry-After. Harvest is the ingest lane's shared policy (conventions/09).
+            $response = $this->harvest->get(
+                $url,
+                headers: [
                     'X-API-Key' => (string) $this->key(),
                     'User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)',
-                ])
-                ->get($url);
-
-            $response->throw();
+                ],
+                timeout: 60,
+            )->throwIfUnknown('datatourisme search');
 
             $objects = [...$objects, ...($response->json('objects') ?? [])];
 

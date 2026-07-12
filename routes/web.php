@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
 use App\Http\Controllers\Web\JournalController;
 use App\Http\Controllers\Web\KeptController;
+use App\Http\Controllers\Web\LegalController;
 use App\Http\Controllers\Web\OpportunityController;
 use App\Http\Controllers\Web\PlaceSearchController;
 use App\Http\Controllers\Web\RecommendationFeedbackController;
@@ -25,6 +26,16 @@ Route::get('manifest.webmanifest', PwaManifestController::class)->name('pwa.mani
 Route::get('licenses', function () {
     return Inertia::render('licenses');
 })->name('licenses');
+
+/*
+| The legal pages — PUBLIC, and outside the auth group on purpose. Art. 13 wants the
+| privacy notice available "at the time when personal data are obtained", which is the
+| sign-up form: a notice you can only reach once you have already signed up arrives
+| after the decision it exists to inform. The terms page is what makes Art. 6(1)(b)
+| ("performance of a contract") a true statement about the location processing.
+*/
+Route::get('privacy-policy', [LegalController::class, 'privacy'])->name('legal.privacy');
+Route::get('terms-of-service', [LegalController::class, 'terms'])->name('legal.terms');
 
 // Design-system demo (E8 done-condition): every design-system component, both themes.
 Route::get('design', function () {

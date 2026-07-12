@@ -28,7 +28,7 @@ function merimeeRequest(string $locale = 'fr'): ScoutRequest
 }
 
 it('normalizes protected monuments into typed candidates', function () {
-    $candidates = new MerimeeAdapter()->normalize(merimeeFixture(), 'fr');
+    $candidates = app(MerimeeAdapter::class)->normalize(merimeeFixture(), 'fr');
 
     expect($candidates)->not->toBeEmpty();
 
@@ -44,13 +44,13 @@ it('drops the protected buildings that are not opportunities', function () {
     // The Marais is full of listed `immeuble` — apartment blocks with a plaque.
     // They are Monuments Historiques and they are not somewhere to go. Serving
     // them would bury the Sainte-Chapelle under a thousand façades.
-    $names = array_column(new MerimeeAdapter()->normalize(merimeeFixture(), 'fr'), 'name');
+    $names = array_column(app(MerimeeAdapter::class)->normalize(merimeeFixture(), 'fr'), 'name');
 
     expect($names)->not->toContain('Immeuble');
 });
 
 it('keeps a hôtel particulier — a townhouse, not a hotel', function () {
-    $names = array_column(new MerimeeAdapter()->normalize(merimeeFixture(), 'fr'), 'name');
+    $names = array_column(app(MerimeeAdapter::class)->normalize(merimeeFixture(), 'fr'), 'name');
 
     expect($names)->toContain('Hôtel Le Pelletier de Souzy');
 });
@@ -58,7 +58,7 @@ it('keeps a hôtel particulier — a townhouse, not a hotel', function () {
 it('names a monument by its title, never by its category', function () {
     // `denomination` is "église"; using it as the name would give a hundred
     // places all called "église". The editorial title is the actual name.
-    $candidates = new MerimeeAdapter()->normalize([[
+    $candidates = app(MerimeeAdapter::class)->normalize([[
         'reference' => 'PA00086250',
         'titre_editorial_de_la_notice' => 'Église Saint-Gervais-Saint-Protais',
         'denomination_de_l_edifice' => 'église',
@@ -71,7 +71,7 @@ it('names a monument by its title, never by its category', function () {
 });
 
 it('drops a record with no stable reference — nothing to resolve on', function () {
-    $candidates = new MerimeeAdapter()->normalize([[
+    $candidates = app(MerimeeAdapter::class)->normalize([[
         'reference' => '',
         'titre_editorial_de_la_notice' => 'Anonyme',
         'denomination_de_l_edifice' => 'château',
@@ -83,7 +83,7 @@ it('drops a record with no stable reference — nothing to resolve on', function
 
 it('has nothing to say about Sweden', function () {
     // A French national registry should not be round-tripped for Stockholm.
-    $adapter = new MerimeeAdapter;
+    $adapter = app(MerimeeAdapter::class);
 
     expect($adapter->supports(merimeeRequest('fr')))->toBeTrue()
         ->and($adapter->supports(merimeeRequest('sv')))->toBeFalse();

@@ -22,6 +22,15 @@ return [
     'version' => 'v1',
 
     /*
+    | The controller, as published (GDPR Art. 13(1)(a)).
+    |
+    | The privacy notice and the terms both have to name a contact, and it has to be
+    | the same one in both places and in the Art. 30 record. So it lives here once,
+    | rather than being typed into two React pages that can drift apart.
+    */
+    'controller_email' => env('PRIVACY_CONTACT_EMAIL', 'rockstoneaidev@gmail.com'),
+
+    /*
     | Raw precise location — context events and session origins.
     |
     | Kept 30 days, then coarsened to an H3 res-8 cell plus derived signals, and

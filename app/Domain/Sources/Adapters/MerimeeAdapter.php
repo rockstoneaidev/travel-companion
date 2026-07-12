@@ -8,8 +8,8 @@ use App\Domain\Places\Taxonomy\MerimeeDenominationMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
+use App\Support\Http\Harvest;
 use DateInterval;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Base Mérimée — every building protected as a Monument Historique
@@ -34,6 +34,8 @@ final class MerimeeAdapter implements ScoutSource
 
     public const VERSION = 'v1';
 
+    public function __construct(private readonly Harvest $harvest) {}
+
     private const DATASET = 'liste-des-immeubles-proteges-au-titre-des-monuments-historiques';
 
     private const BASE = 'https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/'.self::DATASET.'/records';
@@ -55,19 +57,20 @@ final class MerimeeAdapter implements ScoutSource
         $records = [];
 
         for ($page = 0; $page < self::MAX_PAGES; $page++) {
-            $response = Http::timeout(60)
-                ->retry(3, 5000)
-                ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
-                ->get(self::BASE, [
+            // Was retry(3, 5000) — fixed delay, no jitter, no Retry-After. See Harvest.
+            $response = $this->harvest->get(
+                self::BASE,
+                [
                     'where' => sprintf(
                         'in_bbox(coordonnees_au_format_wgs84, %F, %F, %F, %F)',
                         $request->south, $request->west, $request->north, $request->east,
                     ),
                     'limit' => self::PAGE,
                     'offset' => $page * self::PAGE,
-                ]);
-
-            $response->throw();
+                ],
+                ['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'],
+                timeout: 60,
+            )->throwIfUnknown('merimee search');
 
             $batch = $response->json('results') ?? [];
             $records = [...$records, ...$batch];

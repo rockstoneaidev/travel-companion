@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Places\Services;
 
 use App\Domain\Places\Models\PlaceImage;
+use App\Support\Http\Harvest;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 /**
  * The v1 photo pipeline (SCREENS build note 6): Wikidata P18 → Commons file →
@@ -21,6 +21,8 @@ final class FetchCommonsImages
     private const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
     private const USER_AGENT = 'TravelCompanion-photos/1.0 (rockstoneaidev@gmail.com)';
+
+    public function __construct(private readonly Harvest $harvest) {}
 
     /**
      * Fetch images for up to $limit wikidata-linked places that have none yet.
@@ -101,12 +103,15 @@ final class FetchCommonsImages
     {
         $values = implode(' ', array_map(static fn (string $q): string => "wd:{$q}", $qids));
 
-        $response = Http::timeout(60)
-            ->withHeaders(['User-Agent' => self::USER_AGENT, 'Accept' => 'application/sparql-results+json'])
-            ->asForm()
-            ->post(self::SPARQL_URL, ['query' => "SELECT ?item ?image WHERE { VALUES ?item { {$values} } ?item wdt:P18 ?image }"]);
-
-        $response->throw();
+        // Was a bare post with no retry: one WDQS throttle and a batch of places
+        // silently got "no photo" — the same shape of bug that emptied Stockholm's
+        // evidence. Throw rather than record a maybe as an absence.
+        $response = $this->harvest->postForm(
+            self::SPARQL_URL,
+            ['query' => "SELECT ?item ?image WHERE { VALUES ?item { {$values} } ?item wdt:P18 ?image }"],
+            ['User-Agent' => self::USER_AGENT, 'Accept' => 'application/sparql-results+json'],
+            timeout: 60,
+        )->throwIfUnknown('wikidata P18 lookup');
 
         $out = [];
         foreach ($response->json('results.bindings') ?? [] as $binding) {
@@ -124,9 +129,9 @@ final class FetchCommonsImages
      */
     private function commonsInfo(array $fileNames): array
     {
-        $response = Http::timeout(60)
-            ->withHeaders(['User-Agent' => self::USER_AGENT])
-            ->get(self::COMMONS_API, [
+        $response = $this->harvest->get(
+            self::COMMONS_API,
+            [
                 'action' => 'query',
                 'titles' => implode('|', $fileNames),
                 'prop' => 'imageinfo',
@@ -134,9 +139,10 @@ final class FetchCommonsImages
                 'iiurlwidth' => 800,
                 'format' => 'json',
                 'formatversion' => 2,
-            ]);
-
-        $response->throw();
+            ],
+            ['User-Agent' => self::USER_AGENT],
+            timeout: 60,
+        )->throwIfUnknown('commons imageinfo');
 
         $out = [];
         foreach ($response->json('query.pages') ?? [] as $page) {

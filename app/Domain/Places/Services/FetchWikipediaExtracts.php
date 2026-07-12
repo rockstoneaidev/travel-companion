@@ -7,8 +7,8 @@ namespace App\Domain\Places\Services;
 use App\Enums\CredibilityTier;
 use App\Enums\SourceLicense;
 use App\Enums\StoragePolicy;
+use App\Support\Http\Harvest;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 /**
  * The narrative layer (DATA-SOURCES §2, Wikipedia — P1, and it was never built).
@@ -60,10 +60,16 @@ final class FetchWikipediaExtracts
 
     private const ATTRIBUTION = 'Wikipedia contributors, CC BY-SA 4.0';
 
+    public function __construct(private readonly Harvest $harvest) {}
+
     /**
      * Fetch intro extracts for up to $limit Wikipedia-linked places that have none.
      *
-     * @return array{candidates: int, extracts: int}
+     * `throttled` is the difference between "these places have no article" and "we
+     * were not allowed to ask". Both used to look identical from the outside, which
+     * is how Stockholm ended up with 4,326 known articles and 20 stored ones.
+     *
+     * @return array{candidates: int, extracts: int, throttled: bool}
      */
     public function fetchBatch(int $limit = 60): array
     {
@@ -81,7 +87,7 @@ final class FetchWikipediaExtracts
         );
 
         if ($rows === []) {
-            return ['candidates' => 0, 'extracts' => 0];
+            return ['candidates' => 0, 'extracts' => 0, 'throttled' => false];
         }
 
         // `sv:Storkyrkan` — the language is part of the identifier, and each language
@@ -98,10 +104,21 @@ final class FetchWikipediaExtracts
         }
 
         $stored = 0;
+        $throttled = false;
 
         foreach ($byLanguage as $language => $titles) {
             foreach (array_chunk(array_keys($titles), self::TITLES_PER_CALL) as $chunk) {
-                foreach ($this->extracts($language, $chunk) as $title => $extract) {
+                $extracts = $this->extracts($language, $chunk);
+
+                // null = we never got an answer. Do NOT treat that as "no article":
+                // the rows stay candidates, and a later run picks them up again.
+                if ($extracts === null) {
+                    $throttled = true;
+
+                    break 2;   // stop asking; we are already being told to slow down
+                }
+
+                foreach ($extracts as $title => $extract) {
                     $externalId = $titles[$title] ?? null;
 
                     if ($externalId === null || $extract === '') {
@@ -114,7 +131,7 @@ final class FetchWikipediaExtracts
             }
         }
 
-        return ['candidates' => count($rows), 'extracts' => $stored];
+        return ['candidates' => count($rows), 'extracts' => $stored, 'throttled' => $throttled];
     }
 
     /**
@@ -124,25 +141,50 @@ final class FetchWikipediaExtracts
      * whole article and not wiki markup. The LLM drafts FROM this; it is never a
      * source of facts itself (conventions/10).
      *
+     * A 429 IS NOT AN ANSWER. The first version of this returned `[]` on any failed
+     * response, which meant "Wikipedia told us to slow down" and "this place has no
+     * article" were the same value. They are not remotely the same fact: one is
+     * recoverable by waiting, the other never is. Conflating them silently emptied
+     * Stockholm's evidence — 4,326 linked articles, 20 stored — and left the curation
+     * queue looking like a region with nothing written about it.
+     *
+     * The backoff now lives in {@see Harvest} (the ingest lane's policy: exponential,
+     * jittered, honours Retry-After). What stays here is the SEMANTIC half, which is
+     * the half that actually mattered: null means "ask again later", an empty array
+     * means "asked, and these articles do not exist".
+     *
      * @param  list<string>  $titles
-     * @return array<string, string> title => extract
+     * @return array<string, string>|null title => extract, or null if we never got an answer
      */
-    private function extracts(string $language, array $titles): array
+    private function extracts(string $language, array $titles): ?array
     {
-        $response = Http::timeout(20)
-            ->withHeaders(['User-Agent' => self::USER_AGENT])
-            ->get("https://{$language}.wikipedia.org/w/api.php", [
+        $result = $this->harvest->get(
+            "https://{$language}.wikipedia.org/w/api.php",
+            [
                 'action' => 'query',
                 'format' => 'json',
                 'prop' => 'extracts',
                 'exintro' => 1,
                 'explaintext' => 1,
                 'redirects' => 1,
+                // The extracts API returns ONE extract per request unless told
+                // otherwise. Without this, 19 of every 20 titles came back with no
+                // `extract` key and looked — again — like articles that don't exist.
+                'exlimit' => self::TITLES_PER_CALL,
                 'titles' => implode('|', $titles),
-            ]);
+            ],
+            ['User-Agent' => self::USER_AGENT],
+            timeout: 20,
+        );
 
-        if ($response->failed()) {
-            return [];
+        if ($result->unknown()) {
+            return null;   // never got an answer — NOT "no article"
+        }
+
+        $response = $result->response;
+
+        if ($response === null) {
+            return null;
         }
 
         $out = [];
