@@ -5,6 +5,7 @@ export { EmptyFeed } from './empty-feed';
 export { EvidenceList, type EvidenceItem } from './evidence-list';
 export { GoNowBadge } from './go-now';
 export { GoNowPin, PlacePin, YouMarker } from './map-pin';
+export { PassoNavMenu } from './nav-menu';
 export { OpportunityCard, type OpportunityCardProps } from './opportunity-card';
 export { ProgressSegments } from './progress-segments';
 export { SectionLabel } from './section-label';
