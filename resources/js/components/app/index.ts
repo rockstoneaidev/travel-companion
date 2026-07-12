@@ -1,13 +1,13 @@
-export { PassoAppHeader } from './app-header';
+export { AppHeader } from './app-header';
 export { ChoicePill, PrimaryPill, QuietAction, SecondaryPill, TextAction } from './buttons';
 export { EditorialLede } from './editorial-lede';
 export { EmptyFeed } from './empty-feed';
 export { EvidenceList, type EvidenceItem } from './evidence-list';
 export { GoNowBadge } from './go-now';
 export { GoNowPin, PlacePin, YouMarker } from './map-pin';
-export { PassoNavMenu } from './nav-menu';
+export { NavMenu } from './nav-menu';
 export { OpportunityCard, type OpportunityCardProps } from './opportunity-card';
 export { ProgressSegments } from './progress-segments';
 export { SectionLabel } from './section-label';
-export { TabBar, type PassoTab } from './tab-bar';
+export { TabBar, type TabItem } from './tab-bar';
 export { WhyYou } from './why-you';

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
 
-export interface PassoTab {
+export interface TabItem {
     label: string;
     href: string;
     active?: boolean;
@@ -11,7 +11,7 @@ export interface PassoTab {
  * Floating pill tab bar (DESIGN §3): fixed bottom on mobile, above safe-area insets.
  * From lg it becomes a left rail (DESIGN §4 two-pane layout).
  */
-export function TabBar({ tabs, className, ...props }: React.ComponentProps<'nav'> & { tabs: PassoTab[] }) {
+export function TabBar({ tabs, className, ...props }: React.ComponentProps<'nav'> & { tabs: TabItem[] }) {
     return (
         <nav
             aria-label="Primary"

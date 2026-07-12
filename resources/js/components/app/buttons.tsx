@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 /**
- * Passo action shapes (DESIGN §3 Buttons). The action *vocabulary* is fixed
+ * Action shapes (DESIGN §3 Buttons). The action *vocabulary* is fixed
  * (primary "Take me" · defer "Keep"/"Remind me" · reject "Not for me") — callers
  * pass those words, these components provide the shapes.
  */

@@ -19,7 +19,7 @@ Route::get('licenses', function () {
     return Inertia::render('licenses');
 })->name('licenses');
 
-// Design-system demo (E8 done-condition): every passo component, both themes.
+// Design-system demo (E8 done-condition): every design-system component, both themes.
 Route::get('design', function () {
     return Inertia::render('design');
 })->name('design');

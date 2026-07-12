@@ -19,7 +19,7 @@ export interface OpportunityCardProps {
 }
 
 /**
- * The core Passo object (DESIGN §3). Standard card: quiet, facet caps, text actions.
+ * The core product object (DESIGN §3). Standard card: quiet, facet caps, text actions.
  * Urgent card: 1.5px ochre border, GO NOW badge, filled Take me pill — max one per feed.
  */
 export function OpportunityCard({ title, summary, facets = [], urgency, meta, onTakeMe, onKeep, className }: OpportunityCardProps) {

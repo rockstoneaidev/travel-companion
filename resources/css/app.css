@@ -11,19 +11,19 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    /* Passo type pairing (DESIGN.md §2.3). Self-hosted via Fontsource — no font CDN (GDPR). */
+    /* Type pairing (DESIGN.md §2.3). Self-hosted via Fontsource — no font CDN (GDPR). */
     --font-sans: 'Karla Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
-    /* Passo shape scale (DESIGN.md §2.4): cards 10px, photo/detail 12px, map sheet 14px, pills full. */
+    /* Shape scale (DESIGN.md §2.4): cards 10px, photo/detail 12px, map sheet 14px, pills full. */
     --radius-card: 0.625rem;
     --radius-photo: 0.75rem;
     --radius-sheet: 0.875rem;
 
-    /* Passo type scale (DESIGN.md §2.3), rem-based so system font scaling works. */
+    /* Type scale (DESIGN.md §2.3), rem-based so system font scaling works. */
     --text-wordmark: 1.375rem;
     --text-wordmark--line-height: 1;
     --text-headline: 1.5rem;
@@ -47,7 +47,7 @@
     --text-gonow: 0.65625rem;
     --text-gonow--line-height: 1.3;
 
-    /* Passo palette (DESIGN.md §2.1–2.2) — components reference tokens, never raw hexes. */
+    /* Palette (DESIGN.md §2.1–2.2) — components reference tokens, never raw hexes. */
     --color-paper: var(--paper);
     --color-ink: var(--ink);
     --color-body: var(--body);
@@ -65,7 +65,7 @@
     --color-map-road: var(--map-road);
     --color-map-green: var(--map-green);
 
-    /* shadcn semantic tokens, mapped onto Passo so starter components inherit the theme. */
+    /* shadcn semantic tokens, mapped onto the design tokens so starter components inherit the theme. */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
 
@@ -109,7 +109,7 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Passo shadows (DESIGN.md §2.1) */
+    /* Shadows (DESIGN.md §2.1) */
     --shadow-card: 0 1px 2px rgba(59, 47, 36, 0.06);
     --shadow-urgent: 0 4px 16px rgba(160, 110, 40, 0.14);
     --shadow-sheet: 0 8px 24px rgba(59, 47, 36, 0.18);
@@ -134,7 +134,7 @@
 }
 
 :root {
-    /* Passo — light ("paper"), DESIGN.md §2.1 */
+    /* Light ("paper"), DESIGN.md §2.1 */
     --paper: #f6f0e4;
     --ink: #3b2f24;
     --body: #5c5142;
@@ -152,7 +152,7 @@
     --map-road: #e4dac4;
     --map-green: #dce3d6;
 
-    /* shadcn semantics → Passo */
+    /* shadcn semantics → design tokens */
     --background: var(--paper);
     --foreground: var(--ink);
     --card: #fcf8ee;
@@ -189,7 +189,7 @@
 }
 
 .dark {
-    /* Passo — dark ("night paper"), DESIGN.md §2.2. Warm night, not gray.
+    /* Dark ("night paper"), DESIGN.md §2.2. Warm night, not gray.
        Every light token name exists here too (same value where the spec collapses them). */
     --paper: #221b13;
     --ink: #efe6d6;

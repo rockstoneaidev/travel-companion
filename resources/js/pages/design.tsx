@@ -1,11 +1,11 @@
 import {
+    AppHeader,
     ChoicePill,
     EditorialLede,
     EmptyFeed,
     EvidenceList,
     GoNowPin,
     OpportunityCard,
-    PassoAppHeader,
     PlacePin,
     PrimaryPill,
     ProgressSegments,
@@ -15,7 +15,7 @@ import {
     TextAction,
     WhyYou,
     YouMarker,
-} from '@/components/passo';
+} from '@/components/app';
 import { useAppearance } from '@/hooks/use-appearance';
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
@@ -36,7 +36,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     );
 }
 
-/** E8 demo page: every passo component with mock data, both themes, three widths. */
+/** E8 demo page: every design-system component with mock data, both themes, three widths. */
 export default function Design() {
     const { updateAppearance } = useAppearance();
     const [choice, setChoice] = useState('20 min');
@@ -47,7 +47,7 @@ export default function Design() {
             <TabBar tabs={TABS} />
 
             <div className="mx-auto max-w-md space-y-10 px-5 py-8">
-                <PassoAppHeader contextStamp="Lisbon · 17:12" />
+                <AppHeader contextStamp="Lisbon · 17:12" />
                 <EditorialLede>One thing worth going for now. Two keep until tomorrow.</EditorialLede>
 
                 <Section title="Theme">
