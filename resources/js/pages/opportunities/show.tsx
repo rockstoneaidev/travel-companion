@@ -1,4 +1,4 @@
-import { EvidenceList, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, WhyYou } from '@/components/passo';
+import { EvidenceList, PassoNavMenu, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, WhyYou } from '@/components/passo';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -43,14 +43,15 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
         <div className="bg-paper min-h-screen">
             <Head title={opportunity.title} />
             <div className="mx-auto max-w-md space-y-6 px-5 py-8">
-                <div className="flex items-baseline justify-between">
+                <div className="flex items-center justify-between">
                     {sessionId !== null ? (
-                        <Link href={`/explore/${sessionId}`} className="text-meta text-xs font-medium">
+                        <Link href={`/explore/${sessionId}`} className="text-meta hover:text-ink text-xs font-medium">
                             ← Back
                         </Link>
                     ) : (
                         <span />
                     )}
+                    <PassoNavMenu className="-mr-2 ml-0" />
                 </div>
 
                 {image !== null ? (
