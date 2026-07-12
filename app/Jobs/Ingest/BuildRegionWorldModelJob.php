@@ -7,6 +7,7 @@ namespace App\Jobs\Ingest;
 use App\Domain\Places\Services\FetchCommonsImages;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Domain\Sources\Services\SourceRegistry;
 use App\Enums\QueueLane;
@@ -74,9 +75,12 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         return 600;
     }
 
-    public function handle(RegionIngest $ingest, SourceRegistry $registry, ResolveRegion $resolve, FetchCommonsImages $photos): void
+    public function handle(RegionIngest $ingest, SourceRegistry $registry, ResolveRegion $resolve, FetchCommonsImages $photos, RegionBuildStatus $status): void
     {
         $region = IngestRegion::named($this->regionKey);
+
+        // So the admin console can say what is happening instead of nothing at all.
+        $status->phase($this->regionKey, $this->source === null ? $this->phase : "{$this->phase}: {$this->source}");
 
         if ($this->phase === 'ingest') {
             // ONE SOURCE PER JOB, chained.
@@ -165,6 +169,10 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         // (PRD §9.3). WarmTileJob existed but nothing dispatched it; the runner
         // warmed inline instead, and its own docblock said the opposite.
         $this->warmRegionTiles($this->regionKey);
+
+        // Release the claim: the button is live again, and the console stops saying
+        // "building" for a region that finished an hour ago.
+        $status->finish($this->regionKey);
 
         Log::info("world-model build complete for {$this->regionKey}");
     }

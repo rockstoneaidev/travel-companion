@@ -2,11 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Domain\Places\Services\FetchCommonsImages;
-use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
-use App\Domain\Sources\Services\RegionIngest;
-use App\Domain\Sources\Services\SourceRegistry;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
 use App\Jobs\Ingest\IngestRegionBoxJob;
 use Illuminate\Bus\PendingBatch;
@@ -91,12 +87,9 @@ it('cuts a big region into small boxes, one job each', function () {
 it('queues every box up front instead of chaining them', function () {
     Bus::fake();
 
-    new BuildRegionWorldModelJob('stockholm', 'ingest', 'osm')->handle(
-        app(RegionIngest::class),
-        app(SourceRegistry::class),
-        app(ResolveRegion::class),
-        app(FetchCommonsImages::class),
-    );
+    // Let the container wire it: the job's dependencies are the container's problem,
+    // not this test's — and hand-listing them means every new one breaks the test.
+    app()->call([new BuildRegionWorldModelJob('stockholm', 'ingest', 'osm'), 'handle']);
 
     /*
      * BATCHED, NOT CHAINED — and they are not equivalent.
