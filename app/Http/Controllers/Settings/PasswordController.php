@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Auth\Models\SocialAccount;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -20,19 +21,39 @@ class PasswordController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
         return Inertia::render('settings/password', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            // Drives "Set a password" vs "Update password" — a Google-created
+            // account has no current password to confirm (E22).
+            'hasPassword' => $user->hasPassword(),
+            'socialAccounts' => $user->socialAccounts()
+                ->get()
+                ->map(fn (SocialAccount $account): array => [
+                    'provider' => $account->provider->value,
+                    'label' => $account->provider->label(),
+                    'email' => $account->email,
+                    'linked_at' => $account->created_at?->toIso8601String(),
+                ])
+                ->all(),
         ]);
     }
 
     /**
-     * Update the user's password.
+     * Update the user's password — or set the first one, for an account created
+     * through Google.
      */
     public function update(Request $request): RedirectResponse
     {
+        // A user with no password cannot prove one. Their possession of a live
+        // session (established by Google, which verified the email) is the proof
+        // we have, and it is the same proof a password reset link would give us.
         $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
+            'current_password' => $request->user()->hasPassword()
+                ? ['required', 'current_password']
+                : ['missing'],
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 

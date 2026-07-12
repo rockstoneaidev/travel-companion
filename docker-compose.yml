@@ -68,6 +68,17 @@ services:
     networks:
       travel-companion: {}
 
+  # Catches every mail the app sends — password resets today, verification links
+  # when E22's follow-up lands. Nothing leaves the machine. UI on :8025.
+  mailpit:
+    image: 'axllent/mailpit:latest'
+    restart: unless-stopped
+    ports:
+      - '${FORWARD_MAILPIT_PORT:-1025}:1025'
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+    networks:
+      travel-companion: {}
+
   adminer:
     image: adminer
     restart: unless-stopped

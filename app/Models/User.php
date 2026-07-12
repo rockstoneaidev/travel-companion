@@ -3,8 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Auth\Models\SocialAccount;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -50,5 +52,23 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /** Linked OAuth identities — Google today, Apple in Phase 2 (E22). */
+    /** @return HasMany<SocialAccount, $this> */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    /**
+     * False for accounts created through Google that never set one. Such a user
+     * can still log in (via the provider) and can still *set* a password from
+     * settings — but `current_password` cannot be asked of them, and they must
+     * not be allowed to unlink their last provider.
+     */
+    public function hasPassword(): bool
+    {
+        return $this->password !== null;
     }
 }

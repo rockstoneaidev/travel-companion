@@ -211,6 +211,57 @@ arch('admin platform code declares strict types')
 
 /*
 |--------------------------------------------------------------------------
+| E22 — the App\Auth platform namespace
+|--------------------------------------------------------------------------
+|
+| Identity is a platform concern, not a thirteenth domain module (01 fixes the
+| twelve). It gets the same treatment as App\Admin: transport-agnostic, so the
+| Phase 2 mobile client can hand it a SocialIdentity built from a Google ID
+| token and reuse every linking and allowlist decision unchanged.
+|
+| Socialite in particular must not leak in — it is the *web redirect* adapter,
+| and a domain that imports it cannot be driven by a native client.
+|
+*/
+
+arch('auth platform code is transport-agnostic')
+    ->expect('App\Auth')
+    ->not->toUse([
+        'Illuminate\Http\Request',
+        'Illuminate\Http\Response',
+        'Illuminate\Http\JsonResponse',
+        'Illuminate\Http\RedirectResponse',
+        'Inertia\Inertia',
+        'Illuminate\Support\Facades\Route',
+        'Laravel\Socialite\Facades\Socialite',
+        'Laravel\Socialite\Contracts\User',
+        'App\Http\Resources',
+        'App\Http\Requests',
+        'App\Http\Controllers',
+    ]);
+
+arch('auth platform code does not abort or build responses')
+    ->expect('App\Auth')
+    ->not->toUse(['abort', 'abort_if', 'abort_unless', 'response', 'request', 'redirect', 'to_route']);
+
+arch('the domain never depends on the auth platform')
+    ->expect('App\Domain')
+    ->not->toUse('App\Auth');
+
+arch('auth DTOs are readonly')
+    ->expect('App\Auth\Data')
+    ->toBeReadonly();
+
+arch('auth enums are string-backed')
+    ->expect('App\Auth\Enums')
+    ->toBeStringBackedEnums();
+
+arch('auth platform code declares strict types')
+    ->expect('App\Auth')
+    ->toUseStrictTypes();
+
+/*
+|--------------------------------------------------------------------------
 | Hygiene
 |--------------------------------------------------------------------------
 */
