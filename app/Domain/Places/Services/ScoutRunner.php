@@ -75,8 +75,12 @@ final class ScoutRunner
 
     /**
      * Cached candidates for a set of tiles across all scouts — what the
-     * ranking pipeline (E7) reads. Cache-only: cold tiles return empty and
-     * are warmed by the jobs, never inline on the read path.
+     * ranking pipeline (E7) reads.
+     *
+     * Cache-only: a cold tile returns empty here and is never filled from this
+     * method. Filling happens either ahead of time (BuildRegionWorldModelJob's
+     * `warm` phase dispatches a WarmTileJob per tile/scout) or, for a tile the
+     * region build has not reached, by warm() on the ranking path.
      *
      * @param  list<string>  $tiles
      * @return list<array<string, mixed>>

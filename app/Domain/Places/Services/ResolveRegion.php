@@ -41,6 +41,25 @@ final class ResolveRegion
     }
 
     /**
+     * Every tile holding a canonical place in the region — what the shared tile
+     * cache needs pre-warmed (PRD §9.3).
+     *
+     * @return list<string>
+     */
+    public function tilesFor(IngestRegion $region): array
+    {
+        return DB::table('places_core')
+            ->selectRaw('DISTINCT h3_index')
+            ->whereRaw(
+                'ST_Intersects(location::geometry, ST_MakeEnvelope(?, ?, ?, ?, 4326))',
+                [$region->west, $region->south, $region->east, $region->north],
+            )
+            ->orderBy('h3_index')
+            ->pluck('h3_index')
+            ->all();
+    }
+
+    /**
      * @param  list<string>  $tiles
      * @return array{items: int, created: int, merged: int, review: int, explicit: int}
      */

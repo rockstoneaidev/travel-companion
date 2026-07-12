@@ -9,6 +9,7 @@ use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Domain\Sources\Services\SourceRegistry;
+use App\Jobs\Scouts\WarmTileJob;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -21,7 +22,9 @@ use Throwable;
  * never fatal — conventions/09), then self-chains into `resolve`, which works
  * through tiles in small batches and re-dispatches itself until none remain —
  * each hop stays well inside the queue's retry_after window, and resolver
- * idempotency makes every re-entry safe.
+ * idempotency makes every re-entry safe. Then `photos`, then `warm`, which
+ * pre-fills the shared tile cache so the first real session does not pay for a
+ * cold tile on the read path.
  */
 final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -84,16 +87,43 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             return;
         }
 
-        // phase: photos — Commons imagery in the same self-chaining shape.
-        $result = $photos->fetchBatch();
-        Log::info("world-model photos {$this->regionKey} batch", $result);
+        if ($this->phase === 'photos') {
+            $result = $photos->fetchBatch();
+            Log::info("world-model photos {$this->regionKey} batch", $result);
 
-        if ($result['candidates'] > 0) {
-            self::dispatch($this->regionKey, 'photos');
+            if ($result['candidates'] > 0) {
+                self::dispatch($this->regionKey, 'photos');
+
+                return;
+            }
+
+            self::dispatch($this->regionKey, 'warm');
 
             return;
         }
 
+        // phase: warm — pre-fill the shared tile cache for the region.
+        //
+        // Without this the first session in a cold tile pays for every scout on
+        // the read path, which is the latency the cache exists to remove
+        // (PRD §9.3). WarmTileJob existed but nothing dispatched it; the runner
+        // warmed inline instead, and its own docblock said the opposite.
+        $this->warmRegionTiles($this->regionKey);
+
         Log::info("world-model build complete for {$this->regionKey}");
+    }
+
+    /** One WarmTileJob per (tile, scout); ShouldBeUnique collapses duplicates. */
+    private function warmRegionTiles(string $regionKey): void
+    {
+        $tiles = app(ResolveRegion::class)->tilesFor(IngestRegion::named($regionKey));
+
+        foreach ($tiles as $tile) {
+            foreach (app()->tagged('tile-scouts') as $scout) {
+                WarmTileJob::dispatch($scout::class, $tile);
+            }
+        }
+
+        Log::info("world-model warm {$regionKey}", ['tiles' => count($tiles)]);
     }
 }

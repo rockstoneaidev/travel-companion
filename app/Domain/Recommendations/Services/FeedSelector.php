@@ -31,38 +31,58 @@ final readonly class FeedSelector
         $cold = $alpha < $this->model->feed['cold_alpha_threshold'];
 
         while (count($picked) < $feedSize && $candidates !== []) {
-            $best = null;
-            $bestIndex = null;
+            /**
+             * One greedy round. $probeFacets applies the cold-start rule that
+             * skips candidates covering no new facet (PRD §11 rule c).
+             *
+             * @return array{0: array<string, mixed>|null, 1: int|null}
+             */
+            $round = function (bool $probeFacets) use ($candidates, $context, $alpha, $cold, $pickedDomains, $pickedFacets, $pickedBuckets): array {
+                $best = null;
+                $bestIndex = null;
 
-            foreach ($candidates as $i => $candidate) {
-                // §5.2 repetition against what is already picked.
-                $repetition = min(1.0, $this->model->feed['repetition_step'] * ($pickedDomains[$candidate['type_domain']] ?? 0));
+                foreach ($candidates as $i => $candidate) {
+                    // §5.2 repetition against what is already picked.
+                    $repetition = min(1.0, $this->model->feed['repetition_step'] * ($pickedDomains[$candidate['type_domain']] ?? 0));
 
-                // Cold sessions probe unprobed facets (PRD §11 rule c).
-                if ($cold && count($candidates) >= 2 && $pickedFacets !== []
-                    && $candidate['facets'] !== [] && array_diff($candidate['facets'], $pickedFacets) === []) {
-                    continue;
+                    if ($probeFacets && $cold && count($candidates) >= 2 && $pickedFacets !== []
+                        && $candidate['facets'] !== [] && array_diff($candidate['facets'], $pickedFacets) === []) {
+                        continue;
+                    }
+
+                    $result = $this->scorer->composite($candidate['sub_scores'], $context, $alpha, $candidate['friction_raw'], $repetition);
+                    $score = $result['composite'];
+
+                    // Duration variety: a soft tie-breaker among near-equals, never
+                    // an override of a clearly better item.
+                    $bucket = $this->bucket((float) ($candidate['total_minutes'] ?? 30));
+                    if ($best !== null && ! isset($pickedBuckets[$bucket]) && isset($pickedBuckets[$best['bucket']])
+                        && abs($score - $best['score']) < 0.02) {
+                        $score += 0.001;
+                    }
+
+                    if ($best === null || $score > $best['score']) {
+                        $best = ['score' => $score, 'result' => $result, 'repetition' => $repetition, 'bucket' => $bucket];
+                        $bestIndex = $i;
+                    }
                 }
 
-                $result = $this->scorer->composite($candidate['sub_scores'], $context, $alpha, $candidate['friction_raw'], $repetition);
-                $score = $result['composite'];
+                return [$best, $bestIndex];
+            };
 
-                // Duration variety: a soft tie-breaker among near-equals, never
-                // an override of a clearly better item.
-                $bucket = $this->bucket((float) ($candidate['total_minutes'] ?? 30));
-                if ($best !== null && ! isset($pickedBuckets[$bucket]) && isset($pickedBuckets[$best['bucket']])
-                    && abs($score - $best['score']) < 0.02) {
-                    $score += 0.001;
-                }
+            [$best, $bestIndex] = $round(probeFacets: true);
 
-                if ($best === null || $score > $best['score']) {
-                    $best = ['score' => $score, 'result' => $result, 'repetition' => $repetition, 'bucket' => $bucket];
-                    $bestIndex = $i;
-                }
+            // Facet coverage is a PREFERENCE, not a filter. If every remaining
+            // candidate covers only facets we have already probed, the round
+            // skips all of them and the feed would come back short — the user
+            // gets three items because their tile is thematically narrow, which
+            // is not a taste signal, it is a bug. Re-run without the rule.
+            if ($bestIndex === null) {
+                [$best, $bestIndex] = $round(probeFacets: false);
             }
 
             if ($bestIndex === null) {
-                break;
+                break;   // genuinely nothing left
             }
 
             $candidate = $candidates[$bestIndex];

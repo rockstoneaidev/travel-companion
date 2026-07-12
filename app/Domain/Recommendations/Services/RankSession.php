@@ -8,10 +8,10 @@ use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
 use App\Domain\Places\Services\CoverageGeometry;
 use App\Domain\Places\Services\ScoutRunner;
+use App\Domain\Places\Services\TileUniquenessSignals;
 use App\Domain\Profiles\Services\TasteProfiles;
 use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Models\Recommendation;
-use App\Domain\Recommendations\Support\Num;
 use App\Domain\Trips\Data\ExploreSessionData;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +37,7 @@ final class RankSession
         private readonly ScoringModelResolver $resolver,
         private readonly MaterializeEvergreenOpportunities $materialize,
         private readonly CostMeter $cost,
+        private readonly TileUniquenessSignals $uniqueness,
     ) {}
 
     /**
@@ -115,6 +116,11 @@ final class RankSession
         return [
             'picked' => $picked,
             'held' => $decided['held'],
+            // Candidates the reachability gate dropped, with their breakdowns.
+            // The gate computed these and they were being thrown away, so a trace
+            // could never answer "why was this not offered to me" — which is the
+            // only question a decision trace exists to answer (PRD §15.1).
+            'unreachable' => $this->unreachableTrace($gated['excluded']),
             'model' => $model,
             'alpha' => $alpha,
             'context' => $context,
@@ -152,6 +158,15 @@ final class RankSession
                     'raw' => $candidate['raw_inputs'],
                     'selection' => $candidate['selection'],
                     'reachability' => $candidate['reachability'],
+                    // Session-level funnel: what this item beat, and what never
+                    // got the chance to compete (PRD §15.1 — the full decision
+                    // trace, not just the winner's half of it).
+                    'funnel' => [
+                        'unreachable' => $plan['unreachable'],
+                        'held' => array_map(static fn (array $c): array => [
+                            'place_id' => $c['place_id'], 'name' => $c['name'], 'hold' => $c['hold'],
+                        ], $plan['held']),
+                    ],
                 ],
                 'coverage_flags' => $candidate['missing'],
                 'scoring_model_version' => $model->version,
@@ -177,6 +192,29 @@ final class RankSession
         return $recommendations;
     }
 
+    /**
+     * A compact record of what the reachability gate dropped and why. Capped:
+     * a wide coverage disc can exclude thousands, and a trace nobody can read
+     * is not observability.
+     *
+     * @param  list<array<string, mixed>>  $excluded
+     * @return array{count: int, sample: list<array<string, mixed>>}
+     */
+    private function unreachableTrace(array $excluded): array
+    {
+        $sample = [];
+
+        foreach (array_slice($excluded, 0, 25) as $candidate) {
+            $sample[] = [
+                'place_id' => $candidate['place_id'],
+                'name' => $candidate['name'],
+                'reachability' => $candidate['reachability'],
+            ];
+        }
+
+        return ['count' => count($excluded), 'sample' => $sample];
+    }
+
     /** @param array<string, mixed> $candidate */
     private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents, CarbonImmutable $at): array
     {
@@ -188,10 +226,16 @@ final class RankSession
         $scores['personal_fit'] = $fit['value'];
         $raw['personal_fit'] = $fit['inputs'];
 
+        // Tile-relative and tile-cached (SCORING §2.3, §4.2). u1 needs Google
+        // review counts (edge-only, never persisted) and u2 needs embeddings that
+        // do not exist yet — both drop out of the weighted sum and discount
+        // confidence, which is the designed behaviour for a missing signal (§2.5).
         $uniq = $subScores->uniqueness([
-            'u1' => null, 'u2' => null, 'u3' => null, // review counts, embeddings, evidence locality: not yet measured (§2.5)
-            'u4' => 0.0,                              // evergreen temporal rarity
-            'u5' => null,
+            'u1' => null,
+            'u2' => null,
+            'u3' => $candidate['u3'] ?? null,
+            'u4' => 0.0,                              // evergreen: rarity 0 by definition, not missing
+            'u5' => $candidate['u5'] ?? null,
             'u6' => $candidate['u6'] ?? null,
         ]);
         $scores['uniqueness'] = $uniq['value'];
@@ -259,41 +303,49 @@ final class RankSession
         $byPlace = [];
         foreach ($candidates as $candidate) {
             $id = $candidate['place_id'];
-            if (isset($byPlace[$id])) {
-                $byPlace[$id]['scouts'][] = $candidate['scout'];
+
+            if (! isset($byPlace[$id])) {
+                $candidate['scouts'] = [$candidate['scout']];
+                $byPlace[$id] = $candidate;
 
                 continue;
             }
-            $candidate['scouts'] = [$candidate['scout']];
-            $byPlace[$id] = $candidate;
-        }
 
-        // u6: share of tile places with facet-set Jaccard ≥ 0.5 (SCORING §4.2).
-        $byTile = [];
-        foreach ($byPlace as $id => $c) {
-            $byTile[$c['h3_index']][] = $id;
-        }
+            $byPlace[$id]['scouts'][] = $candidate['scout'];
 
-        foreach ($byTile as $ids) {
-            foreach ($ids as $id) {
-                $mine = $byPlace[$id]['facets'];
-                if ($mine === [] || count($ids) < 2) {
-                    $byPlace[$id]['u6'] = null;
-
+            // Union what the later scout knows that the first one did not.
+            //
+            // This used to `continue` here, which silently dropped everything
+            // except the scout's name — and CuratedScout runs last. So for any
+            // place another scout had already seen (a lake is found by
+            // NatureScout; a gallery by NearbyPlaceScout), the reviewed curated
+            // claim was thrown away and the place was served with no voice at
+            // all. Curated content is the whole point of the pack.
+            foreach ($candidate as $key => $value) {
+                if ($key === 'scout' || $key === 'scouts' || $value === null) {
                     continue;
                 }
 
-                $similar = 0;
-                foreach ($ids as $otherId) {
-                    $theirs = $byPlace[$otherId]['facets'];
-                    $union = count(array_unique([...$mine, ...$theirs]));
-                    if ($union > 0 && count(array_intersect($mine, $theirs)) / $union >= 0.5) {
-                        $similar++;
-                    }
+                if (! isset($byPlace[$id][$key]) || $byPlace[$id][$key] === null) {
+                    $byPlace[$id][$key] = $value;
                 }
-
-                $byPlace[$id]['u6'] = round(Num::clamp(1.0 - $similar / count($ids)), 4);
             }
+        }
+
+        // Uniqueness signals are tile-relative and tile-cached (SCORING §2.3):
+        // computed once per tile over EVERY place in it, shared across users.
+        // They used to be computed here over the scouted candidate set, which is
+        // only the slice of the tile the scouts happened to return — a percentile
+        // over a fraction of the population is not a percentile.
+        $tiles = array_values(array_unique(array_column($byPlace, 'h3_index')));
+
+        $signals = [];
+        foreach ($tiles as $tile) {
+            $signals += $this->uniqueness->forTile($tile);
+        }
+
+        foreach ($byPlace as $id => $candidate) {
+            $byPlace[$id] = [...$candidate, ...($signals[$id] ?? ['u3' => null, 'u5' => null, 'u6' => null])];
         }
 
         return array_values($byPlace);

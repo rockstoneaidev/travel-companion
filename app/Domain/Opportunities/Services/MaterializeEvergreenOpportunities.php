@@ -46,6 +46,12 @@ final class MaterializeEvergreenOpportunities
                     'h3_index' => $candidate['h3_index'],
                     'expires_at' => now()->addDay(),
                 ]);
+            } elseif ($existing->summary === null && ($candidate['summary'] ?? null) !== null) {
+                // A live opportunity predates the pack: it was materialized before
+                // this place had a reviewed claim, and reusing it verbatim would
+                // keep serving the place mute until the row expired. Publishing a
+                // pack has to show up in the feed now, not tomorrow.
+                $existing->forceFill(['summary' => $candidate['summary']])->save();
             }
 
             $map[$candidate['place_id']] = $existing->id;

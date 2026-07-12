@@ -39,10 +39,26 @@ final class WorldModelController extends Controller
                 'unresolved_tiles' => count($resolve->unresolvedTiles($region)),
                 'approved_curated' => CuratedItem::query()->where('status', CurationStatus::Approved)->count(),
                 'last_scout_run' => ScoutRun::query()->latest('created_at')->value('created_at')?->toIso8601String(),
+                // Cache hit rate is a PRODUCT metric, not an ops curiosity: a
+                // cold shared tile is latency the traveler pays for (PRD §9.3).
+                'scout_hit_rate' => self::hitRate(),
             ];
         })->values()->all();
 
         return Inertia::render('admin/world-model', ['regions' => $regions]);
+    }
+
+    /** Hit rate across the last 24h of scout runs, or null if nothing ran. */
+    private static function hitRate(): ?float
+    {
+        $row = ScoutRun::query()
+            ->where('created_at', '>=', now()->subDay())
+            ->selectRaw('SUM(tiles_hit) AS hit, SUM(tiles_requested) AS requested')
+            ->first();
+
+        $requested = (int) ($row->requested ?? 0);
+
+        return $requested === 0 ? null : round(((int) $row->hit) / $requested, 4);
     }
 
     public function build(string $region): RedirectResponse

@@ -87,12 +87,30 @@ final class ReplaySessionCommand extends Command
     {
         $scouted = array_sum(array_column($plan['scout_summary'], 'candidates'));
         $held = $plan['held'];
+        $unreachable = $plan['unreachable'];
 
         $this->components->twoColumnDetail('<fg=gray>scouted</>', (string) $scouted);
+        $this->components->twoColumnDetail('<fg=gray>dropped: unreachable</>', (string) $unreachable['count']);
         $this->components->twoColumnDetail('<fg=gray>held at Decide</>', (string) count($held));
         $this->components->twoColumnDetail('<fg=gray>served</>', (string) count($plan['picked']));
 
+        if ($unreachable['sample'] !== []) {
+            $this->newLine();
+            $this->line('  <fg=yellow>Out of reach on this budget (PRD §10 step 8):</>');
+
+            foreach (array_slice($unreachable['sample'], 0, 5) as $candidate) {
+                $r = $candidate['reachability'];
+                $this->line(sprintf(
+                    '    %-32s %s min travel + %s dwell vs %s left',
+                    mb_strimwidth((string) $candidate['name'], 0, 32, '…'),
+                    $r['travel_min'] ?? '?', $r['dwell_min'] ?? '?', $r['remaining_min'] ?? '?',
+                ));
+            }
+        }
+
         if ($held === []) {
+            $this->newLine();
+
             return;
         }
 

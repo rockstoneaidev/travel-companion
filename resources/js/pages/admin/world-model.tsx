@@ -17,6 +17,7 @@ interface RegionStatus {
     unresolved_tiles: number;
     approved_curated: number;
     last_scout_run: string | null;
+    scout_hit_rate: number | null;
 }
 
 export default function AdminWorldModel({ regions }: { regions: RegionStatus[] }) {
@@ -45,6 +46,7 @@ export default function AdminWorldModel({ regions }: { regions: RegionStatus[] }
                             <span>{region.places.toLocaleString()} canonical places</span>
                             <span>{region.approved_curated} curated approved</span>
                             {region.last_scout_run && <span>last scout {new Date(region.last_scout_run).toLocaleString()}</span>}
+                            {region.scout_hit_rate !== null && <span>tile cache {Math.round(region.scout_hit_rate * 100)}% hit (24h)</span>}
                         </div>
 
                         <div className="mt-3 flex items-center gap-3">

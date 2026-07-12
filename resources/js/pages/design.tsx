@@ -7,12 +7,15 @@ import {
     GoNowPin,
     OpportunityCard,
     PlacePin,
+    PlaceSearch,
     PrimaryPill,
     ProgressSegments,
     QuietAction,
     SecondaryPill,
+    SectionLabel,
     TabBar,
     TextAction,
+    VisitPromptCard,
     WhyYou,
     YouMarker,
 } from '@/components/app';
@@ -127,6 +130,18 @@ export default function Design() {
                             nextMoment="Next likely moment · around 17:00"
                         />
                     </div>
+                </Section>
+
+                <Section title="Section label">
+                    <SectionLabel>history · architecture</SectionLabel>
+                </Section>
+
+                <Section title="Place search — the manual start point (S2)">
+                    <PlaceSearch onChoose={() => {}} />
+                </Section>
+
+                <Section title="Were you there? (S4)">
+                    <VisitPromptCard placeName="Färgfabriken" onWasThere={() => {}} onDidntGo={() => {}} />
                 </Section>
             </div>
         </div>
