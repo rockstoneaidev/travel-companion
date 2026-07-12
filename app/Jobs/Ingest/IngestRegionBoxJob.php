@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs\Ingest;
 
 use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Exceptions\OverpassRateLimited;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Enums\QueueLane;
 use Illuminate\Bus\Batchable;
@@ -63,13 +64,30 @@ final class IngestRegionBoxJob implements ShouldQueue
     public int $timeout = 600;
 
     /**
-     * Two, now that a job is a minute rather than an hour.
+     * Five, now that a job is a minute rather than an hour.
      *
-     * A box that catches Overpass on a bad breath deserves a second ask before we
-     * write off a few square kilometres of a city. This was only unsafe while jobs
-     * were long enough to be re-reserved mid-flight.
+     * A box that catches Overpass on a bad breath deserves more than one ask before
+     * we write off a few square kilometres of a city — and the commonest reason to
+     * retry is a 429, which is transient by definition. Retrying at all was only
+     * unsafe while jobs were long enough to be re-reserved mid-flight.
      */
-    public int $tries = 2;
+    public int $tries = 5;
+
+    /**
+     * Backoff between attempts, in seconds.
+     *
+     * Long, and deliberately so: the failure we are usually retrying is Overpass
+     * asking us to slow down (429), and retrying that in ten seconds is not slowing
+     * down. A box that waits ten minutes and then succeeds is worth far more than a
+     * box we gave up on — losing one is losing a few square kilometres of a city
+     * permanently, which is how Lyon ended up with nine OSM items.
+     *
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [60, 180, 420, 900];
+    }
 
     public function __construct(
         public readonly string $regionKey,
@@ -95,7 +113,25 @@ final class IngestRegionBoxJob implements ShouldQueue
             return;   // the region's grid changed between dispatch and run
         }
 
-        $result = $ingest->ingest($region, $this->source, $boxes[$this->box]);
+        try {
+            $result = $ingest->ingest($region, $this->source, $boxes[$this->box]);
+        } catch (OverpassRateLimited $e) {
+            /*
+             * "Come back later" is not "this box is broken".
+             *
+             * Put it back on the queue with a real backoff rather than writing the box
+             * off. Rate limiting is transient; a lost box is not — it is a hole in the
+             * city that nothing will ever fill, and nobody will notice, because the
+             * region will simply have fewer places in it than it should.
+             */
+            Log::info("world-model ingest {$this->regionKey}/{$this->source} box {$this->box}: rate limited, will retry", [
+                'attempt' => $this->attempts(),
+            ]);
+
+            $this->release($this->backoff()[$this->attempts() - 1] ?? 900);
+
+            return;
+        }
 
         Log::info("world-model ingest {$this->regionKey}/{$this->source}", [
             ...$result,

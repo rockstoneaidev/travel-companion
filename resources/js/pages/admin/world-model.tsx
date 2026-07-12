@@ -18,6 +18,7 @@ interface RegionStatus {
     unresolved_tiles: number;
     curated_approved: number;
     curated_in_review: number;
+    pack_candidates: number;
     build: { phase: string; started_at: string } | null;
     boxes: { done: number; total: number; failed: number } | null;
 }
@@ -101,6 +102,21 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                             >
                                 {region.build !== null ? 'Building…' : 'Build world model'}
                             </Button>
+                            {/*
+                             * The button that did not exist, which is why the review queue sat
+                             * empty for days looking broken. Drafting is deliberate — it calls
+                             * the LLM once per candidate and costs real money — but it was also
+                             * INVISIBLE, which is a different thing and not a good one.
+                             */}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={region.pack_candidates === 0}
+                                onClick={() => router.post(`/admin/world-model/${region.key}/draft-pack`, {}, { preserveScroll: true })}
+                            >
+                                {region.pack_candidates === 0 ? 'Nothing to draft yet' : `Draft curation pack (~${region.pack_candidates} LLM calls)`}
+                            </Button>
+
                             <a href="/horizon/dashboard" target="_blank" rel="noreferrer" className="text-xs underline">
                                 Watch in Horizon
                             </a>

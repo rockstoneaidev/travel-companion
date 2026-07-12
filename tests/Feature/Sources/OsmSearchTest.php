@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Sources\Adapters\OsmAdapter;
 use App\Domain\Sources\Data\ScoutRequest;
+use App\Domain\Sources\Exceptions\OverpassRateLimited;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -219,7 +220,7 @@ it('waits when Overpass says 429 — it does NOT split', function () {
     });
 
     expect(fn () => new OsmAdapter()->search(stockholmBox()))
-        ->toThrow(RuntimeException::class, 'Overpass returned nothing');
+        ->toThrow(OverpassRateLimited::class);
 
     /*
      * THE POINT. A 504 means the question was too big, and a smaller question fixes
@@ -251,4 +252,41 @@ it('takes a 504 as a smaller-question problem and a 429 as a slow-down problem',
     // The remedy must match the cause, and the two causes look identical over HTTP
     // unless you actually read the status code.
     expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(4);
+});
+
+it('reports rate limiting as its own failure, so the box can be retried', function () {
+    Http::fake(['*' => Http::response('Too Many Requests', 429)]);
+
+    /*
+     * "Come back later" is NOT "this box is broken", and the difference is the
+     * difference between a complete city and a permanently missing piece of one.
+     *
+     * A generic RuntimeException here would tell the box job "this failed", and the
+     * box would be abandoned. OverpassRateLimited tells it "this is transient", and
+     * the job releases itself back onto the queue with a backoff.
+     *
+     * That is not a hypothetical improvement: abandoning rate-limited boxes is how
+     * Lyon ended up with NINE OSM items while its Wikidata layer had 709.
+     */
+    expect(fn () => new OsmAdapter()->search(stockholmBox()))
+        ->toThrow(OverpassRateLimited::class);
+});
+
+it('keeps what it got even while being rate limited on the rest', function () {
+    $calls = 0;
+
+    Http::fake(function () use (&$calls) {
+        $calls++;
+
+        // The box 504s and splits; the first child answers, the rest get 429s.
+        return match (true) {
+            $calls === 1 => Http::response('Gateway Timeout', 504),
+            $calls === 2 => Http::response(['elements' => [overpassElement(2)]], 200),
+            default => Http::response('Too Many Requests', 429),
+        };
+    });
+
+    // Partial beats nothing (conventions/09). We do not throw away a quarter of a box
+    // we successfully fetched just because the other three quarters were throttled.
+    expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(1);
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Console\Commands\CurationDraftPackCommand;
 use App\Domain\Places\Models\ScoutRun;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
@@ -11,6 +12,7 @@ use App\Domain\Sources\Queries\RegionWorldModelStats;
 use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Http\Controllers\Controller;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\DraftRegionPackJob;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,6 +64,25 @@ final class WorldModelController extends Controller
         $requested = (int) ($row->requested ?? 0);
 
         return $requested === 0 ? null : round(((int) $row->hit) / $requested, 4);
+    }
+
+    /**
+     * Draft the region's curation pack (CURATION §4).
+     *
+     * Deliberate, not a phase of the build: it calls the LLM once per candidate and
+     * costs real money, and a "build" button that quietly spends tokens is a bad
+     * button. But it was also INVISIBLE — a command you had to know existed and run
+     * over SSH — which is why the review queue sat empty for days looking broken.
+     */
+    public function draft(string $region): RedirectResponse
+    {
+        abort_unless(array_key_exists($region, IngestRegion::all()), 404);
+
+        $target = CurationDraftPackCommand::TARGETS[$region] ?? 20;
+
+        DraftRegionPackJob::dispatch($region, $target);
+
+        return back()->with('status', "Drafting up to {$target} items for {$region}. Nothing is served until you approve it.");
     }
 
     public function build(string $region, RegionBuildStatus $builds): RedirectResponse

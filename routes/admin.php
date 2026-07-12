@@ -46,6 +46,14 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     Route::get('world-model', [WorldModelController::class, 'index'])->name('world-model.index');
     Route::post('world-model/{region}/build', [WorldModelController::class, 'build'])->name('world-model.build');
 
+    /*
+    | Draft the region's curation pack (CURATION §4). Deliberate rather than a phase
+    | of the build — it calls the LLM once per candidate and costs real money — but
+    | VISIBLE, which it was not: it was an artisan command you had to know existed,
+    | so the review queue sat empty for days and looked broken.
+    */
+    Route::post('world-model/{region}/draft-pack', [WorldModelController::class, 'draft'])->name('world-model.draft');
+
     // Entity-resolution review queue (ENTITY-RESOLUTION §3 stage 4): the pairs
     // the resolver refused to guess about. Until a human looks, the world model
     // is holding a probable duplicate.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Queries;
 
+use App\Domain\Curation\Services\PackCandidateSelector;
 use App\Domain\Sources\Data\IngestRegion;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class RegionWorldModelStats
 {
+    public function __construct(private readonly PackCandidateSelector $candidates) {}
+
     /** @return array<string, mixed> */
     public function forRegion(IngestRegion $region): array
     {
@@ -53,6 +56,11 @@ final class RegionWorldModelStats
             // problems and the console showed them as the same number: one means go and
             // review, the other means the pack was never drafted.
             'curated_in_review' => (int) ($curated->in_review ?? 0),
+
+            // How many places have enough evidence to be worth drafting. Shown next to
+            // the button, so it is honest about what pressing it will cost: this is
+            // roughly the number of LLM calls.
+            'pack_candidates' => count($this->candidates->forRegion($region->key, 100)),
         ];
     }
 }

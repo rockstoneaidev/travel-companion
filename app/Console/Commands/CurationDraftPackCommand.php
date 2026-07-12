@@ -19,8 +19,8 @@ final class CurationDraftPackCommand extends Command
 
     protected $description = 'Draft curated items for a region from stored evidence, into the admin review queue';
 
-    /** CURATION §4's pack plan. */
-    private const TARGETS = [
+    /** CURATION §4's pack plan. Shared with the admin console's draft button. */
+    public const TARGETS = [
         'paris' => 40,
         'nice' => 30,
         'nantes' => 30,

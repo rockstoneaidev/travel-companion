@@ -124,7 +124,7 @@ final class OsmAdapter implements ScoutSource
     public function search(ScoutRequest $request): array
     {
         $elements = [];
-        $state = ['failed' => 0, 'skipped' => 0, 'requests' => 0];
+        $state = ['failed' => 0, 'skipped' => 0, 'requests' => 0, 'rate_limited' => 0];
         $deadline = CarbonImmutable::now()->addSeconds(self::BUDGET_SECONDS);
 
         /*
@@ -149,6 +149,21 @@ final class OsmAdapter implements ScoutSource
                 'elements' => count($elements),
                 'budget_seconds' => self::BUDGET_SECONDS,
             ]);
+        }
+
+        /*
+         * Rate-limited into silence — and that is NOT the same failure as "this box is
+         * broken". It is "come back later", and the caller can: the box job releases
+         * itself back onto the queue with a backoff instead of writing off a few square
+         * kilometres of a city forever.
+         *
+         * Distinguishing the two is the whole point. Abandoning a box because Overpass
+         * asked us to wait is how Lyon ended up with NINE OSM items.
+         */
+        if ($elements === [] && $state['rate_limited'] > 0) {
+            throw new OverpassRateLimited(
+                "Overpass rate-limited every request for region \"{$request->regionKey}\".",
+            );
         }
 
         // Something is better than nothing (coverage honesty, conventions/09) —
@@ -196,11 +211,12 @@ final class OsmAdapter implements ScoutSource
              * like "the question was too big".
              *
              * It is not too big. It is too OFTEN. There is no smaller question that
-             * helps, so we back off (in ask()) and, if it persists, give the box up.
-             * Overpass is a volunteer service we do not pay for; being asked to wait is
-             * a reasonable thing for it to do, and hammering through it is not a
-             * reasonable thing for us to do.
+             * helps — so we back off (in ask()), and if the whole box comes back empty
+             * we tell the caller, which puts the box back on the queue for later rather
+             * than losing it. Overpass is a volunteer service we do not pay for; being
+             * asked to wait is a reasonable thing for it to do.
              */
+            $state['rate_limited']++;
             $state['failed']++;
 
             Log::warning("osm ingest {$box->regionKey}: rate limited, box abandoned", [
