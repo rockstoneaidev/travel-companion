@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\Web\CalibrationController;
+use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DigestController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
@@ -30,9 +31,9 @@ Route::get('design', function () {
 })->name('design');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    // Home — "today": the digest, where you left off, and what you kept. NOT a second
+    // Explore, and not a map of every place we know (DashboardController).
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     /*
     | Onboarding taste calibration (SCREENS S9). Content comes from the backend,

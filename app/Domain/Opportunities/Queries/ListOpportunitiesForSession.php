@@ -8,6 +8,7 @@ use App\Domain\Context\Contracts\Routing;
 use App\Domain\Opportunities\Data\SessionOpportunityData;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Opportunities\Services\UrgentSlot;
+use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Places\Data\PlaceData;
 use App\Domain\Places\Enums\PlaceType;
@@ -53,6 +54,7 @@ final class ListOpportunitiesForSession
     public function __construct(
         private readonly RankSession $rank,
         private readonly Routing $routing,
+        private readonly PlaceImageLookup $images,
     ) {}
 
     /** @return list<SessionOpportunityData> */
@@ -74,6 +76,18 @@ final class ListOpportunitiesForSession
             ->whereIn('id', array_map(static fn ($r) => $r->opportunity_id, $recommendations))
             ->get()
             ->keyBy('id');
+
+        /*
+         * One query for the whole feed's photos, not one per card — a card is not worth
+         * an N+1. The photos phase has been quietly filling this table for weeks while
+         * every screen except the detail page ignored it: 1,516 images, zero of them on
+         * the screen people actually look at.
+         *
+         * Through Places' contract, never its models (conventions/01).
+         */
+        $images = $this->images->forPlaces(
+            $opportunities->pluck('place_id')->filter()->unique()->values()->all(),
+        );
 
         $out = [];
         foreach ($recommendations as $recommendation) {
@@ -134,6 +148,7 @@ final class ListOpportunitiesForSession
                 expiresAt: $opportunity->expires_at,
                 recommendationId: $recommendation->id,
                 walkMinutes: $walkMinutes,
+                image: $images[$opportunity->place_id] ?? null,
             );
         }
 

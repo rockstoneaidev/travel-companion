@@ -34,6 +34,13 @@ final readonly class SessionOpportunityData
         public ?string $recommendationId = null,   // E7: the trace row feedback posts against
         public ?float $walkMinutes = null,         // Stage-A final approach (reachability trace)
         public bool $urgent = false,               // the GO NOW slot — at most one per feed (SCREENS S1)
+        /**
+         * The photo, with its attribution (DESIGN §3 — a card has an image slot and a
+         * paper-stripe fallback). 1,516 images were being fetched by the photos phase
+         * and shown on exactly one screen; the feed, which is the screen people
+         * actually look at, rendered none of them.
+         */
+        public ?array $image = null,
     ) {}
 
     /** The one item that wins the GO NOW slot (Opportunities\Services\UrgentSlot). */
@@ -53,6 +60,7 @@ final readonly class SessionOpportunityData
             recommendationId: $this->recommendationId,
             walkMinutes: $this->walkMinutes,
             urgent: true,
+            image: $this->image,
         );
     }
 }

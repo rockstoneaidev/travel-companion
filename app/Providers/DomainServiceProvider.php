@@ -9,8 +9,10 @@ use App\Domain\Context\Contracts\ContextLocationEraser;
 use App\Domain\Context\Contracts\Routing;
 use App\Domain\Context\Services\GoogleRoutes;
 use App\Domain\Places\Contracts\ExternalIdRegistry;
+use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Queries\LookupPlaces;
+use App\Domain\Places\Services\LookupPlaceImages;
 use App\Domain\Places\Services\PlaceExternalIds;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
@@ -33,6 +35,10 @@ final class DomainServiceProvider extends ServiceProvider
         // ...and the cross-source ID concordance: Context needs a Google place_id to
         // verify hours with, and may hold that STRING, but never Places' models (E16).
         ExternalIdRegistry::class => PlaceExternalIds::class,
+
+        // ...and the photos, which the feed needs and may hold, without ever touching
+        // Places' models (E18/UI).
+        PlaceImageLookup::class => LookupPlaceImages::class,
 
         // Trips — what other modules may know about a session / a trip's locations.
         ExploreSessionLookup::class => FindExploreSession::class,

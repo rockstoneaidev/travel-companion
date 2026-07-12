@@ -2,6 +2,7 @@ import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, StalenessLine, TabB
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
+import { cn } from '@/lib/utils';
 import { type ExploreSession, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -118,7 +119,7 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                 <Head title="Now" />
                 <TabBar tabs={TABS(exploreSession.id, exploreSession.trip_id)} />
 
-                <div className="mx-auto max-w-md space-y-6 px-5 py-8">
+                <div className="mx-auto max-w-md space-y-6 px-5 py-8 lg:max-w-4xl">
                     <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
 
                     {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
@@ -140,17 +141,30 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                         />
                     ) : (
                         <>
-                            <div className="space-y-4">
+                            {/*
+                             * Still 3–5 items. Scarcity IS the product (PRD §12.1) — this is a
+                             * menu, not a catalogue, and a wall of image cards is the aesthetic
+                             * of every other travel app and precisely what this one is defined
+                             * against.
+                             *
+                             * But a single narrow column stranded on a 2000px desktop reads as
+                             * unfinished. So on a wide screen the same few cards breathe into
+                             * two columns, with the urgent one spanning as a hero — server order
+                             * is still the order, because reading order is still the order.
+                             */}
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                                 {items.map((item) => (
-                                    <div key={item.id}>
+                                    <div key={item.id} className={cn('flex flex-col', urgencyFor(item) !== undefined && 'lg:col-span-2')}>
                                         <div
                                             role="button"
                                             tabIndex={0}
-                                            className="block w-full cursor-pointer text-left"
+                                            className="block h-full w-full cursor-pointer text-left"
                                             onClick={() => router.visit(`/opportunities/${item.id}`)}
                                             onKeyDown={(e) => e.key === 'Enter' && router.visit(`/opportunities/${item.id}`)}
                                         >
                                             <OpportunityCard
+                                                className="h-full"
+                                                image={item.image}
                                                 title={item.title ?? item.place.name}
                                                 summary={
                                                     item.summary ??

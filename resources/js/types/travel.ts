@@ -82,6 +82,8 @@ export interface SessionOpportunity {
     expires_at: string;
     recommendation_id: string | null;
     walk_minutes: number | null;
+    /** The photo, with its attribution. Null renders the designed paper-stripe fallback. */
+    image: { url: string; attribution: string | null; license: string | null } | null;
     place: Place;
 }
 
