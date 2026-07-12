@@ -68,6 +68,27 @@ export function PlaceSearch({ onChoose, placeholder = 'Search for a place nearby
                 type="search"
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
+                /*
+                 * This input lives inside the session-start <form>, so Enter — which on a
+                 * phone is the keyboard's big "Search" key, the natural thing to press after
+                 * typing — SUBMITTED THE FORM. It posted with no origin chosen instead of
+                 * picking the place under the cursor, and the screen appeared to do nothing.
+                 *
+                 * Enter now means what the user means by it: take the first suggestion.
+                 */
+                onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+
+                    event.preventDefault();
+
+                    const first = results[0];
+
+                    if (first !== undefined) {
+                        onChoose(first);
+                        setTerm('');
+                        setResults([]);
+                    }
+                }}
                 placeholder={placeholder}
                 autoComplete="off"
                 aria-label={label}

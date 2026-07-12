@@ -173,8 +173,21 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                          * session becomes a "route" context and route_fit enters
                          * the composite (SCORING §6).
                          */}
+                        {/*
+                         * ONLY ONCE THERE IS A START POINT.
+                         *
+                         * This is how the onboarding actually failed. The traveller searched for
+                         * a place, it landed here — in the DESTINATION — and their origin stayed
+                         * null, so "Start exploring" was disabled and looked broken. They had
+                         * filled in the wrong field and the screen let them.
+                         *
+                         * A destination without an origin is not just premature, it is
+                         * meaningless: route_fit (SCORING §6) is the fit between where you ARE
+                         * and where you are going, and it needs both ends. So the second field
+                         * does not exist until the first is answered.
+                         */}
                         <div className="space-y-2">
-                            {destinationLabel !== null ? (
+                            {data.origin === null ? null : destinationLabel !== null ? (
                                 <>
                                     <p className="text-body-card text-body">
                                         Heading to <span className="text-ink font-semibold">{destinationLabel}</span>. I'll look for things on the
