@@ -132,6 +132,20 @@ it('walks the M1 slice: start form → session → feed → detail → feedback'
     expect($profile->facet_weights)->not->toBeEmpty();
 });
 
+it('refuses to start a session without an origin, rather than guessing one', function () {
+    // The screen used to default the origin to a hard-coded Liljeholmen constant,
+    // so a user who denied location permission was silently placed there. There
+    // is no default origin any more — on either side of the wire.
+    $this->actingAs(User::factory()->create())
+        ->post('/explore', [
+            'travel_mode' => 'walk',
+            'time_budget_minutes' => 90,
+        ])
+        ->assertSessionHasErrors('origin');
+
+    expect(ExploreSession::query()->count())->toBe(0);
+});
+
 it('sends you back to your open session instead of a second start form', function () {
     $user = User::factory()->create();
 

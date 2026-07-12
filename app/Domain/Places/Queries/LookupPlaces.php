@@ -71,6 +71,44 @@ final class LookupPlaces implements PlaceLookup
         return $out;
     }
 
+    /**
+     * Typeahead over the geo-core, for the manual start point when geolocation
+     * is denied or unavailable (SCREENS S2).
+     *
+     * Prefix matches rank above fuzzy ones — someone typing "liljeh" wants
+     * Liljeholmen, and trigram similarity alone scores a short prefix poorly
+     * against a long name. Fuzzy still catches typos and inflections.
+     *
+     * Geo-core only, so the result is publishable under ODbL as it stands
+     * (ODBL-REVIEW §6) — no curated content, no scores, no user signals.
+     *
+     * @return list<PlaceData>
+     */
+    public function search(string $query, int $limit = 8): array
+    {
+        $query = trim($query);
+
+        if (mb_strlen($query) < 2) {
+            return [];   // a single letter matches most of the region: not a search
+        }
+
+        return Place::query()
+            ->where(function ($builder) use ($query): void {
+                $builder
+                    ->whereRaw('name ILIKE ?', [$query.'%'])
+                    ->orWhereRaw('name ILIKE ?', ['%'.$query.'%'])
+                    ->orWhereRaw('similarity(name, ?) >= 0.3', [$query]);
+            })
+            ->orderByRaw('(name ILIKE ?) DESC', [$query.'%'])      // starts-with first
+            ->orderByRaw('similarity(name, ?) DESC', [$query])     // then closest
+            ->orderBy('name')
+            ->orderBy('id')                                        // stable tiebreak (conventions/07)
+            ->limit($limit)
+            ->get()
+            ->map(fn (Place $place): PlaceData => self::toData($place))
+            ->all();
+    }
+
     public function searchByName(string $name, ?string $regionSlug = null): ?PlaceData
     {
         $place = Place::query()

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\ExploreSessionContextEventController;
 use App\Http\Controllers\Api\V1\ExploreSessionController;
 use App\Http\Controllers\Api\V1\ExploreSessionEndController;
 use App\Http\Controllers\Api\V1\ExploreSessionOpportunityController;
+use App\Http\Controllers\Api\V1\PlaceSearchController;
 use App\Http\Controllers\Api\V1\RecommendationFeedbackController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\TripLocationHistoryController;
@@ -59,6 +60,10 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     | planner create. There is deliberately no `POST /trips/{trip}/start`: in
     | pull-only Phase 1 the first session IS the start.
     */
+    // Places — geo-core typeahead, backing the manual start point (SCREENS S2).
+    Route::get('places/search', [PlaceSearchController::class, 'index'])
+        ->name('places.search');
+
     // Recommendations — the feedback stream is the moat (PRD §14.5).
     Route::post('recommendations/{recommendation}/feedback', [RecommendationFeedbackController::class, 'store'])
         ->name('recommendations.feedback.store');

@@ -4,6 +4,7 @@ use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
 use App\Http\Controllers\Web\OpportunityController;
+use App\Http\Controllers\Web\PlaceSearchController;
 use App\Http\Controllers\Web\RecommendationFeedbackController;
 use App\Http\Controllers\Web\TripController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,9 @@ Route::middleware(['auth'])->group(function () {
     */
     Route::get('explore', [ExploreSessionController::class, 'index'])->name('explore.index');
     Route::post('explore', [ExploreSessionController::class, 'store'])->name('explore.store');
+
+    // Typeahead for the manual start point on S2 — JSON, not a page visit.
+    Route::get('places/search', [PlaceSearchController::class, 'index'])->name('places.search');
 
     Route::get('explore/{exploreSession}', [ExploreSessionController::class, 'show'])
         ->can('view', 'exploreSession')

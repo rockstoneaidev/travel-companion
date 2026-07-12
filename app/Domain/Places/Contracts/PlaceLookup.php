@@ -29,6 +29,14 @@ interface PlaceLookup
     public function findMany(array $ids): array;
 
     /**
+     * Typeahead over place names — prefix matches first, then fuzzy. Backs the
+     * manual start point when geolocation is denied (SCREENS S2).
+     *
+     * @return list<PlaceData>
+     */
+    public function search(string $query, int $limit = 8): array;
+
+    /**
      * Best canonical match for a name (trigram similarity ≥ 0.4), optionally
      * biased to a region's cells — the grounding step's search (CURATION §3).
      */
