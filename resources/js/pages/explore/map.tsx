@@ -5,7 +5,7 @@ import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 /**
  * S3 — MAP (SCREENS.md).
@@ -26,6 +26,46 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
     const exploreSession = session.data;
     const { online, lastFreshAt } = useOnline('map');
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+
+    /*
+     * WHERE YOU ACTUALLY ARE — or an honest label saying otherwise.
+     *
+     * The marker said "you" and pointed at the session's ORIGIN: where you set off from,
+     * which after twenty minutes of walking is not where you are. Someone standing in
+     * Trekantsparken was shown as standing in Gamla stan. A map that misplaces you is
+     * worse than a map with no pin at all, because you will trust it.
+     *
+     * Asked only if permission is ALREADY granted — opening a screen must not throw a
+     * location prompt at someone who did not ask to be found (PRD §8). The position
+     * never leaves the browser: it moves a pin on your own screen and nothing else. If
+     * we cannot have it, the marker says what it really is: "start".
+     */
+    useEffect(() => {
+        if (!navigator.geolocation || !navigator.permissions) return;
+
+        const read = () =>
+            navigator.geolocation.getCurrentPosition(
+                (position) => setHere({ lat: position.coords.latitude, lng: position.coords.longitude }),
+                () => setHere(null),
+                { timeout: 8_000 },
+            );
+
+        void navigator.permissions
+            .query({ name: 'geolocation' })
+            .then((status) => {
+                if (status.state !== 'granted') return;
+
+                read();
+
+                // You are moving. A pin fixed at the moment the screen opened is a
+                // slower lie than one fixed at the session origin, but it is still one.
+                const timer = window.setInterval(read, 60_000);
+
+                status.addEventListener('change', () => window.clearInterval(timer), { once: true });
+            })
+            .catch(() => undefined);
+    }, []);
 
     const items = opportunities.data;
     const selected = items.find((item) => item.id === selectedId) ?? null;
@@ -91,7 +131,14 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
                 <Suspense
                     fallback={<div className="bg-map-bg text-quiet grid h-full place-items-center font-serif text-sm italic">Unfolding the map…</div>}
                 >
-                    <PaperMap items={pins} origin={exploreSession.origin} selectedId={selectedId} onSelect={setSelectedId} />
+                    <PaperMap
+                        items={pins}
+                        origin={here ?? exploreSession.origin}
+                        // "you" is a claim about a person's whereabouts. Only make it when it is true.
+                        originLabel={here !== null ? 'you' : 'start'}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                    />
                 </Suspense>
 
                 {selected !== null && (

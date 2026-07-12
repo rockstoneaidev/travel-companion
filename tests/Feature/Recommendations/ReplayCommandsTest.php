@@ -255,7 +255,24 @@ it('shows a real walk time but never stores one — Google routes are edge-only'
 
     expect((float) $recommendation->score_inputs['reachability']['travel_min'])->not->toBe(22.28);
 
+    /*
+     * Google's seconds (1337) must not be written into ANY row.
+     *
+     * The substring search is right in spirit and was wrong in practice: it searched
+     * the whole row, primary keys included, and UUIDv7 is hex — so the day a generated
+     * id happened to contain "…1337…" the build went red for a bug that did not exist.
+     * A test that fails on a coin flip teaches the team to ignore red, which is a worse
+     * bug than the one it was guarding.
+     *
+     * Strip the ids, keep the intent.
+     */
     foreach (['recommendations', 'opportunities', 'places_core'] as $table) {
-        expect(json_encode(DB::table($table)->get()))->not->toContain('1337');
+        $rows = preg_replace(
+            '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i',
+            '<uuid>',
+            (string) json_encode(DB::table($table)->get()),
+        );
+
+        expect($rows)->not->toContain('1337');
     }
 });
