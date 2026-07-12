@@ -26,6 +26,30 @@ final class StartExploreSession
         return DB::transaction(function () use ($data): ExploreSession {
             $startedAt = $data->startedAt();
 
+            /*
+             * A PERSON IS IN ONE PLACE AT A TIME.
+             *
+             * Nothing used to stop a second session opening while one was already live,
+             * and it happened: two sessions a minute apart, both "active", because the
+             * start form was submitted twice. The rest of the app assumes there is
+             * exactly one — the dashboard resumes FindActiveExploreSessionForUser, which
+             * takes the LATEST active session — so the older one becomes invisible while
+             * remaining real: still scouted for, still expiring, still costing money, and
+             * unreachable from any screen.
+             *
+             * So starting a session closes whatever was open. It is not a double-submit
+             * guard (that would silently swallow a deliberate restart); it is the
+             * invariant stated where it can be enforced.
+             */
+            ExploreSession::query()
+                ->where('user_id', $data->userId)
+                ->where('status', ExploreSessionStatus::Active)
+                ->update([
+                    'status' => ExploreSessionStatus::Ended,
+                    'ended_at' => $startedAt,
+                    'updated_at' => $startedAt,
+                ]);
+
             $trip = ($this->resolveTrip)($data->userId, $data->origin, $startedAt);
 
             $session = ExploreSession::query()->create([

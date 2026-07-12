@@ -1,8 +1,11 @@
+import { PlaceSearch, type PlaceSuggestion } from '@/components/app';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type Trip } from '@/types/travel';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Trips', href: '/trips' }];
 
@@ -14,16 +17,32 @@ interface TripsIndexProps {
 }
 
 export default function TripsIndex({ trips }: TripsIndexProps) {
+    const [planning, setPlanning] = useState(false);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Trips" />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {trips.data.length === 0 && (
+                <div className="flex items-center justify-between">
                     <p className="text-muted-foreground text-sm">
-                        No trips yet. A trip appears on its own when you start exploring — you never create one.
+                        {/*
+                         * This used to say "you never create one", which was true of the
+                         * IMPLICIT path and false of the product: PRD §6.6 has always had a
+                         * planner path, and it is the one people actually want — nobody plans
+                         * the trip they are already on.
+                         */}
+                        A trip appears on its own when you start exploring. Plan one ahead if you already know where you are going.
                     </p>
-                )}
+
+                    <Button size="sm" variant={planning ? 'ghost' : 'default'} onClick={() => setPlanning((open) => !open)}>
+                        {planning ? 'Cancel' : 'Plan a trip'}
+                    </Button>
+                </div>
+
+                {planning && <PlanTripForm onDone={() => setPlanning(false)} />}
+
+                {trips.data.length === 0 && !planning && <p className="text-muted-foreground text-sm">No trips yet.</p>}
 
                 {trips.data.map((trip) => (
                     <Link key={trip.id} href={`/trips/${trip.id}`} className="border-sidebar-border/70 flex items-center gap-3 rounded-xl border p-4">
@@ -38,5 +57,74 @@ export default function TripsIndex({ trips }: TripsIndexProps) {
                 </p>
             </div>
         </AppLayout>
+    );
+}
+
+/**
+ * The planner (PRD §6.6). It opens a **planned** trip, never an active one — "active"
+ * begins at your first session there, and that is the clustering's call to make.
+ *
+ * The anchor is optional and is not a destination list: it is one point, used to
+ * pre-scout. Typeahead runs over our OWN geo-core (no geocoder), which keeps it inside
+ * the ODbL boundary and off anybody's terms of service.
+ */
+function PlanTripForm({ onDone }: { onDone: () => void }) {
+    const form = useForm<{ name: string; anchor_point: { lat: number; lng: number } | null }>({
+        name: '',
+        anchor_point: null,
+    });
+
+    const [anchorName, setAnchorName] = useState<string | null>(null);
+
+    const choose = (place: PlaceSuggestion) => {
+        setAnchorName(place.name);
+        form.setData('anchor_point', { lat: place.location.lat, lng: place.location.lng });
+
+        // Name it after the place unless the traveller has already said what to call it.
+        // "Untitled trip" is not a name, it is an apology.
+        if (form.data.name.trim() === '') {
+            form.setData('name', place.name);
+        }
+    };
+
+    const submit = () => {
+        form.post('/trips', {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset();
+                onDone();
+                router.reload();
+            },
+        });
+    };
+
+    return (
+        <div className="border-sidebar-border/70 flex flex-col gap-3 rounded-xl border p-4">
+            <label className="text-sm font-medium" htmlFor="trip-name">
+                What should I call it?
+            </label>
+
+            <input
+                id="trip-name"
+                value={form.data.name}
+                onChange={(event) => form.setData('name', event.target.value)}
+                placeholder="France, late July"
+                className="border-sidebar-border/70 rounded-md border bg-transparent px-3 py-2 text-sm outline-none"
+            />
+
+            {form.errors.name && <p className="text-destructive text-xs">{form.errors.name}</p>}
+
+            <div>
+                <PlaceSearch onChoose={choose} placeholder="Anywhere in particular? (optional)" label="Anchor" />
+                {anchorName !== null && <p className="text-muted-foreground mt-1 text-xs">Anchored on {anchorName}</p>}
+            </div>
+
+            <div className="flex items-center gap-3">
+                <Button size="sm" onClick={submit} disabled={form.processing || form.data.name.trim() === ''}>
+                    {form.processing ? 'Planning…' : 'Plan it'}
+                </Button>
+                <span className="text-muted-foreground text-xs">It stays planned until your first session there.</span>
+            </div>
+        </div>
     );
 }

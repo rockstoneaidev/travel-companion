@@ -112,6 +112,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('trips', [TripController::class, 'index'])->name('trips.index');
 
+    // The planner path (PRD §6.6). It opens a `planned` trip — never an `active` one:
+    // "active" begins at the first session there.
+    Route::post('trips', [TripController::class, 'store'])->name('trips.store');
+
     Route::get('trips/{trip}', [TripController::class, 'show'])
         ->can('view', 'trip')
         ->name('trips.show');

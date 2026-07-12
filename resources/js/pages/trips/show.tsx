@@ -74,7 +74,9 @@ export default function TripShow({ trip }: TripShowProps) {
                             <span>
                                 {session.time_budget_minutes} min · {session.travel_mode}
                             </span>
-                            <span className="text-muted-foreground">{new Date(session.started_at).toLocaleString()}</span>
+                            {/* Labelled, because it wasn't: a bare timestamp next to the word
+                                "ended" reads as the time it ENDED. It is the time it began. */}
+                            <span className="text-muted-foreground">started {new Date(session.started_at).toLocaleString()}</span>
                         </Link>
                     ))}
                 </div>
