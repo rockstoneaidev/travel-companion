@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Document status** | Design v1.0 (`resolver_version: v1`) |
+| **Document status** | Design v1.1 (`resolver_version: v2` — refit against the gold set, §6.1) |
 | **Date** | 2026-07-11 |
 | **Companion to** | [PRD.md](PRD.md) §9.6, §10 step 6 · [TAXONOMY.md](TAXONOMY.md) §3 · [DATA-SOURCES.md](DATA-SOURCES.md) §1.2 · [ODBL-REVIEW.md](ODBL-REVIEW.md) §6 · [SCORING.md](SCORING.md) §4.6 |
 
@@ -161,10 +161,62 @@ coordinates-only stub flagged for review.
 
 ## 6. Gold set & fitting
 
-Per region, hand-label ~200 candidate pairs (mix of true matches, near-misses, chain traps,
-multilingual variants) — Stockholm first, then the France corridor cities. Every `resolver_version`
-reports precision/recall against it before rollout; thresholds and signal weights are refit exactly
-like scoring constants (SCORING §9: fitting mints a new version, never edits one).
+Per region, label candidate pairs (mix of true matches, near-misses, chain traps, multilingual
+variants) — Stockholm first, then the France corridor cities. Every `resolver_version` reports
+precision/recall against it before rollout; thresholds and signal weights are refit exactly like
+scoring constants (SCORING §9: fitting mints a new version, never edits one).
+
+**Tooling.** `artisan resolver:gold-build {region}` samples pairs and auto-labels the ones a
+heuristic can be trusted with; `artisan resolver:gold-report {region} [--rv=v1]` scores a version
+against the labeled set and **exits non-zero on any false merge** — it is a gate, not a dashboard.
+
+Labels come from three places, in descending order of trust:
+
+| Source | Basis | Trust |
+|---|---|---|
+| `auto:explicit` | The pair shares a Wikidata QID or a Wikipedia article — a *human* asserted that identity, independently of any signal the scorer uses | High. These are the positives, and they are why the report means anything |
+| `auto:disjoint` | Different type domain **and** > 100 m apart | Adequate for easy negatives, and honestly a bit circular (distance is a signal) |
+| `human` | Everything scoring near a band edge | The only labels that can license a threshold change |
+
+**The negatives are the weak half, and that governs what the report may be used for.** In the
+Stockholm set the hardest auto-labeled negative scores 0.6656 — not one reaches 0.70. So any
+`auto_merge` at or above 0.70 earns precision 1.0 *by construction*, never having been shown a pair
+capable of false-merging. A "zero false merges" result therefore proves a **mechanism** is safe; it
+cannot yet justify *lowering a threshold*. That waits on the human-labeled pairs near the bands.
+
+### 6.1 Measured results — Stockholm test region
+
+633 labeled pairs (233 match / 400 distinct), 60 awaiting human labels.
+
+| Version | Change | Precision | Recall | False merges |
+|---|---|---|---|---|
+| `v1` | Original hand-chosen constants; never measured | 1.0000 | 0.8326 | 0 |
+| `v2` | Building-scale proximity ramp widened to 250 m **only when `name_sim ≥ 0.95`** | 1.0000 | **0.8498** | 0 |
+
+**Why v2 (2026-07-14).** v1's 39 misses were not marginal name matches — they were *identical* names:
+"Moderna museet" ↔ "Moderna Museet" (0.7226), "Stockholms slott" ↔ "Stockholms slott" (0.7743). All
+large buildings. Two sources place a palace 100–150 m apart because one takes the centroid and the
+other an entrance or an address node, and a 150 m ramp drove proximity to ~0.06 — not enough to carry
+an otherwise perfect match over 0.82.
+
+**The exact-name condition is load-bearing, not decoration.** Widening the building-scale ramp
+*unconditionally* lifts "Galleri Duerr" ↔ "Galleri Dover" — two different galleries 80 m apart,
+`name_sim` 0.88 — from 0.78 (review) to 0.84 (**auto-merge**). The gold set did not catch that,
+because its auto-labeled negatives are all easy ones; a hand-written unit test did. The discriminator
+is exactness: two sources saying "Stockholms slott" 115 m apart describe one building from a centroid
+and an entrance, while "Duerr" and "Dover" 80 m apart describe two galleries. Only the first reading
+licenses a wider ramp.
+
+Anchoring to an exact name is also what keeps generic municipal names safe — several *Lekparken*,
+several *Apoteket*. Those are playgrounds and pharmacies, not building-scale domains, so they never
+see the wider radius at all; a bare "identical name ⇒ merge" rule (which v2 does **not** add) would
+have merged them.
+
+The 35 residual misses are **not lost**: they land in the REVIEW band and are queued to
+`/admin/entity-resolution`. Most are pairs where the sources disagree about the *type* (a museum to
+one, a gallery to the other — `type_compat` 1.0 → 0.6). A resolver that refuses to auto-merge when
+its sources cannot agree what a thing *is* is behaving correctly: a duplicate is annoying, a false
+merge is corruption.
 
 ## 7. Module placement
 

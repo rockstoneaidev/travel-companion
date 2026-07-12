@@ -28,9 +28,13 @@ final class MatchScorer
      */
     public function score(ResolutionCandidate $a, ResolutionCandidate $b): array
     {
+        $nameSim = $this->nameSimilarity($a->names, $b->names);
+
         $signals = [
-            'name_sim' => $this->nameSimilarity($a->names, $b->names),
-            'proximity' => $this->proximity($a, $b),
+            'name_sim' => $nameSim,
+            // Proximity reads the name: what a coordinate gap MEANS depends on
+            // whether the names already agree (see exactNameRadius below).
+            'proximity' => $this->proximity($a, $b, $nameSim),
             'type_compat' => $this->typeCompat($a, $b),
             // embed_cos: no embeddings in v1 — absent signals are dropped and
             // the remaining weights renormalized (SCORING §2.5 discipline).
@@ -117,23 +121,54 @@ final class MatchScorer
         return round($best, 4);
     }
 
-    private function proximity(ResolutionCandidate $a, ResolutionCandidate $b): float
+    private function proximity(ResolutionCandidate $a, ResolutionCandidate $b, float $nameSim = 0.0): float
     {
-        $radius = $this->radiusFor($a, $b);
+        $radius = $this->radiusFor($a, $b, $nameSim);
         $distance = $this->distanceMeters($a, $b);
 
         return round(max(0.0, 1.0 - min(1.0, $distance / $radius)), 4);
     }
 
-    private function radiusFor(ResolutionCandidate $a, ResolutionCandidate $b): float
+    private function radiusFor(ResolutionCandidate $a, ResolutionCandidate $b, float $nameSim = 0.0): float
     {
         $domain = $a->type?->domain() ?? $b->type?->domain();
 
-        return (float) match ($domain) {
+        $radius = (float) match ($domain) {
             PlaceTypeDomain::ReligiousSacred, PlaceTypeDomain::HistoricHeritage,
             PlaceTypeDomain::MuseumGallery, PlaceTypeDomain::ArchitectureUrban => $this->config['proximity_radius']['building_scale'],
             PlaceTypeDomain::NatureLandscape, PlaceTypeDomain::ActivityRecreation => $this->config['proximity_radius']['nature_scale'],
             default => $this->config['proximity_radius']['default'],
+        };
+
+        return max($radius, $this->exactNameRadius($domain, $nameSim));
+    }
+
+    /**
+     * The wider ramp a big building gets ONLY when the names already agree
+     * (resolver v2 — ENTITY-RESOLUTION §6.1). Absent from v1, hence the null.
+     *
+     * A coordinate gap means different things depending on the name. If two
+     * sources say "Stockholms slott" and put it 115 m apart, the gap describes
+     * the *building* — one took the centroid, the other an entrance. If they say
+     * "Galleri Duerr" and "Galleri Dover", the gap is evidence they are two
+     * different galleries, and widening the ramp would merge them.
+     *
+     * So the wider radius is anchored to an essentially exact name. That is also
+     * what keeps it away from generic municipal names: "Apoteket" is a pharmacy,
+     * on the default ramp, and never sees this at all.
+     */
+    private function exactNameRadius(?PlaceTypeDomain $domain, float $nameSim): float
+    {
+        $rule = $this->config['proximity_radius']['exact_name_building_scale'] ?? null;
+
+        if ($rule === null || $nameSim < $rule['min_name_sim']) {
+            return 0.0;
+        }
+
+        return match ($domain) {
+            PlaceTypeDomain::ReligiousSacred, PlaceTypeDomain::HistoricHeritage,
+            PlaceTypeDomain::MuseumGallery, PlaceTypeDomain::ArchitectureUrban => (float) $rule['radius_m'],
+            default => 0.0,
         };
     }
 

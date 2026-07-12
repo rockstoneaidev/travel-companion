@@ -22,13 +22,25 @@ use Illuminate\Console\Command;
  */
 final class ResolverGoldReportCommand extends Command
 {
-    protected $signature = 'resolver:gold-report {region=stockholm-test}';
+    protected $signature = 'resolver:gold-report {region=stockholm-test} {--rv= : Score against a specific resolver_version (default: active)}';
 
     protected $description = 'Precision/recall of the resolver against the labeled gold set';
 
-    public function handle(MatchScorer $scorer, ResolvableItems $items): int
+    public function handle(ResolvableItems $items): int
     {
         $region = (string) $this->argument('region');
+        $version = (string) ($this->option('rv') ?: config('resolver.version'));
+        $constants = config("resolver.versions.{$version}");
+
+        if ($constants === null) {
+            $this->components->error("Unknown resolver_version \"{$version}\".");
+
+            return self::FAILURE;
+        }
+
+        // Score with THAT version's constants, not the active ones — the whole
+        // point of versioning is that an old decision stays reproducible.
+        $scorer = new MatchScorer($constants);
         $path = base_path("tests/Fixtures/GoldPairs/{$region}.json");
 
         if (! is_file($path)) {
@@ -87,7 +99,7 @@ final class ResolverGoldReportCommand extends Command
         $this->newLine();
         $this->components->info(sprintf(
             'resolver %s · auto_merge %.2f · review %.2f · %d labeled pairs',
-            config('resolver.version'), config('resolver.bands.auto_merge'), config('resolver.bands.review'), count($labeled),
+            $version, $constants['bands']['auto_merge'], $constants['bands']['review'], count($labeled),
         ));
 
         $this->table(
@@ -120,7 +132,7 @@ final class ResolverGoldReportCommand extends Command
             return self::FAILURE;
         }
 
-        $this->components->info('Zero false merges at v1 thresholds.');
+        $this->components->info("Zero false merges at {$version} thresholds.");
 
         return self::SUCCESS;
     }

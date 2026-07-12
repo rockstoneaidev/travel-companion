@@ -94,7 +94,7 @@ it('persists resolver_version and honest cost fields on the served trace', funct
     $recommendations = app(RankSession::class)->feedFor($data);
 
     expect($recommendations)->not->toBeEmpty()
-        ->and($recommendations[0]->resolver_version)->toBe('v1')
+        ->and($recommendations[0]->resolver_version)->toBe(config('resolver.version'))
         ->and($recommendations[0]->cost)->toHaveKeys(['api_calls', 'llm_tokens', 'rank_ms', 'scout_tiles_filled', 'scout_tiles_hit'])
         ->and($recommendations[0]->cost['api_calls'])->toBe(0);
 });
