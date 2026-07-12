@@ -1,4 +1,4 @@
-# Passo — Screen Specifications (Phase 1)
+# Screen Specifications (Phase 1)
 
 | | |
 |---|---|
@@ -75,7 +75,7 @@ The same manual-origin path serves desktop use, where precise geolocation is oft
 
 **Route** `/map` · **Data** session opportunities + `origin`.
 
-Warm paper map style via **MapLibre GL + vector tiles with a custom Passo style** (stack decision in
+Warm paper map style via **MapLibre GL + vector tiles with a custom paper style** (stack decision in
 DESIGN.md §3 — raster tiles can't be restyled; bundle lazy-loads on first MAP open). Never default
 OSM/Google colors.
 Pins per `<MapPin>` spec: one ochre GO NOW pin (with caps label chip), ink dots for the rest
@@ -184,7 +184,7 @@ decisions:
 
 1. Read [DESIGN.md](DESIGN.md) first; tokens land as Tailwind 4 `@theme` in
    `resources/css/app.css`; fonts self-hosted (Fontsource: Newsreader + Karla).
-2. Components in `resources/js/components/passo/`; pages are Inertia pages calling the same domain
+2. Components in `resources/js/components/app/`; pages are Inertia pages calling the same domain
    actions as `/api/v1` (conventions/01 — no business logic in pages).
 3. The wordmark string comes from one shared constant (`APP_NAME` → shared Inertia prop) — the name
    is provisional: **interim market name is "Travel Companion"** (`APP_NAME` already carries it);

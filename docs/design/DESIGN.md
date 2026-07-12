@@ -1,4 +1,4 @@
-# Passo — UI Design System
+# UI Design System
 
 | | |
 |---|---|
@@ -10,11 +10,12 @@
 
 ## 1. The direction, in one paragraph
 
-**Passo** (Italian: "pace") is the **permanent internal codename** of this design system — code
-namespaces (`components/passo/`), doc titles, and token prefixes keep it regardless of what the
-product is eventually called. The *market-facing name* is a separate thing: **interim name (decided
-2026-07-11): "Travel Companion"** — used in the wordmark, PWA manifest, and app chrome until a
-final brand name is chosen (the trademark screen ruled out Passo/Wayside/Meander/Amble). The
+The design system carries **no codename** (an earlier one, "Passo", was dropped — the trademark
+screen ruled it out along with Wayside/Meander/Amble, and a name we cannot ship has no business in
+code namespaces or doc titles). Components live under a neutral `components/app/` namespace and the
+tokens are named for what they do, so nothing has to be renamed when the brand lands. The
+*market-facing name* is a separate thing: **interim name (decided 2026-07-11): "Travel Companion"**
+— used in the wordmark, PWA manifest, and app chrome until a final brand name is chosen. The
 wordmark string is a single swappable token (shared prop from `APP_NAME`), never hard-coded in a
 component, so the rename later is a config change, not a refactor.
 The feel is **a warm, analog travel journal**: paper, ink, one accent. It is quiet, editorial, and personal — the opposite of a booking app. The companion speaks
@@ -156,7 +157,7 @@ feed refinement (PRD §10 latency budget): new/better cards slide in below with 
 
 ## 3. Component anatomy (canonical shapes)
 
-React components live in `resources/js/components/passo/` (shadcn primitives underneath where
+React components live in `resources/js/components/app/` (shadcn primitives underneath where
 useful). Names below are the component names to use.
 
 ### `<OpportunityCard>` — the core object
@@ -213,7 +214,7 @@ JOURNAL**. Active = ink 600; inactive = meta 500. On desktop (§4) it becomes a 
 - **`<MapPin>` set**: GO NOW pin 34px ochre disc + 3px card ring + shadow + caps label chip; standard
   pin 18px ink disc + 2.5px card ring + lowercase label chip; "you" 13px card disc + 3px olive ring.
   **Map stack (decided):** the paper map look requires **vector tiles + MapLibre GL JS with a custom
-  Passo style** — raster OSM tiles cannot be restyled beyond crude CSS filters. Tile source:
+  paper style** — raster OSM tiles cannot be restyled beyond crude CSS filters. Tile source:
   OpenFreeMap (free, no key) or self-hosted Protomaps/PMTiles as the fallback/cost lever; both are
   the cleanest ODbL-attribution path. MapLibre is ~200KB gzipped — **lazy-load the map bundle on
   first MAP-tab open**, never in the feed's critical path.
