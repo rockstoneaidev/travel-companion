@@ -42,7 +42,7 @@ export default function Design() {
     const [choice, setChoice] = useState('20 min');
 
     return (
-        <div className="bg-paper min-h-screen pb-28 lg:pl-40">
+        <div className="bg-paper min-h-screen pb-28">
             <Head title="Design system" />
             <TabBar tabs={TABS} />
 

@@ -1,4 +1,5 @@
 import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, TabBar } from '@/components/app';
+import ProductLayout from '@/layouts/product-layout';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -64,73 +65,75 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
             : `${exploreSession.time_budget_minutes} min`;
 
     return (
-        <div className="bg-paper min-h-screen pb-28 lg:pl-40">
-            <Head title="Now" />
-            <TabBar tabs={TABS(exploreSession.id, exploreSession.trip_id)} />
+        <ProductLayout>
+            <div className="bg-paper min-h-full flex-1 pb-28">
+                <Head title="Now" />
+                <TabBar tabs={TABS(exploreSession.id, exploreSession.trip_id)} />
 
-            <div className="mx-auto max-w-md space-y-6 px-5 py-8">
-                <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
+                <div className="mx-auto max-w-md space-y-6 px-5 py-8">
+                    <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
 
-                {items.length === 0 ? (
-                    <EmptyFeed
-                        headline="Nothing worth interrupting you for."
-                        body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
-                    />
-                ) : (
-                    <>
-                        <div className="space-y-4">
-                            {items.map((item) => (
-                                <div key={item.id}>
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="block w-full cursor-pointer text-left"
-                                        onClick={() => router.visit(`/opportunities/${item.id}`)}
-                                        onKeyDown={(e) => e.key === 'Enter' && router.visit(`/opportunities/${item.id}`)}
-                                    >
-                                        <OpportunityCard
-                                            title={item.title ?? item.place.name}
-                                            summary={
-                                                item.summary ??
-                                                `${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} minutes away on foot.`
-                                            }
-                                            facets={item.place.facets}
-                                            meta={`${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} min walk`}
-                                            onTakeMe={() => takeMe(item)}
-                                            onKeep={() => feedback(item.recommendation_id, 'saved')}
-                                        />
+                    {items.length === 0 ? (
+                        <EmptyFeed
+                            headline="Nothing worth interrupting you for."
+                            body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
+                        />
+                    ) : (
+                        <>
+                            <div className="space-y-4">
+                                {items.map((item) => (
+                                    <div key={item.id}>
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            className="block w-full cursor-pointer text-left"
+                                            onClick={() => router.visit(`/opportunities/${item.id}`)}
+                                            onKeyDown={(e) => e.key === 'Enter' && router.visit(`/opportunities/${item.id}`)}
+                                        >
+                                            <OpportunityCard
+                                                title={item.title ?? item.place.name}
+                                                summary={
+                                                    item.summary ??
+                                                    `${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} minutes away on foot.`
+                                                }
+                                                facets={item.place.facets}
+                                                meta={`${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} min walk`}
+                                                onTakeMe={() => takeMe(item)}
+                                                onKeep={() => feedback(item.recommendation_id, 'saved')}
+                                            />
+                                        </div>
+                                        <div className="mt-1 flex justify-end">
+                                            <QuietAction onClick={() => notForMe(item)}>Not for me</QuietAction>
+                                        </div>
                                     </div>
-                                    <div className="mt-1 flex justify-end">
-                                        <QuietAction onClick={() => notForMe(item)}>Not for me</QuietAction>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                            <p className="text-quiet text-center font-serif text-xs italic">That's all for now.</p>
+                        </>
+                    )}
+
+                    {exploreSession.status === 'active' && (
+                        <div className="border-border-soft border-t pt-4 text-center">
+                            <QuietAction onClick={() => router.post(`/explore/${exploreSession.id}/end`)}>End session</QuietAction>
                         </div>
-                        <p className="text-quiet text-center font-serif text-xs italic">That's all for now.</p>
-                    </>
-                )}
+                    )}
+                </div>
 
-                {exploreSession.status === 'active' && (
-                    <div className="border-border-soft border-t pt-4 text-center">
-                        <QuietAction onClick={() => router.post(`/explore/${exploreSession.id}/end`)}>End session</QuietAction>
+                {dismissing !== null && (
+                    <div className="bg-ink text-card fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full px-5 py-2.5 text-xs shadow-lg">
+                        Okay — fewer like this.
+                        <button
+                            className="font-bold underline underline-offset-[3px]"
+                            onClick={() => {
+                                const item = opportunities.data.find((i) => i.recommendation_id === dismissing);
+                                if (item) undo(item);
+                            }}
+                        >
+                            Undo
+                        </button>
                     </div>
                 )}
             </div>
-
-            {dismissing !== null && (
-                <div className="bg-ink text-card fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full px-5 py-2.5 text-xs shadow-lg">
-                    Okay — fewer like this.
-                    <button
-                        className="font-bold underline underline-offset-[3px]"
-                        onClick={() => {
-                            const item = opportunities.data.find((i) => i.recommendation_id === dismissing);
-                            if (item) undo(item);
-                        }}
-                    >
-                        Undo
-                    </button>
-                </div>
-            )}
-        </div>
+        </ProductLayout>
     );
 }
