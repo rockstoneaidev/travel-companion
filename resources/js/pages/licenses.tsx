@@ -1,4 +1,4 @@
-import { PassoAppHeader } from '@/components/passo';
+import { AppHeader } from '@/components/app';
 import { Head } from '@inertiajs/react';
 
 interface Credit {
@@ -74,7 +74,7 @@ export default function Licenses() {
         <div className="bg-paper min-h-screen">
             <Head title="Data & licenses" />
             <div className="mx-auto max-w-md space-y-8 px-5 py-8">
-                <PassoAppHeader />
+                <AppHeader />
                 <h1 className="text-headline text-ink font-serif font-medium italic">Built on open data.</h1>
                 <p className="text-lede text-body font-serif italic">
                     The places this app knows about come from open projects maintained by people who map the world for everyone. Their work deserves

@@ -17,7 +17,7 @@ const itemClasses = 'text-body hover:text-ink flex min-h-11 items-center gap-3 t
  * opens the same navigation as <AppSidebar />, dressed as paper (DESIGN §3). Nav
  * items come from @/lib/nav so the two menus can't drift apart.
  */
-export function PassoNavMenu({ className }: { className?: string }) {
+export function NavMenu({ className }: { className?: string }) {
     const { auth, name } = usePage<SharedData>().props;
     const [open, setOpen] = useState(false);
     const cleanup = useMobileNavigation();

@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
 
-// tailwind-merge cannot know that the Passo type-scale utilities (text-title,
+// tailwind-merge cannot know that the design-system type-scale utilities (text-title,
 // text-facet, …) are font sizes, not colors — without this it puts them in the
 // text-color group and silently drops the size whenever a color is present in
 // the same class list. Keep in sync with the --text-* tokens in app.css.

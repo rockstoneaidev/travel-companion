@@ -1,4 +1,4 @@
-import { EmptyFeed, OpportunityCard, PassoAppHeader, QuietAction, TabBar } from '@/components/passo';
+import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, TabBar } from '@/components/app';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -69,7 +69,7 @@ export default function ExploreShow({ session, opportunities }: ExploreShowProps
             <TabBar tabs={TABS(exploreSession.id, exploreSession.trip_id)} />
 
             <div className="mx-auto max-w-md space-y-6 px-5 py-8">
-                <PassoAppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
+                <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
 
                 {items.length === 0 ? (
                     <EmptyFeed

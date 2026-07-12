@@ -1,4 +1,4 @@
-import { EvidenceList, PassoNavMenu, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, WhyYou } from '@/components/passo';
+import { EvidenceList, NavMenu, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, WhyYou } from '@/components/app';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -51,7 +51,7 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                     ) : (
                         <span />
                     )}
-                    <PassoNavMenu className="-mr-2 ml-0" />
+                    <NavMenu className="-mr-2 ml-0" />
                 </div>
 
                 {image !== null ? (

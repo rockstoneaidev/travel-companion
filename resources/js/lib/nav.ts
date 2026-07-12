@@ -3,7 +3,7 @@ import { Activity, BookOpen, Compass, Gauge, LayoutGrid, Map, ScrollText, Shield
 
 /**
  * The app navigation, shared by the sidebar (app chrome) and the menu sheet on the
- * Passo product screens — one list, so the two can't drift apart.
+ * product screens — one list, so the two can't drift apart.
  */
 export const mainNavItems: NavItem[] = [
     {

@@ -1,4 +1,4 @@
-import { ChoicePill, EditorialLede, PassoAppHeader, PrimaryPill } from '@/components/passo';
+import { AppHeader, ChoicePill, EditorialLede, PrimaryPill } from '@/components/app';
 import { type TravelMode } from '@/types/enums';
 import { type ExploreSession } from '@/types/travel';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -61,7 +61,7 @@ export default function ExploreIndex({ activeSession, travelModeOptions }: Explo
         <div className="bg-paper min-h-screen">
             <Head title="Explore" />
             <div className="mx-auto max-w-md space-y-8 px-5 py-8">
-                <PassoAppHeader contextStamp="Stockholm" />
+                <AppHeader contextStamp="Stockholm" />
 
                 {activeSession ? (
                     <section className="space-y-4">
