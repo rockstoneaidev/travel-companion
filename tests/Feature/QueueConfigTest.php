@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Sources\Adapters\OsmAdapter;
 use App\Enums\QueueLane;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\IngestRegionBoxJob;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,6 +71,31 @@ it('runs region ingest serially, because Overpass rate-limits', function () {
     // Two region ingests at once is how you get thrown off a source you do not pay for.
     expect(config('horizon.defaults.supervisor-ingest.maxProcesses'))->toBe(1)
         ->and(config('horizon.environments.production.supervisor-ingest.maxProcesses'))->toBe(1);
+});
+
+it('cannot let an ingest box outlive its own timeout', function () {
+    /*
+     * THE ARITHMETIC THAT MUST HOLD. Stockholm died because it did not:
+     *
+     *   BUDGET + HTTP_TIMEOUT  <  job timeout  <  retry_after
+     *      300  +     150      <      600      <     1800
+     *
+     * Left side: the budget refuses to START a request that could outlive it, so the
+     * last one may begin at second 299 and run its full 150 s. That is the true worst
+     * case, and it must finish with room to spare before the worker kills the job.
+     *
+     * Right side: a job that outlives retry_after gets handed to a SECOND worker while
+     * still running, and with tries=1 that duplicate dies instantly as
+     * MaxAttemptsExceeded — having done nothing wrong. That is the exact failure this
+     * whole structure exists to make impossible.
+     *
+     * A test, not a comment, because all three numbers are tempting to raise alone.
+     */
+    $boxTimeout = new IngestRegionBoxJob('stockholm', 'osm', 0)->timeout;
+    $retryAfter = (int) config('queue.connections.redis-long.retry_after');
+
+    expect(OsmAdapter::BUDGET_SECONDS + OsmAdapter::HTTP_TIMEOUT_SECONDS)->toBeLessThan($boxTimeout)
+        ->and($boxTimeout)->toBeLessThan($retryAfter);
 });
 
 it('gives the ingest more time than its slowest source is allowed to spend', function () {

@@ -6,6 +6,7 @@ namespace App\Domain\Sources\Services;
 
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Data\ScoutRequest;
 use App\Domain\Sources\Data\SourceDescriptor;
 use App\Domain\Sources\Exceptions\StoragePolicyViolation;
 use App\Domain\Sources\Models\TileCacheState;
@@ -25,9 +26,14 @@ final class RegionIngest
     ) {}
 
     /**
+     * @param  ?ScoutRequest  $box  One grid cell of the region, or null for the whole thing.
+     *                              A box is the unit of WORK and the unit of PERSISTENCE
+     *                              (IngestRegion::boxes()): what this call fetches, it writes
+     *                              before returning, so a job that dies costs one box rather
+     *                              than an hour of unwritten elements.
      * @return array{fetched: int, candidates: int, tiles: int}
      */
-    public function ingest(IngestRegion $region, string $sourceKey): array
+    public function ingest(IngestRegion $region, string $sourceKey, ?ScoutRequest $box = null): array
     {
         $descriptor = $this->registry->descriptor($sourceKey);
 
@@ -38,7 +44,7 @@ final class RegionIngest
         }
 
         $adapter = $this->registry->adapter($sourceKey);
-        $request = $region->toScoutRequest();
+        $request = $box ?? $region->toScoutRequest();
 
         if (! $adapter->supports($request)) {
             return ['fetched' => 0, 'candidates' => 0, 'tiles' => 0];

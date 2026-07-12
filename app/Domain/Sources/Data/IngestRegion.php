@@ -13,6 +13,15 @@ use InvalidArgumentException;
  */
 final readonly class IngestRegion
 {
+    /**
+     * ~0.05° — a few kilometres a side. Small enough that one Overpass query for it
+     * answers in seconds rather than minutes, which is the whole point.
+     */
+    private const CELL_DEGREES = 0.05;
+
+    /** A region must not become a thousand jobs. */
+    private const MAX_BOXES = 128;
+
     public function __construct(
         public string $key,
         public string $name,
@@ -131,5 +140,59 @@ final readonly class IngestRegion
             east: $this->east,
             locale: $this->locale,
         );
+    }
+
+    /**
+     * The region, cut into a grid of small boxes — one job's worth of work each.
+     *
+     * This exists because of a hard ceiling that is easy to miss: a job's `timeout`
+     * is capped by the queue's `retry_after`, which is itself capped by how long you
+     * are willing to leave a genuinely dead job undetected. So there is a maximum
+     * duration ANY job may have, and "make the timeout bigger" is a treadmill that
+     * ends at that wall.
+     *
+     * Stockholm hit it. One job fetching 584 km² of Overpass held its reservation
+     * past retry_after, the queue decided it was dead, handed it to a second worker,
+     * and `tries = 1` killed it — MaxAttemptsExceeded, having done nothing wrong.
+     * Worse, an hour of successfully fetched elements died with it, unwritten,
+     * because the old ingest buffered the whole region in memory and persisted only
+     * at the end.
+     *
+     * A box is therefore the unit of WORK and the unit of PERSISTENCE: one Overpass
+     * query, one upsert, a couple of minutes. A box that dies costs a box.
+     *
+     * @return list<ScoutRequest>
+     */
+    public function boxes(float $cellDegrees = self::CELL_DEGREES): array
+    {
+        $latSteps = max(1, (int) ceil(($this->north - $this->south) / $cellDegrees));
+        $lngSteps = max(1, (int) ceil(($this->east - $this->west) / $cellDegrees));
+
+        // A pathological region must not turn into a thousand jobs. Grow the cells
+        // instead — a slightly bigger box is a slower query; a thousand boxes is a
+        // day of politeness sleeps.
+        if ($latSteps * $lngSteps > self::MAX_BOXES) {
+            return $this->boxes($cellDegrees * 2);
+        }
+
+        $latSize = ($this->north - $this->south) / $latSteps;
+        $lngSize = ($this->east - $this->west) / $lngSteps;
+
+        $boxes = [];
+
+        for ($i = 0; $i < $latSteps; $i++) {
+            for ($j = 0; $j < $lngSteps; $j++) {
+                $boxes[] = new ScoutRequest(
+                    regionKey: $this->key,
+                    south: $this->south + $i * $latSize,
+                    west: $this->west + $j * $lngSize,
+                    north: $this->south + ($i + 1) * $latSize,
+                    east: $this->west + ($j + 1) * $lngSize,
+                    locale: $this->locale,
+                );
+            }
+        }
+
+        return $boxes;
     }
 }

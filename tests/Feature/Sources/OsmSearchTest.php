@@ -37,7 +37,7 @@ it('splits a box that times out into smaller questions', function () {
     Http::fake(function () use (&$calls) {
         $calls++;
 
-        // The first top-level quadrant 504s; its children answer.
+        // The box itself 504s; its four children answer.
         return $calls === 1
             ? Http::response('Gateway Timeout', 504)
             : Http::response(['elements' => [overpassElement($calls)]], 200);
@@ -45,9 +45,10 @@ it('splits a box that times out into smaller questions', function () {
 
     $elements = new OsmAdapter()->search(stockholmBox());
 
-    // 4 quadrants, the first of which fanned out into 4 children: 3 + 4 answers.
-    expect($elements)->toHaveCount(7)
-        ->and($calls)->toBe(8);
+    // One ask, one 504, four children. The split is a REMEDY, not a strategy: a box
+    // that answers is never split, which is what makes a pre-gridded region cheap.
+    expect($elements)->toHaveCount(4)
+        ->and($calls)->toBe(5);
 });
 
 it('never re-asks the identical question that just timed out', function () {
@@ -80,8 +81,8 @@ it('gives up on a patch at the depth bound instead of splitting forever', functi
     expect(fn () => new OsmAdapter()->search(stockholmBox()))
         ->toThrow(RuntimeException::class, 'Overpass returned nothing');
 
-    // 4 quadrants × (1 + 4 + 16 + 64) at MAX_SPLIT_DEPTH = 3.
-    Http::assertSentCount(4 * (1 + 4 + 16 + 64));
+    // 1 + 4 + 16 + 64 at MAX_SPLIT_DEPTH = 3.
+    Http::assertSentCount(1 + 4 + 16 + 64);
 });
 
 it('keeps the region when only some boxes fail', function () {
@@ -90,14 +91,15 @@ it('keeps the region when only some boxes fail', function () {
     Http::fake(function () use (&$calls) {
         $calls++;
 
-        // One whole quadrant is dead at every depth; the other three answer.
+        // The box 504s, so it splits; then one of the four children is dead at every
+        // depth while the other three answer.
         return $calls === 1 || $calls > 4
             ? Http::response('Gateway Timeout', 504)
             : Http::response(['elements' => [overpassElement($calls)]], 200);
     });
 
-    // Three quadrants' worth of places is a usable region (conventions/09);
-    // demanding all four would throw away the 3 we have.
+    // Three children's worth of places is a usable box (conventions/09); demanding
+    // all four would throw away the 3 we have.
     expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(3);
 });
 
@@ -116,8 +118,8 @@ it('fails over to another endpoint when one is unreachable', function () {
         return Http::response(['elements' => [overpassElement(count($hosts))]], 200);
     });
 
-    // All four quadrants still come back — from the second endpoint.
-    expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(4)
+    // The box still comes back — from the second endpoint.
+    expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(1)
         ->and($hosts)->toContain('overpass-api.de');
 });
 
@@ -133,10 +135,10 @@ it('does not split when it cannot reach the server — a smaller question cannot
     expect(fn () => new OsmAdapter()->search(stockholmBox()))
         ->toThrow(RuntimeException::class, 'Overpass returned nothing');
 
-    // 4 quadrants × 3 endpoints, and NO subdivision. The old code quartered every
+    // One box × 3 endpoints, and NO subdivision. The old code quartered every
     // unreachable box: Nice asked a host that was refusing us 188 times in 8
     // minutes. Splitting is the remedy for "too big", not for "can't connect".
-    expect($calls)->toBe(4 * 3);
+    expect($calls)->toBe(3);
 });
 
 it('stops when the wall clock runs out, and says what it dropped', function () {
@@ -144,13 +146,26 @@ it('stops when the wall clock runs out, and says what it dropped', function () {
 
     $calls = 0;
 
-    // Slow enough that exactly three of the four top-level quadrants fit in the
-    // budget. Derived from the constant, so tuning the budget cannot quietly turn
-    // this test into one that asserts nothing.
-    $secondsPerBox = intdiv(OsmAdapter::BUDGET_SECONDS, 3) + 10;
+    /*
+     * The box 504s, so it splits into four children — and the children are slow.
+     *
+     * perBox is derived from BOTH constants, not hand-tuned: a request is only
+     * STARTED if it could finish inside the budget (`elapsed + HTTP_TIMEOUT <= BUDGET`),
+     * so exactly three children fit when
+     *
+     *     2 × perBox + HTTP_TIMEOUT <= BUDGET < 3 × perBox + HTTP_TIMEOUT
+     *
+     * Hard-coding the number is how this test quietly stopped asserting anything the
+     * last time the budget moved.
+     */
+    $secondsPerBox = intdiv(OsmAdapter::BUDGET_SECONDS - OsmAdapter::HTTP_TIMEOUT_SECONDS, 2);
 
     Http::fake(function () use (&$calls, $secondsPerBox) {
         $calls++;
+
+        if ($calls === 1) {
+            return Http::response('Gateway Timeout', 504);   // the parent, answered instantly
+        }
 
         CarbonImmutable::setTestNow(CarbonImmutable::getTestNow()->addSeconds($secondsPerBox));
 
@@ -161,12 +176,12 @@ it('stops when the wall clock runs out, and says what it dropped', function () {
 
     $elements = new OsmAdapter()->search(stockholmBox());
 
-    // THE FIX. Three boxes fit; the fourth would have run past the budget — and on
-    // the real thing past the job's timeout, which kills the worker mid-curl and
-    // throws away everything already fetched, unwritten. So it is never started,
-    // and we keep the three we have.
+    // THE FIX. Three children fit; the fourth would have run past the budget — and on
+    // the real thing, past the job's timeout, which kills the worker mid-curl and
+    // throws away everything already fetched, unwritten. So it is never started, and
+    // we keep the three we have.
     expect($elements)->toHaveCount(3)
-        ->and($calls)->toBe(3);
+        ->and($calls)->toBe(4);   // the parent's 504, then three children
 
     Log::shouldHaveReceived('warning')
         ->withArgs(fn (string $message, array $context): bool => str_contains($message, 'ran out of time') && $context['boxes_skipped'] === 1);
@@ -191,4 +206,49 @@ it('lets a bug in the adapter surface instead of answering it with more HTTP', f
         ->toThrow(LogicException::class, 'a real bug');
 
     expect($calls)->toBe(1);   // it surfaced on the first box; it did not fan out
+});
+
+it('waits when Overpass says 429 — it does NOT split', function () {
+    $calls = 0;
+
+    Http::fake(function () use (&$calls) {
+        $calls++;
+
+        // Rate-limited everywhere, always.
+        return Http::response('Too Many Requests', 429, ['Retry-After' => '30']);
+    });
+
+    expect(fn () => new OsmAdapter()->search(stockholmBox()))
+        ->toThrow(RuntimeException::class, 'Overpass returned nothing');
+
+    /*
+     * THE POINT. A 504 means the question was too big, and a smaller question fixes
+     * it. A 429 means we are asking too OFTEN — and splitting would answer that by
+     * asking four times as often, which is a feedback loop straight into a ban on a
+     * volunteer service we do not pay for.
+     *
+     * This is not hypothetical: Stockholm earned a real 429 while running strictly
+     * one box at a time. Overpass's cost is a function of the query, not of our
+     * concurrency, so there is no amount of politeness that makes hammering safe.
+     *
+     * 3 endpoints × 2 attempts, and NOT ONE subdivision.
+     */
+    expect($calls)->toBe(3 * 2);
+});
+
+it('takes a 504 as a smaller-question problem and a 429 as a slow-down problem', function () {
+    $calls = 0;
+
+    Http::fake(function () use (&$calls) {
+        $calls++;
+
+        // The box is too big (504); its children are fine.
+        return $calls === 1
+            ? Http::response('Gateway Timeout', 504)
+            : Http::response(['elements' => [overpassElement($calls)]], 200);
+    });
+
+    // The remedy must match the cause, and the two causes look identical over HTTP
+    // unless you actually read the status code.
+    expect(new OsmAdapter()->search(stockholmBox()))->toHaveCount(4);
 });

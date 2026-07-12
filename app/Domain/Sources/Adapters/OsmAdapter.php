@@ -9,6 +9,7 @@ use App\Domain\Places\Taxonomy\OsmTagMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
+use App\Domain\Sources\Exceptions\OverpassRateLimited;
 use Carbon\CarbonImmutable;
 use DateInterval;
 use Illuminate\Http\Client\ConnectionException;
@@ -72,12 +73,14 @@ final class OsmAdapter implements ScoutSource
      * upsert afterwards: we would rather hand back a partial region and say so
      * (conventions/09) than be killed mid-request and hand back nothing.
      *
-     * Measured: Nice is 516 s of real Overpass. Paris returns 34k elements and
-     * splits further, so the budget has to be well clear of the biggest city in
-     * the corridor or the fix just moves the truncation from "killed" to "skipped".
+     * Sized for ONE BOX, not a whole region: BuildRegionWorldModelJob now cuts the
+     * region into a grid and gives each cell its own job (IngestRegion::boxes()), so
+     * this budget covers a few square kilometres rather than 584 of them. That is
+     * what lets the job timeout come DOWN to 600 s — comfortably clear of the
+     * queue's retry_after, which is the ceiling that killed Stockholm.
      * Enforced against the job's timeout by tests/Feature/QueueConfigTest.php.
      */
-    public const BUDGET_SECONDS = 1200;
+    public const BUDGET_SECONDS = 300;
 
     /**
      * Just above the `[timeout:120]` we ask Overpass for, so the server's own
@@ -87,10 +90,16 @@ final class OsmAdapter implements ScoutSource
      * timed out. Overpass timed out because the question was too big; the answer
      * is a smaller question, not the same one again. The splitter IS the retry.
      */
-    private const HTTP_TIMEOUT_SECONDS = 150;
+    public const HTTP_TIMEOUT_SECONDS = 150;
 
     /** Public Overpass rate-limits bursts. The ingest lane is serial anyway. */
     private const POLITENESS_SECONDS = 2;
+
+    /** How long to wait when Overpass says 429 and does not tell us how long. */
+    private const DEFAULT_BACKOFF_SECONDS = 45;
+
+    /** ...and a ceiling, so one hostile Retry-After header cannot eat the whole budget. */
+    private const MAX_BACKOFF_SECONDS = 90;
 
     public function supports(ScoutRequest $request): bool
     {
@@ -118,9 +127,19 @@ final class OsmAdapter implements ScoutSource
         $state = ['failed' => 0, 'skipped' => 0, 'requests' => 0];
         $deadline = CarbonImmutable::now()->addSeconds(self::BUDGET_SECONDS);
 
-        foreach ($this->quadrants($request) as $quadrant) {
-            $this->collect($quadrant, 0, $elements, $state, $deadline);
-        }
+        /*
+         * Ask for the box AS IT IS. Split only if Overpass says no.
+         *
+         * This used to quarter every request BEFORE asking anything — sensible when a
+         * "box" was a whole 584 km² region, and pure waste now that the region arrives
+         * pre-gridded (IngestRegion::boxes()). It quadrupled the query count: Stockholm's
+         * 45 boxes became 180 Overpass round-trips, and a box holding eight places took
+         * 280 seconds to fetch them.
+         *
+         * The splitter is a REMEDY, not a strategy. It exists for the box that comes back
+         * 504 — and it still fans out exactly as before when one does.
+         */
+        $this->collect($request, 0, $elements, $state, $deadline);
 
         if ($state['skipped'] > 0) {
             // Silent truncation reads as "covered everything". Say what was dropped.
@@ -169,6 +188,26 @@ final class OsmAdapter implements ScoutSource
 
         try {
             $response = $this->ask($box);
+        } catch (OverpassRateLimited $e) {
+            /*
+             * 429 — the server said SLOW DOWN, and splitting would answer by asking
+             * four times as often. That is a feedback loop straight into a ban, and it
+             * is exactly what this adapter used to do, because every HTTP error looked
+             * like "the question was too big".
+             *
+             * It is not too big. It is too OFTEN. There is no smaller question that
+             * helps, so we back off (in ask()) and, if it persists, give the box up.
+             * Overpass is a volunteer service we do not pay for; being asked to wait is
+             * a reasonable thing for it to do, and hammering through it is not a
+             * reasonable thing for us to do.
+             */
+            $state['failed']++;
+
+            Log::warning("osm ingest {$box->regionKey}: rate limited, box abandoned", [
+                'south' => $box->south, 'west' => $box->west,
+            ]);
+
+            return;
         } catch (ConnectionException $e) {
             // We could not REACH any endpoint. That is not a question that is too
             // big, so a smaller question cannot fix it — splitting here just asks
@@ -218,21 +257,48 @@ final class OsmAdapter implements ScoutSource
      */
     private function ask(ScoutRequest $box): Response
     {
-        $lastFailure = null;
+        $unreachable = null;
+        $rateLimited = false;
 
         foreach (self::OVERPASS_ENDPOINTS as $endpoint) {
-            try {
-                return Http::timeout(self::HTTP_TIMEOUT_SECONDS)
-                    ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
-                    ->asForm()
-                    ->post($endpoint, ['data' => $this->overpassQuery($box)])
-                    ->throw();
-            } catch (ConnectionException $e) {
-                $lastFailure = $e;   // unreachable — try the next host
+            for ($attempt = 1; $attempt <= 2; $attempt++) {
+                try {
+                    $response = Http::timeout(self::HTTP_TIMEOUT_SECONDS)
+                        ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
+                        ->asForm()
+                        ->post($endpoint, ['data' => $this->overpassQuery($box)]);
+                } catch (ConnectionException $e) {
+                    $unreachable = $e;
+
+                    continue 2;   // this host is not answering at all — try the next one
+                }
+
+                if ($response->status() !== 429) {
+                    // 5xx here throws RequestException, and the caller splits the box —
+                    // which is the right remedy for "your question was too big".
+                    return $response->throw();
+                }
+
+                $rateLimited = true;
+
+                // Asked to wait. Honour Retry-After when they send one; they know their
+                // own load better than our guess does.
+                $wait = min(self::MAX_BACKOFF_SECONDS, max(1, (int) $response->header('Retry-After') ?: self::DEFAULT_BACKOFF_SECONDS));
+
+                Log::info("osm ingest {$box->regionKey}: rate limited, waiting {$wait}s", ['endpoint' => $endpoint]);
+
+                if ($attempt === 1 && ! app()->runningUnitTests()) {
+                    sleep($wait);
+                }
             }
         }
 
-        throw $lastFailure ?? new ConnectionException('No Overpass endpoint configured.');
+        // Every endpoint either refused the connection or told us to wait.
+        if ($rateLimited) {
+            throw new OverpassRateLimited('Every Overpass endpoint is rate-limiting us.');
+        }
+
+        throw $unreachable ?? new ConnectionException('No Overpass endpoint configured.');
     }
 
     /** @return list<ScoutRequest> */

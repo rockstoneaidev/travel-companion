@@ -14,6 +14,7 @@ use App\Jobs\Scouts\WarmTileJob;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -34,23 +35,25 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
     private const RESOLVE_BATCH_TILES = 12;
 
     /**
-     * Must stay BELOW the `redis-long` connection's retry_after (1800s), and ABOVE
-     * OsmAdapter::BUDGET_SECONDS — the source that actually uses the time.
+     * The ORCHESTRATOR is short by construction: it queues work, it does not do it.
+     * The long part (Overpass) lives in IngestRegionBoxJob, one small box at a time.
      *
-     * The old value was 420s on a connection whose retry_after was 90s, which is
-     * how Dijon died: after 90 seconds the queue decided the still-running job was
-     * dead, handed it to a second worker, and it failed as MaxAttemptsExceeded
-     * having done nothing wrong.
-     *
-     * Raising this is only safe because the ingest is now bounded in *time* rather
-     * than merely in split depth (OsmAdapter::BUDGET_SECONDS). Before that, no
-     * timeout was big enough — the fan-out was unbounded in seconds, so any fixed
-     * number was a coin flip, and 900s is the one Nice lost. Both invariants are
-     * enforced by tests/Feature/QueueConfigTest.php.
+     * Must still stay below `redis-long`'s retry_after — enforced by
+     * tests/Feature/QueueConfigTest.php.
      */
-    public int $timeout = 1500;
+    public int $timeout = 600;
 
     public int $tries = 1;
+
+    /**
+     * BOXED SOURCES — the ones we cut the region up for.
+     *
+     * Overpass is the only one, and for a reason: it answers a bbox, and its cost is
+     * a function of how much is inside it. The others (Wikidata SPARQL, Mérimée,
+     * DATAtourisme) are paginated APIs where 45 small queries would be slower AND
+     * ruder than one, so they still take the region whole.
+     */
+    private const BOXED_SOURCES = ['osm'];
 
     public function __construct(
         public readonly string $regionKey,
@@ -88,6 +91,29 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             // three of four sources is a usable region and a region with none is not.
             $source = $this->source ?? $registry->keys()[0];
 
+            /*
+             * ONE BOX PER JOB (IngestRegion::boxes()).
+             *
+             * A job's timeout is capped by the queue's retry_after, so there is a hard
+             * ceiling on how long ANY job may run — and Stockholm walked straight into
+             * it: one job fetching 584 km² of Overpass held its reservation past
+             * retry_after, the queue decided it was dead, handed it to a second worker,
+             * and tries=1 killed it as MaxAttemptsExceeded having done nothing wrong.
+             * An hour of fetched elements died with it, unwritten.
+             *
+             * Raising the timeout is a treadmill that ends at that same wall. Making the
+             * jobs small ends it. A box is one Overpass query and one upsert: minutes,
+             * and what it fetched is on disk before the job returns.
+             */
+            if (in_array($source, self::BOXED_SOURCES, true)) {
+                $this->dispatchBoxes($region, $registry, $source);
+
+                return;
+            }
+
+            // Unboxed sources (Wikidata SPARQL, Mérimée, DATAtourisme) take the region
+            // whole: they are paginated APIs where 45 small queries would be slower AND
+            // ruder than one.
             try {
                 $result = $ingest->ingest($region, $source);
                 Log::info("world-model ingest {$this->regionKey}/{$source}", $result);
@@ -173,8 +199,50 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         };
     }
 
+    /**
+     * Queue every box of this source AT ONCE, and move on when they are all done.
+     *
+     * BATCHED, NOT CHAINED — and they are not the same thing. Chaining (box 12
+     * dispatches box 13) only advances if box 12's failure handler actually runs, so
+     * a SIGKILL, an OOM or a container restart strands the region in silence: the
+     * same class of bug this whole exercise is about. A batch has no such thread to
+     * cut. The other 44 boxes never depended on box 12.
+     *
+     * They still run STRICTLY IN SEQUENCE, because the ingest supervisor is
+     * maxProcesses 1 (public Overpass allows ~2 slots per IP, and running the corridor
+     * cities back to back is what cost Nantes its entire OSM layer). Sequence is the
+     * worker's decision, which is exactly where it belongs — and the day we self-host
+     * Overpass, parallelism is a config change rather than a rewrite.
+     *
+     * allowFailures(): a dead box is degraded, never fatal (conventions/09). 44 of 45
+     * boxes is a usable city.
+     */
+    private function dispatchBoxes(IngestRegion $region, SourceRegistry $registry, string $source): void
+    {
+        $boxes = $region->boxes();
+        $regionKey = $this->regionKey;
+
+        Log::info("world-model ingest {$regionKey}/{$source}: queueing boxes", ['boxes' => count($boxes)]);
+
+        Bus::batch(array_map(
+            static fn (int $index): IngestRegionBoxJob => new IngestRegionBoxJob($regionKey, $source, $index),
+            array_keys($boxes),
+        ))
+            ->name("ingest {$regionKey}/{$source}")
+            ->allowFailures()
+            ->onQueue(QueueLane::Ingest->value)
+            ->onConnection(QueueLane::Ingest->connection())
+            // Runs whether the batch succeeded, partly failed, or was cancelled: the
+            // region must reach `resolve` regardless, or a single bad box strands it.
+            ->finally(static function () use ($regionKey, $source): void {
+                app(self::class, ['regionKey' => $regionKey, 'phase' => 'ingest', 'source' => $source])
+                    ->chainOnwardFromIngest(app(SourceRegistry::class), $source);
+            })
+            ->dispatch();
+    }
+
     /** Next source in the registry, or on to `resolve` when this was the last one. */
-    private function chainOnwardFromIngest(SourceRegistry $registry, string $source): void
+    public function chainOnwardFromIngest(SourceRegistry $registry, string $source): void
     {
         $sources = $registry->keys();
         $index = array_search($source, $sources, true);
