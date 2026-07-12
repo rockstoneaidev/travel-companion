@@ -1,0 +1,48 @@
+{
+    "recorded_at": "2026-07-12T19:34:08+00:00",
+    "session": {
+        "id": "019f57d2-54b0-73c9-850d-30bd594e7e8d",
+        "user_id": 2,
+        "trip_id": "019f5376-174f-726c-a22e-bf25034f27da",
+        "origin": {
+            "lat": 59.3326,
+            "lng": 18.0649
+        },
+        "time_budget_minutes": 180,
+        "travel_mode": "walk",
+        "heading": null,
+        "destination_point": null,
+        "started_at": "2026-07-12T19:33:49+00:00"
+    },
+    "served": [
+        {
+            "position": 1,
+            "place_id": "019f5346-15ee-7214-9533-6d28e01dcb3c",
+            "name": "Logården",
+            "composite": 0.7335,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 2,
+            "place_id": "019f5346-4351-735d-9a61-88486406f9f1",
+            "name": "Dianafontänen I",
+            "composite": 0.6644,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 3,
+            "place_id": "019f5346-437c-7392-b045-fb32cc0b8277",
+            "name": "Sergelfontänen",
+            "composite": 0.6614,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 4,
+            "place_id": "019f5346-3f56-7387-a4ee-a998e749092c",
+            "name": "Centralbadsparken",
+            "composite": 0.6579,
+            "scoring_model_version": "v1"
+        }
+    ],
+    "served_at": "2026-07-12 19:33:49+00"
+}

@@ -1,0 +1,48 @@
+{
+    "recorded_at": "2026-07-12T19:34:07+00:00",
+    "session": {
+        "id": "019f57d2-4ccd-7365-ae59-959cb280d80b",
+        "user_id": 2,
+        "trip_id": "019f5376-174f-726c-a22e-bf25034f27da",
+        "origin": {
+            "lat": 59.3103,
+            "lng": 18.0225
+        },
+        "time_budget_minutes": 180,
+        "travel_mode": "walk",
+        "heading": null,
+        "destination_point": null,
+        "started_at": "2026-07-12T19:33:47+00:00"
+    },
+    "served": [
+        {
+            "position": 1,
+            "place_id": "019f5346-09ef-71f4-96a2-99dea4135855",
+            "name": "Blomsterdalen",
+            "composite": 0.7358,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 2,
+            "place_id": "019f5346-0c0a-717a-b995-499b536629b9",
+            "name": "Färgfabriken",
+            "composite": 0.6578,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 3,
+            "place_id": "019f5346-0be5-709c-8475-9d1dbf2ec9b5",
+            "name": "Sankt Sigfrids kyrka",
+            "composite": 0.6423,
+            "scoring_model_version": "v1"
+        },
+        {
+            "position": 4,
+            "place_id": "019f5346-0b86-7027-87ff-07320ef554f0",
+            "name": "Sjövikstorget",
+            "composite": 0.6357,
+            "scoring_model_version": "v1"
+        }
+    ],
+    "served_at": "2026-07-12 19:33:47+00"
+}

@@ -178,7 +178,51 @@ final class RankSession
         $decided = $evidence->partition($scored);
 
         $feedSize = (int) config('trips.session.feed_size');
-        $picked = $selector->select($decided['served'], $context, $alpha, $feedSize);
+
+        /*
+         * VERIFY, THEN RE-SELECT (conventions/09, conventions/12).
+         *
+         * The first version of this verified the picked items and then stapled
+         * replacements onto the end, straight out of the servable pool. Those
+         * replacements had never been through FeedSelector — so they carried no
+         * `composite` and none of its selection metadata, and they bypassed the
+         * diversity and α logic entirely. In the console that throws; in production
+         * "Undefined array key" is a WARNING, so it quietly served items with a null
+         * composite and nobody noticed. The replayer noticed.
+         *
+         * So a place we can verify is SHUT is excluded from the pool, and the feed is
+         * selected again from what remains. Selection stays the selector's job.
+         *
+         * Bounded to two rounds: hours are cached per place, so the re-verify is cheap,
+         * and a city where everything is closed must not turn one feed into a walk down
+         * the whole candidate list.
+         */
+        $closed = [];
+        $picked = [];
+
+        for ($round = 0; $round < 2; $round++) {
+            $pool = $closed === []
+                ? $decided['served']
+                : array_values(array_filter(
+                    $decided['served'],
+                    static fn (array $c): bool => ! in_array($c['place_id'], $closed, true),
+                ));
+
+            $picked = $selector->select($pool, $context, $alpha, $feedSize);
+
+            $shut = $this->verifyOpenNow($picked, $at);
+
+            if ($shut === []) {
+                break;
+            }
+
+            $closed = [...$closed, ...$shut];
+        }
+
+        $picked = array_values(array_filter(
+            $picked,
+            static fn (array $c): bool => ! in_array($c['place_id'], $closed, true),
+        ));
 
         /*
          * The near-misses (PRD §12.4 — the digest release valve).
@@ -186,27 +230,13 @@ final class RankSession
          * "Opportunities that don't clear the feed bar don't die." They were reachable,
          * they cleared the evidence gates, they were scored — they simply lost to four
          * or five better things. Those are the most valuable items in the whole
-         * pipeline that nobody ever sees, and they were being DROPPED on the floor:
-         * the funnel recorded what was held and what was unreachable, but not what
-         * merely came fifth.
-         *
-         * Keeping them is what lets the digest lower the pressure on each individual
-         * interrupt decision, and it is what gives the learning loop labelled exposure
-         * it would otherwise never get.
+         * pipeline that nobody ever sees, and they were being DROPPED on the floor.
          */
         $pickedIds = array_column($picked, 'place_id');
         $nearMisses = array_values(array_filter(
             $decided['served'],
             static fn (array $c): bool => ! in_array($c['place_id'], $pickedIds, true),
         ));
-
-        // Verify-before-recommend (conventions/09, conventions/12) — the last gate.
-        //
-        // Run AFTER selection, on purpose: hours cost a paid Google call each, so we
-        // verify the handful we are about to serve, not the hundreds we scored. It
-        // also means the cost of the feed is bounded by its size rather than by how
-        // dense the city is.
-        $picked = $this->verifyOpenNow($picked, $decided['served'], $feedSize, $at);
 
         return [
             'picked' => $picked,
@@ -387,42 +417,25 @@ final class RankSession
     }
 
     /**
-     * Drop what we can VERIFY is shut, and backfill from what we already scored.
+     * Which of these can we VERIFY are shut right now?
      *
      * "We do not tell a user a place is open on the strength of a day-old cache"
-     * (conventions/12) — so the check happens here, at serve time, against a
-     * short-TTL edge cache.
+     * (conventions/12) — so the check happens at serve time, against a short-TTL edge
+     * cache, and only on the handful we are about to serve.
      *
-     * Unknown is not closed. Most of the OSM long tail has no hours published
+     * UNKNOWN IS NOT CLOSED. Most of the OSM long tail has no hours published
      * anywhere, and treating silence as "shut" would quietly delete the entire long
-     * tail from the feed — the exact layer this product exists to surface. So only a
-     * definite, verified "closed" removes anything.
+     * tail — the exact layer this product exists to surface. Only a definite,
+     * verified "closed" excludes anything.
      *
      * @param  list<array<string, mixed>>  $picked
-     * @param  list<array<string, mixed>>  $servable  everything the evidence gates allowed
-     * @return list<array<string, mixed>>
+     * @return list<string> place ids we know are shut
      */
-    private function verifyOpenNow(array $picked, array $servable, int $feedSize, CarbonImmutable $at): array
+    private function verifyOpenNow(array $picked, CarbonImmutable $at): array
     {
-        $open = [];
-        $rejected = [];
+        $shut = [];
 
-        // Bounded: a city where everything is shut must not turn one feed into fifty
-        // paid calls walking down the candidate list.
-        $budget = $feedSize + 3;
-
-        $queue = [...$picked, ...array_filter(
-            $servable,
-            static fn (array $c): bool => ! in_array($c['place_id'], array_column($picked, 'place_id'), true),
-        )];
-
-        foreach ($queue as $candidate) {
-            if (count($open) >= $feedSize || $budget <= 0) {
-                break;
-            }
-
-            $budget--;
-
+        foreach ($picked as $candidate) {
             $hours = $this->hours->forPlace(
                 (string) $candidate['place_id'],
                 (string) $candidate['name'],
@@ -431,22 +444,16 @@ final class RankSession
                 $at,
             );
 
-            $candidate['raw_inputs']['hours'] = $hours->toTrace();
-
             if ($hours->definitelyClosed()) {
-                $rejected[] = $candidate['name'];
-
-                continue;
+                $shut[] = (string) $candidate['place_id'];
             }
-
-            $open[] = $candidate;
         }
 
-        if ($rejected !== []) {
-            Log::info('verify-before-recommend dropped closed places', ['places' => $rejected]);
+        if ($shut !== []) {
+            Log::info('verify-before-recommend excluded closed places', ['places' => $shut]);
         }
 
-        return $open;
+        return $shut;
     }
 
     /** The nearer of two closings — a null closing is no closing, not an early one. */
