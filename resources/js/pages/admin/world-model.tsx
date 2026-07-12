@@ -21,7 +21,7 @@ interface RegionStatus {
     pack_candidates: number;
     /** What a click actually drafts: min(target, candidates). The honest cost. */
     pack_target: number;
-    build: { phase: string; started_at: string } | null;
+    build: { phase: string; started_at: string; stalled: boolean } | null;
     boxes: { done: number; total: number; failed: number } | null;
     draft: { target: number; started_at: string } | null;
 }
@@ -58,7 +58,15 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{region.name}</span>
                             <Badge variant="outline">{region.key}</Badge>
-                            {region.build !== null && <Badge>building · {region.build.phase}</Badge>}
+                            {region.build !== null &&
+                                (region.build.stalled ? (
+                                    // A build that has shown no sign of life for 15 minutes is not
+                                    // a build. Staging sat on "building · evidence" with a greyed
+                                    // button for HOURS, for a job that was already dead.
+                                    <Badge variant="destructive">stalled · {region.build.phase}</Badge>
+                                ) : (
+                                    <Badge>building · {region.build.phase}</Badge>
+                                ))}
                             {region.draft !== null && <Badge>drafting</Badge>}
                             {region.unresolved_tiles > 0 && <Badge variant="secondary">{region.unresolved_tiles} tiles unresolved</Badge>}
                         </div>
@@ -127,10 +135,12 @@ export default function AdminWorldModel({ regions, scouts }: WorldModelProps) {
                                 // Pressing this five times used to queue five builds of the same
                                 // city — five times the Overpass traffic, on a volunteer service
                                 // that rate-limits us, to compute an answer we already had.
-                                disabled={region.build !== null}
+                                // Only a LIVE build locks the button. A stalled claim is a corpse
+                                // holding the door; every phase is idempotent, so restarting is safe.
+                                disabled={region.build !== null && !region.build.stalled}
                                 onClick={() => router.post(`/admin/world-model/${region.key}/build`, {}, { preserveScroll: true })}
                             >
-                                {region.build !== null ? 'Building…' : 'Build world model'}
+                                {region.build === null ? 'Build world model' : region.build.stalled ? 'Stalled — build again' : 'Building…'}
                             </Button>
                             {/*
                              * The button that did not exist, which is why the review queue sat

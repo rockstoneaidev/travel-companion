@@ -6,6 +6,7 @@ namespace App\Jobs\Ingest;
 
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Exceptions\OverpassRateLimited;
+use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Enums\QueueLane;
 use Illuminate\Bus\Batchable;
@@ -98,13 +99,21 @@ final class IngestRegionBoxJob implements ShouldQueue
         $this->onConnection(QueueLane::Ingest->connection());
     }
 
-    public function handle(RegionIngest $ingest): void
+    public function handle(RegionIngest $ingest, RegionBuildStatus $status): void
     {
         // The batch was cancelled (the admin pressed stop, or the region was rebuilt
         // under us). Do not spend an Overpass slot on an answer nobody wants.
         if ($this->batch()?->cancelled() === true) {
             return;
         }
+
+        /*
+         * A sign of life. The OSM ingest is 45 boxes on ONE worker — three quarters of
+         * an hour in which the PHASE never changes — so without a heartbeat from the
+         * boxes themselves a perfectly healthy build is indistinguishable from a dead
+         * one, and the console would offer to restart it half way through.
+         */
+        $status->heartbeat($this->regionKey);
 
         $region = IngestRegion::named($this->regionKey);
         $boxes = $region->boxes();

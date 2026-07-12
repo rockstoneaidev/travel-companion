@@ -233,7 +233,12 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             'resolve' => self::dispatch($this->regionKey, 'evidence'),
             'evidence' => self::dispatch($this->regionKey, 'photos'),
             'photos' => self::dispatch($this->regionKey, 'warm'),
-            default => null,   // `warm` is the last phase; there is nowhere to go
+
+            // `warm` is the last phase: there is nowhere to chain onward TO, and until
+            // now that meant nothing released the claim either. The console then said
+            // "building" — with the button greyed out — for six hours, for a build that
+            // had already died. A claim must not outlive the work.
+            default => app(RegionBuildStatus::class)->finish($this->regionKey),
         };
     }
 

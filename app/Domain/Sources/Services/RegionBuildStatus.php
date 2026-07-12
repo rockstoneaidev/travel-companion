@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Services;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -17,23 +18,61 @@ use Illuminate\Support\Facades\DB;
  *
  * The marker is a CACHE key with a TTL rather than a database row, on purpose: a
  * build that dies in a way we never hear about must not wedge the button forever.
- * The worst case is that you can re-press it a few hours early, which is safe —
- * every phase is idempotent.
+ *
+ * A TTL ALONE WAS NOT ENOUGH, and staging proved it: the console said
+ * "building · evidence" for hours with the button greyed out, for a build that was
+ * already dead. `finish()` — the only thing that releases the claim — is called on
+ * SUCCESS. A worker killed at its timeout never runs `failed()` either, and the last
+ * phase's failure handler had nowhere to chain onward to, so the claim simply sat
+ * there until the six-hour TTL expired. Six hours of a disabled button is not "safe",
+ * it is broken.
+ *
+ * So a claim has to PROVE IT IS ALIVE. Every step of the build touches the key — each
+ * phase, and each grid box as it lands — and a claim that has not been touched in
+ * STALE_MINUTES is treated as dead: the console says so, and the button comes back.
+ * Re-pressing is safe by construction, because every phase is idempotent.
  */
 final class RegionBuildStatus
 {
     /** Long enough for a big region (Stockholm is ~45 boxes at ~a minute each). */
     private const TTL_HOURS = 6;
 
-    /** @return array{phase: string, started_at: string}|null */
+    /**
+     * How long a build may go without a sign of life before we stop believing in it.
+     *
+     * The longest legitimate silence is one grid box: a single Overpass query with its
+     * own budget (300 s) plus HTTP timeout (150 s). Fifteen minutes is comfortably past
+     * that and still short enough that nobody sits looking at a dead button.
+     */
+    private const STALE_MINUTES = 15;
+
+    /** @return array{phase: string, started_at: string, stalled: bool}|null */
     public function current(string $regionKey): ?array
     {
-        return Cache::get($this->key($regionKey));
+        $claim = Cache::get($this->key($regionKey));
+
+        if ($claim === null) {
+            return null;
+        }
+
+        $beat = $claim['beat_at'] ?? $claim['started_at'] ?? null;
+
+        return [
+            'phase' => $claim['phase'],
+            'started_at' => $claim['started_at'],
+
+            // A build that has shown no sign of life is not a build. Saying so is the
+            // difference between "wait" and "this is dead, press it again".
+            'stalled' => $beat !== null && CarbonImmutable::parse($beat)->isBefore(now()->subMinutes(self::STALE_MINUTES)),
+        ];
     }
 
     public function isBuilding(string $regionKey): bool
     {
-        return $this->current($regionKey) !== null;
+        $current = $this->current($regionKey);
+
+        // A stalled claim is not a build in progress — it is a corpse holding the door.
+        return $current !== null && $current['stalled'] === false;
     }
 
     /** Claim the region. Returns false if a build is already under way. */
@@ -45,7 +84,7 @@ final class RegionBuildStatus
 
         Cache::put(
             $this->key($regionKey),
-            ['phase' => 'queued', 'started_at' => now()->toIso8601String()],
+            ['phase' => 'queued', 'started_at' => now()->toIso8601String(), 'beat_at' => now()->toIso8601String()],
             now()->addHours(self::TTL_HOURS),
         );
 
@@ -54,11 +93,38 @@ final class RegionBuildStatus
 
     public function phase(string $regionKey, string $phase): void
     {
-        $current = $this->current($regionKey);
+        $current = Cache::get($this->key($regionKey));
 
         Cache::put(
             $this->key($regionKey),
-            ['phase' => $phase, 'started_at' => $current['started_at'] ?? now()->toIso8601String()],
+            [
+                'phase' => $phase,
+                'started_at' => $current['started_at'] ?? now()->toIso8601String(),
+                'beat_at' => now()->toIso8601String(),
+            ],
+            now()->addHours(self::TTL_HOURS),
+        );
+    }
+
+    /**
+     * A sign of life, from deep inside a long phase.
+     *
+     * The OSM ingest is 45 boxes on ONE worker: forty-five minutes in which the phase
+     * never changes. Without a heartbeat from the boxes themselves, that healthy build
+     * would look exactly like a dead one, and we would offer to restart it half way
+     * through.
+     */
+    public function heartbeat(string $regionKey): void
+    {
+        $current = Cache::get($this->key($regionKey));
+
+        if ($current === null) {
+            return;   // nobody is claiming this region; a stray box is not a build
+        }
+
+        Cache::put(
+            $this->key($regionKey),
+            [...$current, 'beat_at' => now()->toIso8601String()],
             now()->addHours(self::TTL_HOURS),
         );
     }
