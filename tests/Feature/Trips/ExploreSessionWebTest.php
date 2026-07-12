@@ -21,7 +21,6 @@ it('runs the session round-trip over the web surface', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('explore/index')
-            ->where('activeSession', null)
             ->has('travelModeOptions', 3));
 
     $response = $this->post('/explore', [
@@ -47,10 +46,8 @@ it('runs the session round-trip over the web surface', function () {
             ->where('session.data.status', 'active')
             ->has('opportunities.data', 0));      // E5 fills this; the empty state is honest
 
-    // Resuming: the index now offers the open session.
-    $this->get('/explore')
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->where('activeSession.data.id', $session->id));
+    // Resuming: with a session open, /explore *is* the feed — no interstitial (SCREENS S1/S2).
+    $this->get('/explore')->assertRedirect("/explore/{$session->id}");
 
     $this->post("/explore/{$session->id}/end")->assertRedirect("/explore/{$session->id}");
 

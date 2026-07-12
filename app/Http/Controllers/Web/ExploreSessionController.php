@@ -26,12 +26,19 @@ use Inertia\Response;
  */
 final class ExploreSessionController extends Controller
 {
-    public function index(Request $request, FindActiveExploreSessionForUser $findActiveSession): Response
+    /**
+     * One entry point (SCREENS S1/S2): while a session is open, "explore" *is* the
+     * feed — the start form only exists when there's nothing to go back to.
+     */
+    public function index(Request $request, FindActiveExploreSessionForUser $findActiveSession): Response|RedirectResponse
     {
         $session = $findActiveSession((int) $request->user()->id);
 
+        if ($session !== null) {
+            return to_route('explore.show', $session);
+        }
+
         return Inertia::render('explore/index', [
-            'activeSession' => $session === null ? null : new ExploreSessionResource($session),
             'travelModeOptions' => TravelMode::options(),
         ]);
     }
