@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Domain\Context\Actions\EraseContextLocations;
 use App\Domain\Context\Contracts\ContextLocationEraser;
+use App\Domain\Context\Contracts\Routing;
+use App\Domain\Context\Services\GoogleRoutes;
 use App\Domain\Places\Contracts\ExternalIdRegistry;
 use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Queries\LookupPlaces;
@@ -38,5 +40,9 @@ final class DomainServiceProvider extends ServiceProvider
 
         // Context — the Context half of trip-level location erasure (PRD §16).
         ContextLocationEraser::class => EraseContextLocations::class,
+
+        // Stage-B routing (PRD §10). A port, so self-hosted OSRM/Valhalla on our own
+        // OSM extract is a swap and not a rewrite (DATA-SOURCES §9).
+        Routing::class => GoogleRoutes::class,
     ];
 }

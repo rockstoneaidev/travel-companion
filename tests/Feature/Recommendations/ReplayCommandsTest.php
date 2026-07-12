@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Opportunities\Queries\ListOpportunitiesForSession;
 use App\Domain\Places\Models\Place;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Recommendations\Services\CostMeter;
@@ -220,4 +221,41 @@ it('will not recommend a place it can verify is shut', function () {
     // (conventions/12). Verified shut, at serve time, means it is not served — and
     // a shorter honest feed beats a longer one that sends someone to a locked door.
     expect($recommendations)->toBeEmpty();
+});
+
+it('shows a real walk time but never stores one — Google routes are edge-only', function () {
+    config()->set('services.google.maps_key', 'test-key');
+
+    Http::fake([
+        'routes.googleapis.com/*' => Http::response(['routes' => [['duration' => '1337s']]]),   // 22.28 min
+        '*' => Http::response([], 404),
+    ]);
+
+    $this->travelTo(CarbonImmutable::parse('2026-07-12 11:00:00', 'Europe/Stockholm'));
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->at(59.3103, 18.0227)->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 180,
+    ]);
+
+    $data = ExploreSessionData::fromModel($session);
+    $items = app(ListOpportunitiesForSession::class)($data);
+
+    expect($items)->not->toBeEmpty();
+
+    // What the user SEES is the real route (PRD §10 — "the numbers a user actually
+    // sees are Stage-B real"). A "12 min walk" on a card is a promise.
+    expect(round($items[0]->walkMinutes, 2))->toBe(22.28);
+
+    // ...and what we STORE is our own estimator's number, never Google's. A route
+    // duration may not be written into a row (conventions/09) — the persisted trace
+    // is ours, and Stage B is an overlay on the way out.
+    $recommendation = Recommendation::query()->where('explore_session_id', $session->id)->orderBy('position')->firstOrFail();
+
+    expect((float) $recommendation->score_inputs['reachability']['travel_min'])->not->toBe(22.28);
+
+    foreach (['recommendations', 'opportunities', 'places_core'] as $table) {
+        expect(json_encode(DB::table($table)->get()))->not->toContain('1337');
+    }
 });

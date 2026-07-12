@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Opportunities\Queries;
 
+use App\Domain\Context\Contracts\Routing;
 use App\Domain\Opportunities\Data\SessionOpportunityData;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Opportunities\Services\UrgentSlot;
@@ -49,7 +50,10 @@ use App\Enums\AppealFacet;
  */
 final class ListOpportunitiesForSession
 {
-    public function __construct(private readonly RankSession $rank) {}
+    public function __construct(
+        private readonly RankSession $rank,
+        private readonly Routing $routing,
+    ) {}
 
     /** @return list<SessionOpportunityData> */
     public function __invoke(ExploreSessionData $session): array
@@ -92,6 +96,31 @@ final class ListOpportunitiesForSession
                     : null,
             );
 
+            /*
+             * Stage B (PRD §10): the number the user SEES is real, not estimated.
+             *
+             * The estimator (±20–30%) gates hundreds of candidates for free, and its
+             * error is fine there — the reach ceiling already includes dwell and the
+             * menu is alternatives, not a schedule. But "12 min walk" printed on a
+             * card is a promise someone is about to act on, so the served handful get
+             * a real route. Bounded by the feed size: ~5 calls per session, cached
+             * per (place, origin res-9 tile, mode).
+             *
+             * EDGE-ONLY, and this is why it happens HERE and not in RankSession: a
+             * Google route duration may never be written to a row (conventions/09).
+             * The persisted trace keeps the estimator's number — ours — and this is
+             * an overlay on the way out.
+             */
+            $walkMinutes = $this->routing->minutes(
+                $session->origin->lat,
+                $session->origin->lng,
+                $place->coordinates->lat,
+                $place->coordinates->lng,
+                $session->travelMode,
+            ) ?? (isset($recommendation->score_inputs['reachability']['travel_min'])
+                ? (float) $recommendation->score_inputs['reachability']['travel_min']
+                : null);
+
             $out[] = new SessionOpportunityData(
                 id: $opportunity->id,
                 kind: $opportunity->kind,
@@ -104,9 +133,7 @@ final class ListOpportunitiesForSession
                 windowEndsAt: $opportunity->window_ends_at,
                 expiresAt: $opportunity->expires_at,
                 recommendationId: $recommendation->id,
-                walkMinutes: isset($recommendation->score_inputs['reachability']['travel_min'])
-                    ? (float) $recommendation->score_inputs['reachability']['travel_min']
-                    : null,
+                walkMinutes: $walkMinutes,
             );
         }
 
