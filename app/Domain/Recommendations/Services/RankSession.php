@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Recommendations\Services;
 
+use App\Domain\Context\Services\LightContextResolver;
 use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
+use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Places\Services\CoverageGeometry;
 use App\Domain\Places\Services\ScoutRunner;
 use App\Domain\Places\Services\TileUniquenessSignals;
@@ -56,6 +58,7 @@ final class RankSession
         private readonly MaterializeEvergreenOpportunities $materialize,
         private readonly CostMeter $cost,
         private readonly TileUniquenessSignals $uniqueness,
+        private readonly LightContextResolver $light,
     ) {}
 
     /**
@@ -178,6 +181,8 @@ final class RankSession
             'place_id' => $c['place_id'], 'name' => $c['name'], 'h3_index' => $c['h3_index'],
             'walk_minutes' => $c['reachability']['travel_min'],
             'summary' => $c['curated_claim'] ?? null,   // a reviewed human/curated claim may speak (conventions/10)
+            // When the light goes — a real closing time for a daylight place (E16).
+            'closes_at' => $c['light']?->closesAt?->toDateTimeString(),
         ], $picked));
 
         $this->requestVoiceFor($picked, $opportunities, $session);
@@ -294,6 +299,12 @@ final class RankSession
         return ['count' => count($excluded), 'sample' => $sample];
     }
 
+    /** The nearer of two closings — a null closing is no closing, not an early one. */
+    private function earliest(CarbonImmutable $a, ?CarbonImmutable $b): CarbonImmutable
+    {
+        return $b !== null && $b->isBefore($a) ? $b : $a;
+    }
+
     /** @param array<string, mixed> $candidate */
     private function score(array $candidate, ExploreSessionData $session, SubScores $subScores, array $facetWeights, int $tolerance, float $remaining, array $tripEvents, CarbonImmutable $at): array
     {
@@ -321,13 +332,38 @@ final class RankSession
         $raw['uniqueness'] = $uniq['inputs'];
         $missing = [...$missing, ...array_map(static fn (string $u): string => "uniqueness.{$u}", $uniq['missing'])];
 
-        // Phase 1 horizon: the opportunity's own closing bounded by end of the
-        // session's day; evergreen has no closing → slack = end of day.
+        /*
+         * Phase 1 horizon (SCORING §4.3): last_feasible_start is the opportunity's
+         * OWN closing, bounded by end of the session's day.
+         *
+         * The closing used to be missing entirely — every candidate got
+         * `slack = end of day`, so a viewpoint forty minutes before dark scored
+         * exactly the same urgency as a park that never closes. The GO NOW slot was
+         * therefore incapable of being *right*, which is the whole point of E16.
+         *
+         * Daylight is the first real closing time we have, and the most honest one:
+         * it needs no API, it cannot go stale, and it is simply true. Google-verified
+         * opening hours narrow it further where we have them.
+         */
         $travel = (float) $candidate['reachability']['travel_min'];
-        $slack = max(0.0, $at->diffInMinutes($at->endOfDay(), false) - $travel);
-        $urgency = $subScores->temporalUrgency($slack);
+
+        $light = $this->light->forCandidate(
+            $candidate['type'] !== null ? PlaceType::from($candidate['type']) : null,
+            (float) $candidate['lat'],
+            (float) $candidate['lng'],
+            $at,
+        );
+
+        $closesAt = $this->earliest($at->endOfDay(), $light->closesAt);
+        $slack = max(0.0, $at->diffInMinutes($closesAt, false) - $travel);
+
+        // The special-moment floor is NOT a deadline — it is a reason. The light is
+        // good now and it will not be later, and that is worth interrupting for even
+        // when there are hours of slack left (SCORING §4.3).
+        $urgency = $subScores->temporalUrgency($slack, specialMomentOpen: $light->goldenHourOpen());
         $scores['temporal_urgency'] = $urgency['value'];
-        $raw['temporal_urgency'] = $urgency['inputs'];
+        $raw['temporal_urgency'] = [...$urgency['inputs'], 'light' => $light->toTrace()];
+        $candidate['light'] = $light;
 
         if ($session->destinationPoint !== null) {
             $direct = $this->estimator->minutes($session->origin->lat, $session->origin->lng, $session->destinationPoint->lat, $session->destinationPoint->lng, $session->travelMode);

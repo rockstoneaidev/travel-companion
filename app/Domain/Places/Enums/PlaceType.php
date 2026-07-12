@@ -247,6 +247,30 @@ enum PlaceType: string
         };
     }
 
+    /**
+     * Does this place stop being worth the walk once the light goes? (E16)
+     *
+     * The honest closing time for a viewpoint is sunset — nobody wants to be sent
+     * twenty minutes uphill to look at a black bay. That gives these types a real
+     * `last_feasible_start` (SCORING §4.3) where they would otherwise be evergreen
+     * and score no urgency at all.
+     *
+     * Listed one by one rather than by domain, because the domain is the wrong
+     * granularity: a cave is `nature_landscape` and is dark at noon, a street-art
+     * wall is `arts_culture` and is useless after dusk. What matters is whether the
+     * daylight IS the experience.
+     */
+    public function needsDaylight(): bool
+    {
+        return match ($this) {
+            self::Viewpoint, self::Park, self::Garden, self::Forest, self::Waterfall,
+            self::Lake, self::Beach, self::Cliff, self::GeologicalFeature, self::Spring,
+            self::WalkingTrail, self::CyclingRoute, self::BeachRecreation,
+            self::StreetArt, self::Ruin, self::ArchaeologicalSite => true,
+            default => false,
+        };
+    }
+
     public function label(): string
     {
         return ucfirst(str_replace('_', ' ', $this->value));

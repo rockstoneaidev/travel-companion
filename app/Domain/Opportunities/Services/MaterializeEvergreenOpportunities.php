@@ -17,7 +17,7 @@ use App\Domain\Opportunities\Models\Opportunity;
 final class MaterializeEvergreenOpportunities
 {
     /**
-     * @param  list<array{place_id: string, name: string, h3_index: string, walk_minutes?: float}>  $candidates
+     * @param  list<array{place_id: string, name: string, h3_index: string, walk_minutes?: float, closes_at?: ?string}>  $candidates
      * @return array<string, string> place_id => opportunity_id
      */
     public function __invoke(array $candidates): array
@@ -44,9 +44,24 @@ final class MaterializeEvergreenOpportunities
                     'summary' => $candidate['summary'] ?? null,   // reviewed curated claim, when one exists
                     'friction' => ['walk_minutes' => $candidate['walk_minutes'] ?? null],
                     'h3_index' => $candidate['h3_index'],
+                    // A daylight place genuinely closes when the light goes (E16). This
+                    // is what lets the card count down honestly, and what stops KEPT
+                    // from offering to walk you to a viewpoint at midnight.
+                    'window_ends_at' => $candidate['closes_at'] ?? null,
                     'expires_at' => now()->addDay(),
                 ]);
-            } elseif ($existing->summary === null && ($candidate['summary'] ?? null) !== null) {
+            } else {
+                // The window MOVES: the row was materialised earlier today, and "when
+                // the light goes" is a fact about today, not about the row. A stale
+                // window is worse than none — it is a countdown to the wrong moment.
+                $closesAt = $candidate['closes_at'] ?? null;
+
+                if ($closesAt !== null && (string) $existing->window_ends_at !== (string) $closesAt) {
+                    $existing->forceFill(['window_ends_at' => $closesAt])->save();
+                }
+            }
+
+            if ($existing->summary === null && ($candidate['summary'] ?? null) !== null) {
                 // A live opportunity predates the pack: it was materialized before
                 // this place had a reviewed claim, and reusing it verbatim would
                 // keep serving the place mute until the row expired. Publishing a
