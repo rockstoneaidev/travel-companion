@@ -1,7 +1,8 @@
 import { AppHeader, ChoicePill, EditorialLede, PlaceSearch, PrimaryPill, QuietAction, type PlaceSuggestion } from '@/components/app';
+import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { type TravelMode } from '@/types/enums';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 /**
@@ -35,6 +36,7 @@ type LocationState = 'idle' | 'locating' | 'located' | 'manual';
 type Point = { lat: number; lng: number };
 
 export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
+    const { online } = useOnline('explore-start');
     const [state, setState] = useState<LocationState>('idle');
     const [originLabel, setOriginLabel] = useState<string | null>(null);
     const [destinationLabel, setDestinationLabel] = useState<string | null>(null);
@@ -173,10 +175,28 @@ export default function ExploreIndex({ travelModeOptions }: ExploreIndexProps) {
                         </div>
 
                         <div className="space-y-4">
-                            <PrimaryPill type="submit" disabled={processing || data.origin === null}>
+                            <PrimaryPill type="submit" disabled={processing || data.origin === null || !online}>
                                 Start exploring
                             </PrimaryPill>
-                            <EditorialLede>I'll be quiet until something is worth it.</EditorialLede>
+
+                            {/*
+                             * Starting a session means scouting, and scouting needs the network.
+                             * Say so plainly and point at the thing that DOES work — no spinner,
+                             * no retry-hammering a dead zone (S11).
+                             */}
+                            <EditorialLede>
+                                {online ? (
+                                    "I'll be quiet until something is worth it."
+                                ) : (
+                                    <>
+                                        I need a connection to look around —{' '}
+                                        <Link href="/kept" className="underline underline-offset-[3px]">
+                                            Kept
+                                        </Link>{' '}
+                                        still works.
+                                    </>
+                                )}
+                            </EditorialLede>
                         </div>
                     </form>
                 </div>

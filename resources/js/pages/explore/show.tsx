@@ -1,5 +1,7 @@
-import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, TabBar, VisitPromptCard } from '@/components/app';
+import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, StalenessLine, TabBar, VisitPromptCard } from '@/components/app';
+import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
+import { sendFeedback } from '@/lib/feedback';
 import { type ExploreSession, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -37,6 +39,7 @@ const VISIT_PROMPT_RADIUS_M = 150;
 
 export default function ExploreShow({ session, opportunities, visitPrompts }: ExploreShowProps) {
     const exploreSession = session.data;
+    const { online, lastFreshAt } = useOnline('feed');
     const [dismissing, setDismissing] = useState<string | null>(null);
     const [hidden, setHidden] = useState<string[]>([]);
     const [answered, setAnswered] = useState<string[]>([]);
@@ -58,9 +61,9 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
         );
     }, [visitPrompts.data.length]);
 
+    // Queued to disk first, sent second (S11) — a dead zone must not cost a tap.
     const feedback = (recommendationId: string | null, event: string, metadata: Record<string, string | number | boolean> = {}) => {
-        if (recommendationId === null) return;
-        router.post(`/recommendations/${recommendationId}/feedback`, { event, metadata }, { preserveScroll: true, preserveState: true });
+        sendFeedback(recommendationId, event, metadata);
     };
 
     const takeMe = (item: SessionOpportunity) => {
@@ -118,6 +121,8 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                 <div className="mx-auto max-w-md space-y-6 px-5 py-8">
                     <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
 
+                    {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
+
                     {/* Top of NOW, above the feed — quiet, dismissible, never a modal. */}
                     {prompts.map((prompt) => (
                         <VisitPromptCard
@@ -153,7 +158,11 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                                                 }
                                                 facets={item.place.facets}
                                                 meta={`${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} min walk`}
-                                                urgency={urgencyFor(item)}
+                                                // A stale GO NOW must not shout (S11). Offline we cannot know
+                                                // whether the window is still open, and a countdown we can't
+                                                // verify is worse than no countdown: it's a confident lie.
+                                                // The card stays, the urgency doesn't.
+                                                urgency={online ? urgencyFor(item) : undefined}
                                                 onTakeMe={() => takeMe(item)}
                                                 onKeep={() => feedback(item.recommendation_id, 'saved')}
                                             />

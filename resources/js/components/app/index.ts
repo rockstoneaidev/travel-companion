@@ -13,6 +13,7 @@ export { PeekSheet, type PeekSheetProps } from './peek-sheet';
 export { PlaceSearch, type PlaceSuggestion } from './place-search';
 export { ProgressSegments } from './progress-segments';
 export { SectionLabel } from './section-label';
+export { StalenessLine } from './staleness-line';
 export { TabBar, type TabItem } from './tab-bar';
 export { VisitPromptCard } from './visit-prompt-card';
 export { WhyYou } from './why-you';

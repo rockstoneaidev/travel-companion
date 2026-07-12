@@ -112,3 +112,9 @@ jobs:
 
       - name: Prettier (check)
         run: npm run format:check
+
+      # The offline feedback queue is the one piece of product logic that lives
+      # only in the browser, and the one whose failure mode is silent data loss
+      # in a French dead zone (SCREENS S11). It gets a real test runner.
+      - name: Vitest
+        run: npm run test:js

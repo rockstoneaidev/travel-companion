@@ -5,6 +5,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { route as routeFn } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
+import { registerFeedbackFlush } from './lib/feedback';
 
 declare global {
     const route: typeof routeFn;
@@ -27,6 +28,11 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// Carry home anything the last dead zone stranded, and keep watching for the
+// next reconnect (SCREENS S11). Runs in dev too — an offline bug that only
+// exists in production is a bug you find in France.
+registerFeedbackFlush();
 
 // PWA shell worker — production only, so it never interferes with Vite HMR.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

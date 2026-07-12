@@ -56,6 +56,9 @@ it('keeps the service worker free of the dropped codename', function () {
     $sw = (string) file_get_contents(public_path('sw.js'));
 
     // The cache key is what actually matters: a stale key means a stale shell.
-    expect($sw)->toContain("const SHELL_CACHE = 'app-shell-v1'")
-        ->and($sw)->not->toContain("'passo-shell-v1'");
+    // Pinned to the NAME, not the version — bumping the version is the correct
+    // response to a change in the caching contract (S11 added Inertia fetches to
+    // it), and a test that forbids that is a test that punishes the right move.
+    expect($sw)->toMatch("/const SHELL_CACHE = 'app-shell-v\d+'/")
+        ->and($sw)->not->toContain('passo');
 });

@@ -8,6 +8,7 @@ use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Recommendations\Actions\RecordFeedback;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\ResolvesFeedbackTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
  */
 final class RecommendationFeedbackController extends Controller
 {
+    use ResolvesFeedbackTime;
+
     public function store(Request $request, Recommendation $recommendation, RecordFeedback $record): JsonResponse
     {
         abort_unless($recommendation->user_id === $request->user()->id, 403);
@@ -25,9 +28,16 @@ final class RecommendationFeedbackController extends Controller
         $validated = $request->validate([
             'event' => ['required', Rule::enum(FeedbackEvent::class)],
             'metadata' => ['sometimes', 'array'],
+            // Set only by the offline queue, on flush (SCREENS S11).
+            'occurred_at' => ['sometimes', 'date'],
         ]);
 
-        $record($recommendation, FeedbackEvent::from($validated['event']), $validated['metadata'] ?? []);
+        $record(
+            $recommendation,
+            FeedbackEvent::from($validated['event']),
+            $validated['metadata'] ?? [],
+            $this->occurredAt($validated['occurred_at'] ?? null),
+        );
 
         return response()->json(status: 201);
     }

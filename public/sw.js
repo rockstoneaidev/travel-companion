@@ -4,11 +4,11 @@
  * Offline *data* (last feed, KEPT, journal — SCREENS S11) arrives with E15;
  * this worker only makes the shell installable and resilient.
  */
-// Renamed from the dropped "passo" codename. The activate handler below deletes
-// every cache whose key is not this one, so the old passo-shell-v1 cache is
-// evicted on the next activation rather than orphaned. Bump the version suffix
-// whenever the shell's caching contract changes.
-const SHELL_CACHE = 'app-shell-v1';
+// Bump the suffix whenever the caching contract changes: the activate handler
+// below deletes every cache whose key is not this one, so an old shell is evicted
+// on the next activation rather than left to serve stale code forever.
+// v2: Inertia page fetches are cached too, not just full navigations (S11).
+const SHELL_CACHE = 'app-shell-v2';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());
@@ -43,20 +43,40 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Navigations: network-first, falling back to the last cached navigation.
-    if (request.mode === 'navigate') {
+    /*
+     * Navigations AND Inertia page fetches: network-first, falling back to the last
+     * good copy (SCREENS S11 — KEPT is the screen you actually need in a dead zone).
+     *
+     * The Inertia case is not an optional extra. A full-page load is `mode:
+     * 'navigate'`, but tapping a link *inside* the running app is an XHR carrying
+     * `X-Inertia`, and it is the only kind of navigation a user does once the app
+     * is open. Caching only `navigate` would mean the app worked offline exactly
+     * once — on a cold reload — and failed the moment anyone tapped "Kept".
+     *
+     * Cached under a key that keeps the two apart: the same URL answers with HTML
+     * for one and JSON for the other, and serving the wrong one is a white screen.
+     */
+    const isInertia = request.headers.get('X-Inertia') === 'true';
+
+    if (request.mode === 'navigate' || isInertia) {
+        const key = isInertia ? new Request(`${url.href}${url.search ? '&' : '?'}__inertia=1`, { method: 'GET' }) : request;
+
         event.respondWith(
             fetch(request)
                 .then((response) => {
                     if (response.ok) {
                         const copy = response.clone();
-                        caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+                        caches.open(SHELL_CACHE).then((cache) => cache.put(key, copy));
                     }
                     return response;
                 })
                 .catch(async () => {
-                    const cached = await caches.match(request);
-                    return cached ?? Response.error();
+                    const cached = await caches.match(key);
+                    if (cached) return cached;
+
+                    // Nothing cached for this screen: an honest failure beats a white
+                    // page. Inertia needs a well-formed response or it throws.
+                    return Response.error();
                 }),
         );
     }

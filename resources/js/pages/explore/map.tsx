@@ -1,6 +1,7 @@
 import { PeekSheet, TabBar } from '@/components/app';
 import type { MapItem } from '@/components/app/paper-map';
 import ProductLayout from '@/layouts/product-layout';
+import { sendFeedback } from '@/lib/feedback';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { lazy, Suspense, useMemo, useState } from 'react';
@@ -49,13 +50,7 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
     );
 
     const takeMe = (item: SessionOpportunity) => {
-        if (item.recommendation_id !== null) {
-            router.post(
-                `/recommendations/${item.recommendation_id}/feedback`,
-                { event: 'accepted', metadata: { started_navigation: true } },
-                { preserveScroll: true, preserveState: true },
-            );
-        }
+        sendFeedback(item.recommendation_id, 'accepted', { started_navigation: true });
 
         window.open(
             `https://www.google.com/maps/dir/?api=1&destination=${item.place.location.lat},${item.place.location.lng}&travelmode=walking`,

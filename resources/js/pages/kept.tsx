@@ -1,9 +1,11 @@
-import { AppHeader, EmptyFeed, QuietAction, SectionLabel, TextAction } from '@/components/app';
+import { AppHeader, EmptyFeed, QuietAction, SectionLabel, StalenessLine, TextAction } from '@/components/app';
+import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
+import { sendFeedback } from '@/lib/feedback';
 import { cn } from '@/lib/utils';
 import { type KeptItem } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * S6 — KEPT (SCREENS.md).
@@ -19,32 +21,35 @@ interface KeptProps {
 }
 
 export default function Kept({ kept }: KeptProps) {
+    // KEPT is the screen you actually need in a dead zone — it's your list (S11).
+    // It works offline because the service worker serves the last good copy of it.
+    const { online, lastFreshAt } = useOnline('kept');
+    const [removed, setRemoved] = useState<string[]>([]);
+
     // Windows close while you are looking at the list. Re-ask on refocus so "Take
     // me" is never offered on something that passed while the tab sat in the
-    // background — the check is cheap and the alternative is a lie.
+    // background — the check is cheap and the alternative is a lie. Pointless
+    // offline, though, and S11 forbids retry-hammering.
     useEffect(() => {
-        const revalidate = () => router.reload({ only: ['kept'] });
+        const revalidate = () => navigator.onLine && router.reload({ only: ['kept'] });
         window.addEventListener('focus', revalidate);
 
         return () => window.removeEventListener('focus', revalidate);
     }, []);
 
-    const items = kept.data;
+    const items = kept.data.filter((item) => !removed.includes(item.recommendation_id));
     const stillPossible = items.filter((item) => item.still_possible);
     const passed = items.filter((item) => !item.still_possible);
 
     const takeMe = (item: KeptItem) => {
-        router.post(
-            `/recommendations/${item.recommendation_id}/feedback`,
-            { event: 'accepted', metadata: { started_navigation: true } },
-            { preserveScroll: true, preserveState: true },
-        );
+        sendFeedback(item.recommendation_id, 'accepted', { started_navigation: true });
     };
 
     // Removing is housekeeping, not a verdict on the place — it records `unsaved`,
     // which teaches the taste profile nothing (FeedbackEvent::Unsaved).
     const remove = (item: KeptItem) => {
-        router.post(`/recommendations/${item.recommendation_id}/feedback`, { event: 'unsaved' }, { preserveScroll: true, only: ['kept'] });
+        sendFeedback(item.recommendation_id, 'unsaved');
+        setRemoved((ids) => [...ids, item.recommendation_id]); // offline too: the list is the point
     };
 
     return (
@@ -54,6 +59,8 @@ export default function Kept({ kept }: KeptProps) {
 
                 <div className="mx-auto max-w-md space-y-8 px-5 py-8">
                     <AppHeader contextStamp="Kept" />
+
+                    {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
 
                     {items.length === 0 ? (
                         <EmptyFeed
