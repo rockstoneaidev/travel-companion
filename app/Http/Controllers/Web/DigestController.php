@@ -34,6 +34,7 @@ final class DigestController extends Controller
                     'title' => $item->title,
                     'note' => $item->note,
                     'window_ends_at' => $item->windowEndsAt?->toIso8601String(),
+                    'image' => $item->image,
                 ], $data->items),
             ],
         ]);

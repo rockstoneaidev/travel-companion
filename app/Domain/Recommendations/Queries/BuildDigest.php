@@ -7,6 +7,7 @@ namespace App\Domain\Recommendations\Queries;
 use App\Domain\Context\Services\WeatherClient;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Opportunities\Enums\OpportunityStatus;
+use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Recommendations\Data\DigestData;
 use App\Domain\Recommendations\Data\DigestItem;
 use App\Domain\Recommendations\Models\Recommendation;
@@ -34,7 +35,10 @@ final class BuildDigest
     /** Scarcity is the product (§12.1). A digest of thirty things is a list. */
     private const MAX_ITEMS = 5;
 
-    public function __construct(private readonly WeatherClient $weather) {}
+    public function __construct(
+        private readonly WeatherClient $weather,
+        private readonly PlaceImageLookup $images,
+    ) {}
 
     public function forUser(int $userId, ?CarbonImmutable $at = null): DigestData
     {
@@ -105,6 +109,8 @@ final class BuildDigest
             ->where('expires_at', '>', $at)
             ->get(['id', 'place_id', 'title', 'summary', 'window_ends_at']);
 
+        $images = $this->images->forPlaces(array_keys($byPlace));
+
         $items = [];
 
         foreach ($opportunities as $opportunity) {
@@ -126,6 +132,7 @@ final class BuildDigest
                 note: $opportunity->summary,
                 windowEndsAt: $window,
                 reason: $meta['reason'],
+                image: $images[$opportunity->place_id] ?? null,
             );
 
             if (count($items) >= self::MAX_ITEMS) {

@@ -15,5 +15,6 @@ export { ProgressSegments } from './progress-segments';
 export { SectionLabel } from './section-label';
 export { StalenessLine } from './staleness-line';
 export { TabBar, type TabItem } from './tab-bar';
+export { Thumb, type ThumbImage } from './thumb';
 export { VisitPromptCard } from './visit-prompt-card';
 export { WhyYou } from './why-you';

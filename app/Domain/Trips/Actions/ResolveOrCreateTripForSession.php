@@ -9,6 +9,7 @@ use App\Domain\Trips\Enums\TripSource;
 use App\Domain\Trips\Enums\TripStatus;
 use App\Domain\Trips\Events\TripStarted;
 use App\Domain\Trips\Models\Trip;
+use App\Domain\Trips\Services\NameTrip;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class ResolveOrCreateTripForSession
 {
+    public function __construct(private readonly NameTrip $name) {}
+
     public function __invoke(int $userId, Coordinates $origin, CarbonImmutable $at): Trip
     {
         return DB::transaction(function () use ($userId, $origin, $at): Trip {
@@ -58,7 +61,11 @@ final class ResolveOrCreateTripForSession
 
             $trip = Trip::query()->create([
                 'user_id' => $userId,
-                'name' => null,
+                // Trips are implicit (PRD §6.6), so nobody is ever asked to name one —
+                // and every one of them read "Untitled trip", which is a poor name for a
+                // memory. "Stockholm, July" is where and when, which is how people
+                // actually refer to trips. A good guess, and still editable.
+                'name' => ($this->name)($origin, $at),
                 'status' => TripStatus::Active,
                 'source' => TripSource::Auto,
                 'anchor_point' => $origin,

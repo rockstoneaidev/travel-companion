@@ -1,4 +1,4 @@
-import { AppHeader, EditorialLede, PrimaryPill, SectionLabel, TextAction } from '@/components/app';
+import { AppHeader, EditorialLede, PrimaryPill, SectionLabel, TextAction, Thumb, type ThumbImage } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, Link, router } from '@inertiajs/react';
 
@@ -24,7 +24,7 @@ interface DashboardProps {
         variant: 'morning' | 'evening';
         lede: string;
         subline: string;
-        items: { opportunity_id: string; title: string; note: string | null }[];
+        items: { opportunity_id: string; title: string; note: string | null; image: ThumbImage | null }[];
     };
     session: string | null;
     kept: { still_possible: number; total: number };
@@ -73,11 +73,17 @@ export default function Dashboard({ digest, session, kept }: DashboardProps) {
                                     <button
                                         key={item.opportunity_id}
                                         type="button"
-                                        className="block w-full p-4 text-left"
+                                        className="flex w-full gap-3 p-4 text-left"
                                         onClick={() => router.visit(`/opportunities/${item.opportunity_id}`)}
                                     >
-                                        <h3 className="text-ink font-serif text-base font-medium">{item.title}</h3>
-                                        {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
+                                        <Thumb image={item.image} />
+
+                                        <span className="min-w-0 flex-1">
+                                            <h3 className="text-ink font-serif text-base font-medium">{item.title}</h3>
+                                            {item.note !== null && (
+                                                <span className="text-body-card text-body mt-0.5 block truncate">{item.note}</span>
+                                            )}
+                                        </span>
                                     </button>
                                 ))}
                             </div>

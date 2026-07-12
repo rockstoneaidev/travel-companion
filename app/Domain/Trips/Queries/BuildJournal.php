@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Trips\Queries;
 
 use App\Domain\Feedback\Enums\FeedbackEvent;
+use App\Domain\Places\Contracts\PlaceImageLookup;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class BuildJournal
 {
+    public function __construct(private readonly PlaceImageLookup $images) {}
+
     /** @return list<array<string, mixed>> */
     public function forUser(int $userId): array
     {
@@ -40,10 +43,17 @@ final class BuildJournal
             ->orderByDesc('f.occurred_at')
             ->get(['r.trip_id', 'r.score_inputs', 'f.event', 'f.occurred_at']);
 
+        $images = $this->images->forPlaces(
+            $entries
+                ->map(static fn ($e) => json_decode((string) $e->score_inputs, true)['candidate']['place_id'] ?? null)
+                ->filter()->unique()->values()->all(),
+        );
+
         $byTrip = [];
 
         foreach ($entries as $entry) {
-            $name = json_decode((string) $entry->score_inputs, true)['candidate']['name'] ?? null;
+            $candidate = json_decode((string) $entry->score_inputs, true)['candidate'] ?? [];
+            $name = $candidate['name'] ?? null;
 
             if ($name === null) {
                 continue;
@@ -62,6 +72,7 @@ final class BuildJournal
                 'title' => $name,
                 'visited' => $entry->event === FeedbackEvent::Visited->value,
                 'occurred_at' => $entry->occurred_at,
+                'image' => $images[$candidate['place_id'] ?? ''] ?? null,
             ];
         }
 

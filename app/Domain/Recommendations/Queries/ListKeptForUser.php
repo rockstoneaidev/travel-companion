@@ -7,6 +7,7 @@ namespace App\Domain\Recommendations\Queries;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Enums\OpportunityStatus;
+use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Recommendations\Data\KeptItemData;
 use App\Domain\Recommendations\Models\Recommendation;
 use Carbon\CarbonImmutable;
@@ -26,7 +27,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class ListKeptForUser
 {
-    public function __construct(private readonly FeedbackLedger $ledger) {}
+    public function __construct(
+        private readonly FeedbackLedger $ledger,
+        private readonly PlaceImageLookup $images,
+    ) {}
 
     /** @return list<KeptItemData> */
     public function forUser(int $userId, ?CarbonImmutable $now = null): array
@@ -51,6 +55,13 @@ final class ListKeptForUser
         $events = $this->ledger->eventsForRecommendations($recommendations->pluck('id')->all());
 
         $live = $this->liveOpportunities($recommendations->pluck('opportunity_id')->filter()->all());
+
+        // One query for every photo on the screen — a row is not worth an N+1.
+        $images = $this->images->forPlaces(
+            $recommendations
+                ->map(static fn ($r) => $r->score_inputs['candidate']['place_id'] ?? null)
+                ->filter()->unique()->values()->all(),
+        );
 
         $out = [];
         foreach ($recommendations as $recommendation) {
@@ -84,6 +95,7 @@ final class ListKeptForUser
                 // Gone from the world model, expired, or its window has closed: any
                 // of those and we cannot honestly offer to take them there.
                 stillPossible: $opportunity !== null && ($windowEndsAt === null || $windowEndsAt->isAfter($now)),
+                image: $images[$candidate['place_id'] ?? ''] ?? null,
             );
         }
 

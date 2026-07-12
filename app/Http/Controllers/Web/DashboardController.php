@@ -50,6 +50,7 @@ final class DashboardController extends Controller
                     'opportunity_id' => $item->opportunityId,
                     'title' => $item->title,
                     'note' => $item->note,
+                    'image' => $item->image,
                 ], array_slice($data->items, 0, 3)),
             ],
 

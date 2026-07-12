@@ -16,5 +16,7 @@ final readonly class DigestItem
         public ?CarbonImmutable $windowEndsAt,
         /** Why it never made the feed — "held" or "outranked". Shown to nobody, kept for the trace. */
         public string $reason,
+        /** The photo. A digest without pictures is a to-do list. */
+        public ?array $image = null,
     ) {}
 }

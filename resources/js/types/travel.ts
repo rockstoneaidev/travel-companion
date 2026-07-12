@@ -110,6 +110,7 @@ export interface VisitPrompt {
  */
 export interface KeptItem {
     recommendation_id: string;
+    image: { url: string; attribution: string | null; license: string | null } | null;
     opportunity_id: string | null;
     title: string;
     note: string | null;

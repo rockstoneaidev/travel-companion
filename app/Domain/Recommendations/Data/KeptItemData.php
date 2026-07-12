@@ -23,5 +23,7 @@ final readonly class KeptItemData
          * a guess from the keep. False means we can no longer stand behind it.
          */
         public bool $stillPossible,
+        /** The photo. Null renders the designed paper-stripe fallback (DESIGN §3). */
+        public ?array $image = null,
     ) {}
 }

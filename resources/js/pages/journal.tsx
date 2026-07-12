@@ -1,4 +1,4 @@
-import { AppHeader, EmptyFeed, QuietAction, SectionLabel } from '@/components/app';
+import { AppHeader, EmptyFeed, QuietAction, SectionLabel, Thumb, type ThumbImage } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { useState } from 'react';
  */
 
 interface JournalEntry {
+    image: ThumbImage | null;
     title: string;
     visited: boolean;
     occurred_at: string;
@@ -93,9 +94,11 @@ function TripSection({ trip }: { trip: JournalTrip }) {
             ) : (
                 <div className="divide-border-soft divide-y">
                     {trip.entries.map((entry) => (
-                        <div key={entry.title} className="flex items-baseline justify-between gap-3 py-2.5">
-                            <div>
-                                <h3 className="text-ink font-serif text-base">{entry.title}</h3>
+                        <div key={entry.title} className="flex items-center gap-3 py-2.5">
+                            <Thumb image={entry.image} className="size-12" />
+
+                            <div className="min-w-0 flex-1">
+                                <h3 className="text-ink truncate font-serif text-base">{entry.title}</h3>
                                 {/* The golden label, shown as the confirmation it is. */}
                                 {entry.visited && <SectionLabel className="mt-0.5">I was here</SectionLabel>}
                             </div>

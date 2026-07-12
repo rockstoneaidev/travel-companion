@@ -23,6 +23,7 @@ final class KeptItemResource extends JsonResource
             'kept_at' => $this->keptAt->toIso8601String(),
             'window_ends_at' => $this->windowEndsAt?->toIso8601String(),
             'still_possible' => $this->stillPossible,
+            'image' => $this->image,
         ];
     }
 }

@@ -1,4 +1,4 @@
-import { AppHeader, EmptyFeed, QuietAction, SectionLabel, StalenessLine, TextAction } from '@/components/app';
+import { AppHeader, EmptyFeed, QuietAction, SectionLabel, StalenessLine, TextAction, Thumb } from '@/components/app';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
@@ -102,23 +102,27 @@ function KeptRow({ item, onTakeMe, onRemove }: { item: KeptItem; onTakeMe?: (ite
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${item.location.lat},${item.location.lng}&travelmode=walking`;
 
     return (
-        <div className="py-3">
-            <div className="flex items-baseline justify-between gap-3">
-                <h3 className={cn('font-serif text-base font-medium', item.still_possible ? 'text-ink' : 'text-body')}>{item.title}</h3>
-                <span className="text-meta-row text-meta shrink-0 font-medium">{windowLabel(item)}</span>
-            </div>
+        <div className="flex gap-3 py-3">
+            <Thumb image={item.image} />
 
-            {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
+            <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                    <h3 className={cn('font-serif text-base font-medium', item.still_possible ? 'text-ink' : 'text-body')}>{item.title}</h3>
+                    <span className="text-meta-row text-meta shrink-0 font-medium">{windowLabel(item)}</span>
+                </div>
 
-            <div className="mt-1.5 flex items-center gap-4">
-                {onTakeMe !== undefined && (
-                    // A real link, so the browser opens maps inside the tap that asked
-                    // for it — an async hop first is what popup blockers eat.
-                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => onTakeMe(item)}>
-                        <TextAction>Take me</TextAction>
-                    </a>
-                )}
-                <QuietAction onClick={() => onRemove(item)}>Remove</QuietAction>
+                {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
+
+                <div className="mt-1.5 flex items-center gap-4">
+                    {onTakeMe !== undefined && (
+                        // A real link, so the browser opens maps inside the tap that asked
+                        // for it — an async hop first is what popup blockers eat.
+                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => onTakeMe(item)}>
+                            <TextAction>Take me</TextAction>
+                        </a>
+                    )}
+                    <QuietAction onClick={() => onRemove(item)}>Remove</QuietAction>
+                </div>
             </div>
         </div>
     );

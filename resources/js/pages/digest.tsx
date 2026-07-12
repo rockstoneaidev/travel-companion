@@ -1,4 +1,4 @@
-import { AppHeader, EditorialLede, EmptyFeed, SectionLabel, TextAction } from '@/components/app';
+import { AppHeader, EditorialLede, EmptyFeed, SectionLabel, TextAction, Thumb, type ThumbImage } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, Link, router } from '@inertiajs/react';
 
@@ -14,6 +14,7 @@ import { Head, Link, router } from '@inertiajs/react';
  */
 
 interface DigestItem {
+    image: ThumbImage | null;
     opportunity_id: string;
     title: string;
     note: string | null;
@@ -75,14 +76,20 @@ export default function Digest({ digest }: DigestProps) {
                                     <button
                                         key={item.opportunity_id}
                                         type="button"
-                                        className="block w-full p-4 text-left"
+                                        className="flex w-full gap-3 p-4 text-left"
                                         onClick={() => router.visit(`/opportunities/${item.opportunity_id}`)}
                                     >
-                                        <div className="flex items-baseline justify-between gap-3">
-                                            <h3 className="text-ink font-serif text-base font-medium">{item.title}</h3>
-                                            <span className="text-meta-row text-meta shrink-0 font-medium">{windowLabel(item)}</span>
-                                        </div>
-                                        {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
+                                        <Thumb image={item.image} />
+
+                                        <span className="min-w-0 flex-1">
+                                            <span className="flex items-baseline justify-between gap-3">
+                                                <h3 className="text-ink font-serif text-base font-medium">{item.title}</h3>
+                                                <span className="text-meta-row text-meta shrink-0 font-medium">{windowLabel(item)}</span>
+                                            </span>
+                                            {item.note !== null && (
+                                                <span className="text-body-card text-body mt-0.5 block truncate">{item.note}</span>
+                                            )}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
