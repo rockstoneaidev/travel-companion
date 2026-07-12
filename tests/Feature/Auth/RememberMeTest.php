@@ -27,7 +27,7 @@ function recallerFrom($response): ?Cookie
 }
 
 it('always issues a long-lived remember cookie on login', function () {
-    $user = User::factory()->create();
+    $user = profilingAsked(User::factory()->create());
 
     $response = $this->post('/login', [
         'email' => $user->email,
@@ -57,7 +57,7 @@ it('issues the remember cookie on registration too', function () {
 });
 
 it('re-authenticates from the remember cookie after the session dies', function () {
-    $user = User::factory()->create();
+    $user = profilingAsked(User::factory()->create());
 
     $recaller = recallerFrom($this->post('/login', [
         'email' => $user->email,
@@ -76,7 +76,7 @@ it('re-authenticates from the remember cookie after the session dies', function 
 });
 
 it('rotates the remember token on password change but keeps this device', function () {
-    $user = User::factory()->create();
+    $user = profilingAsked(User::factory()->create());
 
     $this->post('/login', ['email' => $user->email, 'password' => 'password']);
     $tokenBefore = $user->refresh()->remember_token;

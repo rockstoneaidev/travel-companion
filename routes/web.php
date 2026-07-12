@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\OpportunityController;
 use App\Http\Controllers\Web\PlaceSearchController;
 use App\Http\Controllers\Web\RecommendationFeedbackController;
 use App\Http\Controllers\Web\TripController;
+use App\Http\Middleware\AskForProfilingConsent;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,9 +32,21 @@ Route::get('design', function () {
 })->name('design');
 
 Route::middleware(['auth'])->group(function () {
-    // Home — "today": the digest, where you left off, and what you kept. NOT a second
-    // Explore, and not a map of every place we know (DashboardController).
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    /*
+    | THE TWO ENTRY SCREENS, behind "have we ever asked about profiling?" (DPIA §3.2).
+    |
+    | Existing accounts predate consent, so they have never been asked — and until they
+    | are, their taste profile silently stops learning. They deserve the question.
+    |
+    | ONCE, and only on the way in. The middleware stops asking the moment they answer,
+    | either way. Sending someone to the consent screen on every page load until they
+    | agree is not consent, it is attrition — and consent extracted that way is not
+    | freely given (Art. 4(11)), which makes it no consent at all.
+    */
+    Route::middleware(AskForProfilingConsent::class)->group(function (): void {
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('explore', [ExploreSessionController::class, 'index'])->name('explore.index');
+    });
 
     /*
     | Onboarding taste calibration (SCREENS S9). Content comes from the backend,
@@ -46,6 +59,7 @@ Route::middleware(['auth'])->group(function () {
     // Explicit consent to be profiled (Art. 9(2)(a), DPIA §3.2). A separate,
     // affirmative act — never a side effect of pressing "start".
     Route::post('calibrate/consent', [CalibrationController::class, 'consent'])->name('calibrate.consent');
+    Route::post('calibrate/decline', [CalibrationController::class, 'decline'])->name('calibrate.decline');
     Route::get('calibrate/practical', [CalibrationController::class, 'practical'])->name('calibrate.practical');
     Route::post('calibrate/practical', [CalibrationController::class, 'complete'])->name('calibrate.complete');
     Route::get('calibrate/{number}', [CalibrationController::class, 'pair'])->whereNumber('number')->name('calibrate.pair');
@@ -55,7 +69,6 @@ Route::middleware(['auth'])->group(function () {
     | The Inertia delivery surface for explore sessions and trips. Every route
     | here calls the same domain action as its /api/v1 twin (CLAUDE.md).
     */
-    Route::get('explore', [ExploreSessionController::class, 'index'])->name('explore.index');
     Route::post('explore', [ExploreSessionController::class, 'store'])->name('explore.store');
 
     // Typeahead for the manual start point on S2 — JSON, not a page visit.

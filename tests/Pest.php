@@ -71,7 +71,22 @@ function profilingConsent(User $user): User
     User::query()->whereKey($user->id)->update([
         'profiling_consent_at' => now(),
         'profiling_consent_version' => config('privacy.profiling_consent_version'),
+        'profiling_consent_asked_at' => now(),
     ]);
+
+    return $user;
+}
+
+/**
+ * A user who has been ASKED about profiling, whatever they answered.
+ *
+ * For every test that is not about consent but happens to load an entry screen: the
+ * ask-once middleware sends anyone who has never been asked to /welcome, which is
+ * correct behaviour and a nuisance in a test about remember-me cookies.
+ */
+function profilingAsked(User $user): User
+{
+    User::query()->whereKey($user->id)->update(['profiling_consent_asked_at' => now()]);
 
     return $user;
 }

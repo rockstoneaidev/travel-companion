@@ -129,9 +129,13 @@ it('makes withdrawal exactly as easy as consent — one click, no password', fun
 it('still serves a feed to someone who refuses — refusal is not a broken state', function () {
     $this->actingAs(User::factory()->create());
 
+    $this->post('/calibrate/decline');
+
     // The whole reason the cold-start vector exists (SCORING §6). Refusing to be
-    // profiled must cost you personalisation, not the product.
+    // profiled must cost you personalisation, not the product — and it must not leave
+    // you bouncing off a consent screen you already answered.
     $this->get('/explore')->assertOk();
+    $this->get('/dashboard')->assertOk();
     $this->get('/welcome')->assertOk();
 });
 
@@ -153,4 +157,44 @@ it('stores none of the ANSWERS without consent, not just none of the conclusions
      * facet weights would have sailed straight past it.
      */
     expect(DB::table('profile_signals')->where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('asks an existing user once, on the way in', function () {
+    $this->actingAs(User::factory()->create());
+
+    // Accounts created before consent existed have never been asked — and until they
+    // are, their profile silently stops learning. They deserve the question.
+    $this->get('/dashboard')->assertRedirect('/welcome');
+    $this->get('/explore')->assertRedirect('/welcome');
+});
+
+it('never asks again once they have answered — either way', function () {
+    $this->actingAs($user = User::factory()->create());
+
+    $this->post('/calibrate/decline')->assertRedirect('/explore');
+
+    /*
+     * "No" is a complete answer.
+     *
+     * Sending someone back to the consent screen until they agree is not consent, it
+     * is attrition — and consent extracted that way is not FREELY GIVEN (Art. 4(11)),
+     * which makes it no consent at all. The one thing worse than not asking is asking
+     * until you get the answer you wanted.
+     */
+    $this->get('/dashboard')->assertOk();
+    $this->get('/explore')->assertOk();
+
+    expect(app(ProfilingConsent::class)->granted($user->id))->toBeFalse();
+});
+
+it('lets someone who declined turn it on later, on their own initiative', function () {
+    $this->actingAs($user = User::factory()->create());
+
+    $this->post('/calibrate/decline');
+
+    // In Settings → Privacy, unprompted. That is the only version of "yes" worth
+    // having, and it is why we can afford to stop asking.
+    $this->put('/settings/privacy/profiling-consent', ['consent' => true])->assertRedirect();
+
+    expect(app(ProfilingConsent::class)->granted($user->id))->toBeTrue();
 });

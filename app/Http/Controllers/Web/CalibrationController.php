@@ -59,6 +59,21 @@ final class CalibrationController extends Controller
         return to_route('calibrate.pair', ['number' => 1]);
     }
 
+    /**
+     * "No thanks — don't learn my taste."
+     *
+     * A complete answer, recorded as one. We never ask again: they can turn it on in
+     * Settings → Privacy whenever they like, on their own initiative. The product
+     * keeps working — α stays 0 and they get the honest cold-start ranking, which is
+     * exactly what that fallback exists for (SCORING §6).
+     */
+    public function decline(Request $request, SetProfilingConsent $consent): RedirectResponse
+    {
+        $consent->decline((int) $request->user()->id);
+
+        return to_route('explore.index');
+    }
+
     public function pair(Request $request, int $number, CalibrationContent $content, CalibrationProgress $progress, ProfilingConsent $consent): Response|RedirectResponse
     {
         $userId = (int) $request->user()->id;

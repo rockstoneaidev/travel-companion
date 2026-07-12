@@ -32,6 +32,27 @@ final class SetProfilingConsent
         DB::table('users')->where('id', $userId)->update([
             'profiling_consent_at' => now(),
             'profiling_consent_version' => config('privacy.profiling_consent_version'),
+            'profiling_consent_asked_at' => now(),
+        ]);
+    }
+
+    /**
+     * They said no, and that is a complete answer.
+     *
+     * Recorded so we never ask again. Sending someone back to the consent screen until
+     * they agree is nagging, and nagging invalidates the consent it extracts — it must
+     * be FREELY GIVEN (Art. 4(11)), and a choice you are shown on every page load until
+     * you pick the right answer is not free.
+     *
+     * They can still turn it on in Settings → Privacy, on their own initiative. That is
+     * the only version of "yes" worth having.
+     */
+    public function decline(int $userId): void
+    {
+        DB::table('users')->where('id', $userId)->update([
+            'profiling_consent_at' => null,
+            'profiling_consent_version' => null,
+            'profiling_consent_asked_at' => now(),
         ]);
     }
 
@@ -41,6 +62,7 @@ final class SetProfilingConsent
             DB::table('users')->where('id', $userId)->update([
                 'profiling_consent_at' => null,
                 'profiling_consent_version' => null,
+                'profiling_consent_asked_at' => now(),
             ]);
 
             // The conclusions go with the permission to have drawn them.

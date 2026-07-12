@@ -15,7 +15,7 @@ use Inertia\Testing\AssertableInertia;
 */
 
 it('runs the session round-trip over the web surface', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingAsked(User::factory()->create()));
 
     $this->get('/explore')
         ->assertOk()
@@ -55,7 +55,7 @@ it('runs the session round-trip over the web surface', function () {
 });
 
 it('renders the trips list and a trip over the web surface', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingAsked(User::factory()->create()));
 
     $trip = Trip::factory()->create(['user_id' => $user->id, 'name' => 'Stockholm test']);
     ExploreSession::factory()->create(['trip_id' => $trip->id, 'user_id' => $user->id]);
@@ -80,13 +80,13 @@ it('renders the trips list and a trip over the web surface', function () {
 });
 
 it('does not let the web surface open another user\'s session either', function () {
-    $owner = User::factory()->create();
+    $owner = profilingAsked(User::factory()->create());
     $session = ExploreSession::factory()->create([
         'trip_id' => Trip::factory()->create(['user_id' => $owner->id]),
         'user_id' => $owner->id,
     ]);
 
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(profilingAsked(User::factory()->create()));
 
     $this->get("/explore/{$session->id}")->assertForbidden();
     $this->post("/explore/{$session->id}/end")->assertForbidden();

@@ -67,7 +67,7 @@ export default function CalibrateWelcome({ consented }: { consented: boolean }) 
                         {/* Refusing must cost nothing and take one tap. A refusal that is harder
                             than agreeing is not a free choice (Art. 4(11)). */}
                         <div className="flex justify-center">
-                            <QuietAction onClick={() => router.visit('/explore')}>No thanks — don't learn my taste</QuietAction>
+                            <QuietAction onClick={() => router.post('/calibrate/decline')}>No thanks — don't learn my taste</QuietAction>
                         </div>
 
                         <EditorialLede>You'll still get suggestions. They'll just be less about you.</EditorialLede>
