@@ -18,23 +18,26 @@ tells you what to sign and why; **signing is what closes DPIA §7.5, not writing
 |---|---|---|---|---|
 | **1** | **Hetzner** | Everything — it is the database | AVV / DPA in the Robot or Cloud console | ☐ |
 | **2** | **Google Cloud / Maps Platform** | **Precise user coordinates** (Routes) | Cloud DPA — **confirm it covers Maps Platform, which is a different product from Cloud** | ☐ |
-| **3** | **Google Gemini API** | Place evidence + city + time of day | Gemini API terms — **and settle the training question first, see below** | ☐ |
+| **3** | **Google Gemini API** | Place evidence + city + time of day | Gemini API terms. Training question **settled — paid tier** ✅ | ☐ |
 | **4** | **Resend** | Every user's **email address** | resend.com/legal/dpa — click-to-accept in the dashboard | ☐ |
 
 Resend is on this list because the outbound-call inventory found it and the DPIA had never
 mentioned it. You cannot go and sign the right agreements if the vendor list is incomplete —
 which is the actual reason the register was worth writing.
 
-## Before you sign #3
+## Settled — the Gemini training question ✅
 
-**Confirm which Gemini tier `GEMINI_API_KEY` is on.** On the free tier Google generally uses
-prompts and responses to improve its products; on the paid tier it generally does not.
+**We are on the paid tier** (confirmed by the controller, 2026-07-12), where Google does not use
+API input to train its models. This was the one genuine launch blocker in the legal set.
 
-If we are on a free key — which is the default at this stage, and therefore the likely answer
-— then place evidence, city and part-of-day are being processed **for Google's purposes, not
-ours**. That is a processor acting outside the controller's instructions (Art. 28(3)(a)), for
-a purpose disclosed to nobody. It is the one genuine launch blocker in the legal set, and the
-fix is a credit card rather than a code change.
+On a free key it generally *does*, and that would have made place evidence, city and part-of-day
+into processing carried out **for Google's purposes, not ours** — a processor acting outside the
+controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody.
+
+**Re-check on any billing change.** The lawfulness of the LLM pipeline now rests on a *payment
+status*: a key that quietly falls off billing would make the processing unlawful, and nothing in
+the code would notice. That is a compliance control living outside the codebase, which is the
+kind that fails silently.
 
 ## While you are in each console
 

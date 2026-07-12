@@ -345,9 +345,13 @@ terms also incorporate SCCs as a fallback.
 - Confirm the *specific* Google entity and terms we contract with, and that they cover the DPF or
   SCCs for **Maps Platform** and **Gemini API** specifically (they are different products with
   different terms, and it is a mistake to assume one covers the other).
-- Confirm whether Gemini API input is used for training under the terms we accept. **If it is, that
-  is a blocker** — even though we send no identity, place evidence + city + time is still processing
-  we would be handing over for the vendor's purposes rather than ours.
+- ~~Confirm whether Gemini API input is used for training under the terms we accept.~~
+  **CLOSED 2026-07-12 — we are on the paid tier**, where Google does not train on API input.
+  On the free tier it generally does, and that would have been a blocker: even sending no
+  identity, place evidence + city + time would have been processing handed to the vendor for
+  *its* purposes rather than ours. **Note what this leaves us depending on** — the lawfulness
+  of the LLM pipeline now rests on a billing status, and a key that quietly falls off billing
+  would make the processing unlawful with nothing in the code noticing.
 - The DPF is under active legal challenge (*Latombe*). If it falls, we need SCCs + a transfer impact
   assessment. Plan for that rather than be surprised by it.
 
@@ -442,20 +446,22 @@ covers **Maps Platform** (a different product, and assuming one DPA covers both 
 filing the PDFs — because Art. 5(2) accountability means being able to *demonstrate* compliance, and
 "I'm sure I clicked accept" is not a demonstration.
 
-**The one true launch blocker is the Gemini tier.** On the free tier Google generally trains on what
-you send it; on the paid tier it generally does not. If we are on a free key, place evidence + city +
-part-of-day is being processed for *Google's* purposes rather than ours — a processor acting outside
-the controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody. The fix is a credit
-card, not a code change.
+**The Gemini tier question is CLOSED (2026-07-12): we are on the paid tier**, where Google does not
+train on API input. On a free key it generally does, which would have made place evidence + city +
+part-of-day into processing for *Google's* purposes rather than ours — a processor acting outside the
+controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody.
+
+What remains is **four errands and a filing cabinet**, and they are the whole of what stands between
+this and a defensible launch.
 
 ### 7.6 Accepted residual risk
 With §7.1–§7.5 closed, the residual risk is judged **medium** — driven by R2 (home inference) and R5
 (sole controller, no security team), both mitigated but neither eliminated. **This is below the
 threshold that would require prior consultation with the supervisory authority under Art. 36.**
 
-> **As of 2026-07-12, §7.5 is not closed** (no DPA is filed, and the Gemini training question is
-> unanswered), so the "medium" judgement above is a statement about where we will be, not where we
-> are. Saying otherwise would be precisely the laundering §0 warns against.
+> **As of 2026-07-12, §7.5 is not closed** — the Gemini training question is settled (paid tier), but
+> **no processor DPA is signed or filed**. So the "medium" judgement above is a statement about where
+> we will be, not where we are. Saying otherwise would be precisely the laundering §0 warns against.
 
 That judgement is only valid **while the pilot is small and consists of informed adults who know the
 controller personally.** It does not survive growth. Before onboarding users who are not personally

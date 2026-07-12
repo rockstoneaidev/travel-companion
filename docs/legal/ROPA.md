@@ -219,11 +219,15 @@ happening, and this record should not pretend otherwise.
 - **Which Google entity, under which terms.** Maps Platform and the Gemini API are
   different products with different terms. It is a mistake to assume a DPA covering one
   covers the other. → `PROCESSORS.md` §3.
-- **Whether Gemini input is used for training.** On the free tier of the Gemini API, it
-  generally **is**. If we are on the free tier, then place evidence + city + part-of-day
-  is being processed for *Google's* purposes, not ours — and that is a processor acting
-  outside our instructions (Art. 28(3)(a)) and a purpose we have told no one about.
-  **This is a launch blocker until confirmed.** → `PROCESSORS.md` §3.2.
+- ~~**Whether Gemini input is used for training.**~~ **Settled 2026-07-12: we are on the paid
+  tier**, where Google does not use API input to train its models. Had we been on the free
+  tier — where it generally does — place evidence + city + part-of-day would have been
+  processed for *Google's* purposes rather than ours: a processor acting outside the
+  controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody.
+  **Re-check on any change to billing.** The lawfulness of the LLM pipeline now rests on a
+  payment status, which is an uncomfortable dependency and worth naming as one: downgrading
+  the API key would silently make the processing unlawful, and nothing in the code would
+  notice.
 
 ### 6.3 The DPF is not a permanent answer
 
@@ -343,12 +347,12 @@ Ranked. These are additions to DPIA §7, not a restatement of it.
 | # | Item | Why it matters | Severity | Status |
 |---|---|---|---|---|
 | **B1** | Pulse recorded precise coordinates from the Open-Meteo URL (§7.2) | Falsified the home-zone "never written" promise — the one control that cannot be retrofitted. | Blocker | **FIXED** — query strings stripped; `TelemetryLeakTest` |
-| **B2** | **Confirm Gemini API input is not used for training** (§6.2) | If it is, we process users' evidence for a vendor's purposes with no basis and no disclosure. | **Blocker** | **OPEN — yours. A credit card, not a code change.** |
+| **B2** | Confirm Gemini API input is not used for training (§6.2) | If it were, we would be processing users' evidence for a vendor's purposes with no basis and no disclosure. | Blocker | **CLOSED 2026-07-12 — paid tier, confirmed by the controller.** Google does not train on paid-tier API input. Re-check on any billing change. |
 | **B3** | Open-Meteo receives raw coordinates, not a tile centroid (§7.1) | Contradicts DPIA §2.4 and §4.1, and is B1's root cause. | High | **In progress** (WeatherClient centroid) |
 | **B4** | No Terms of Service existed (§3) | Art. 6(1)(b) is the basis for P0/P1/P3 and it requires a contract. | High | **FIXED** — `/terms-of-service` |
 | **B5** | No processor DPA filed (Art. 28) | → [`PROCESSORS.md`](PROCESSORS.md), [`dpa/`](dpa/). Writing the register does not close this; signing does. | High | **OPEN — yours** |
 | **B6** | `context_events.companions` may hold third-party personal data (§4.4) | Constrain to an enum. Cheap, and almost certainly the intent. | Medium | OPEN |
-| **B7** | `activity_log` survives account deletion (§7.2) | Small (admin actions only, one admin), but it is an erasure gap. | Medium | OPEN |
+| **B7** | `activity_log` and `pulse_entries` survived account deletion (§7.2) | An erasure gap. Neither has a `user_id` column, so no FK cascaded and the erasure test's schema enumeration could not see them. | Medium | **FIXED** — `DeleteAccount` clears both ends of the `activity_log` morph and Pulse's per-user rows; asserted explicitly in `ExportAndErasureTest` |
 | **B8** | Encryption at rest and backup retention unverified (§8) | A backup outliving the retention clock silently defeats it. And Art. 34(3)(a) — encryption is the difference between emailing your users about a breach and logging it. | Medium | OPEN |
 | **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) | OPEN |
 | **B10** | **No breach detection at all** (BREACH-PROCEDURE §8) | The 72-hour clock starts when you *notice*. Nothing pages anyone. | Medium–High | OPEN |

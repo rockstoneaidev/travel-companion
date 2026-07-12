@@ -110,7 +110,7 @@ withdrawn, the SCC fallback carries the transfer, but you would then also owe a 
 Impact Assessment**. Worth knowing now: if the DPF goes, **Routes and Gemini are the exposed
 calls; Places is not**, because Places carries no user data.
 
-### 3.2 The training question — this is a blocker
+### 3.2 The training question — **SETTLED 2026-07-12: paid tier**
 
 We send Gemini **place evidence plus a four-field context object** (part of day, travel
 mode, walk minutes, city name). No user id. No coordinates. No taste profile. That boundary
@@ -118,20 +118,28 @@ is real, it is deliberate, and it is verified in code (`EvidenceBundleBuilder`,
 `ContextData`) — it means the LLM vendor cannot build a profile of our users even in
 principle. It is the strongest thing in our position.
 
-**But it does not answer whether Google trains on what we send.**
+**But it never answered whether Google trains on what we send**, and that is a separate
+question with a factual answer.
 
 On the **free tier** of the Gemini API, Google generally **does** use prompts and responses
-to improve its products. On the **paid tier**, it generally does not. The distinction is in
-the terms, and it is decisive:
+to improve its products. On the **paid tier**, it generally does not.
 
-> If we are on the free tier, then place evidence, city and time-of-day are being processed
-> **for Google's purposes, not ours**. That is a processor acting outside the controller's
-> instructions (Art. 28(3)(a)) — at which point Google is arguably not our processor for
-> that processing at all, but a controller in its own right, for a purpose we have disclosed
-> to nobody.
+> **The controller has confirmed we are on the paid tier.** So Gemini is processing our data
+> on our instructions and for our purposes only, which is what Art. 28 requires of a
+> processor, and this is no longer a blocker.
 
-**The mitigation is not legal, it is billing.** Move to a paid tier and the problem is
-mostly gone.
+Had it gone the other way, place evidence, city and time-of-day would have been processed
+**for Google's purposes, not ours** — a processor acting outside the controller's
+instructions (Art. 28(3)(a)), at which point Google would arguably not be our processor for
+that processing at all, but a controller in its own right, for a purpose we had disclosed to
+nobody.
+
+**Worth naming the shape of what we now depend on.** The lawfulness of the entire LLM
+pipeline rests on a *billing status*. Downgrading the API key — or a new key created in
+haste, or a project that quietly falls off billing — would make the processing unlawful, and
+**nothing in the code would notice.** That is a compliance control living outside the
+codebase, which is the kind that fails silently. If this is ever worth hardening, the move is
+to assert the tier at boot rather than to trust that nobody touches the console.
 
 **Action:** confirm which tier `GEMINI_API_KEY` is on, and read the data-use terms attached
 to it. If it is a free key — which is the default for a project at this stage, and therefore
@@ -203,15 +211,16 @@ ROPA §10.)
 
 | | Item | Who | Blocking? |
 |---|---|---|---|
-| **1** | **Gemini tier / training terms** (§3.2) | You — 20 minutes and possibly a credit card | **Yes.** Could invalidate the LLM architecture's lawfulness. |
+| ~~1~~ | ~~Gemini tier / training terms (§3.2)~~ | — | **CLOSED 2026-07-12 — paid tier.** Re-check on any billing change. |
 | **2** | **Hetzner DPA** (E1) | You — an errand | **Yes.** Everything is on it. |
 | **3** | **Resend DPA** (E4) | You — an errand | **Yes.** It has every user's email. |
 | **4** | **Google Maps DPA scope** (E2) | You — an errand | **Yes.** It gets precise position. |
-| **5** | **Open-Meteo → tile centroid** (§5) | Dev — one line | **Yes**, but trivial, and it closes ROPA B1 + B3 too. |
+| **5** | **Open-Meteo → tile centroid** (§5) | Dev — one line | Not legally blocking (intra-EEA), but it is the last precise coordinate going to a party with no DPA. |
 | 6 | File the PDFs (E6) | You | Not blocking, but Art. 5(2) means undone = undemonstrable |
 
-Items 1–4 are yours and cannot be delegated to any LLM. Item 5 is a one-line code change
-that I would do first, because it is free and it makes item 1's list shorter.
+**Items 2–4 are the whole of what now stands between this and a defensible launch**, and none
+of them can be delegated to any LLM: accepting a contract is an act of the controller. Each is
+a login, a document, and a file.
 
 ---
 

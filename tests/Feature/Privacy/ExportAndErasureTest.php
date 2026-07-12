@@ -146,6 +146,70 @@ it('deletes an account completely — every table, verified', function () {
     expect(DB::table('users')->where('id', $otherUser->id)->count())->toBe(1);
 });
 
+/*
+|--------------------------------------------------------------------------
+| The tables the enumeration above cannot see (ROPA §7.2, finding B7)
+|--------------------------------------------------------------------------
+|
+| `userScopedTables()` reads information_schema for columns literally named
+| `user_id`. That is a good test, and it was blind in exactly the place the
+| bug was: `activity_log` keys users through a polymorphic morph, and Pulse
+| stores the user id inside a string `key`. Neither has a `user_id` column,
+| so neither was ever in the enumeration — and neither was reached by any FK
+| cascade. Admin audit rows and per-user telemetry survived erasure.
+|
+| These assertions are explicit because they HAVE to be: there is no schema
+| signal to enumerate them by. That is precisely why they were missed.
+|
+*/
+
+it('erases admin audit rows naming the user — on both ends of the morph', function () {
+    $admin = User::factory()->create();
+    $target = userWithHistory();
+
+    // The user as SUBJECT: "a role was granted to this person."
+    activity()->causedBy($admin)->performedOn($target)->log('roles synced');
+
+    // The user as CAUSER: "this person granted a role." Personal data about THEM,
+    // and the row people forget, because the leaving account is the admin.
+    activity()->causedBy($target)->performedOn($admin)->log('roles synced');
+
+    expect(DB::table('activity_log')->count())->toBe(2);
+
+    $this->actingAs($target)
+        ->delete('/settings/privacy/account', ['password' => 'password'])
+        ->assertRedirect('/');
+
+    expect(DB::table('activity_log')->count())
+        ->toBe(0, 'An audit row still names a user who asked to be forgotten.');
+});
+
+it('erases per-user telemetry, which Pulse keys by id inside a string', function () {
+    $user = userWithHistory();
+    $otherUser = userWithHistory();
+
+    foreach ([$user, $otherUser] as $u) {
+        DB::table('pulse_entries')->insert([
+            'timestamp' => now()->timestamp,
+            'type' => 'user_request',
+            'key' => (string) $u->id,
+            'value' => 1,
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->delete('/settings/privacy/account', ['password' => 'password'])
+        ->assertRedirect('/');
+
+    expect(DB::table('pulse_entries')->where('key', (string) $user->id)->count())
+        ->toBe(0, 'Telemetry still keyed to a deleted user.')
+        // Pulse trims after 7 days anyway, so this was a lag rather than a leak —
+        // but "your data is gone, apart from the bit that expires next Tuesday" is
+        // not what the notice says, and the notice is the promise.
+        ->and(DB::table('pulse_entries')->where('key', (string) $otherUser->id)->count())
+        ->toBe(1, 'The bystander lost their telemetry too.');
+});
+
 it('will not delete an account on a wrong password', function () {
     $user = userWithHistory();
 
