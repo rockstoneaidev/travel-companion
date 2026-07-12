@@ -44,8 +44,8 @@ export default function AdminEntityResolution({ pairs, pendingCount, resolverVer
             <Head title="Entity resolution" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <p className="text-muted-foreground text-sm">
-                    {pendingCount} pair{pendingCount === 1 ? '' : 's'} the resolver refused to guess about · resolver {resolverVersion}. Both places are
-                    live and serveable meanwhile — a duplicate is annoying, a false merge is corruption.
+                    {pendingCount} pair{pendingCount === 1 ? '' : 's'} the resolver refused to guess about · resolver {resolverVersion}. Both places
+                    are live and serveable meanwhile — a duplicate is annoying, a false merge is corruption.
                 </p>
 
                 {pairs.length === 0 && <p className="text-muted-foreground text-sm">Nothing to review.</p>}
