@@ -24,8 +24,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Transactional mail on staging/production (MAIL_MAILER=resend). Local dev
+    // sends to Mailpit over SMTP and never touches this. The var is
+    // RESEND_API_KEY rather than Laravel's stock RESEND_KEY — that is the name
+    // Resend's own dashboard gives it, and both .env files already carry it.
     'resend' => [
-        'key' => env('RESEND_KEY'),
+        'key' => env('RESEND_API_KEY'),
     ],
 
     // Sign in with Google (E22). Redirect URI must match the one registered in
