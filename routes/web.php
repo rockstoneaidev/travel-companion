@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PwaManifestController;
+use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
 use App\Http\Controllers\Web\OpportunityController;
@@ -29,6 +30,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+
+    /*
+    | Onboarding taste calibration (SCREENS S9). Content comes from the backend,
+    | never the client — the pair set is versioned under calibration_version.
+    | Interruptible: each choice posts as it is made and the flow resumes at the
+    | next unanswered pair.
+    */
+    Route::get('welcome', [CalibrationController::class, 'welcome'])->name('calibrate.welcome');
+    Route::get('calibrate/practical', [CalibrationController::class, 'practical'])->name('calibrate.practical');
+    Route::post('calibrate/practical', [CalibrationController::class, 'complete'])->name('calibrate.complete');
+    Route::get('calibrate/{number}', [CalibrationController::class, 'pair'])->whereNumber('number')->name('calibrate.pair');
+    Route::post('calibrate/{number}', [CalibrationController::class, 'choose'])->whereNumber('number')->name('calibrate.choose');
 
     /*
     | The Inertia delivery surface for explore sessions and trips. Every route
