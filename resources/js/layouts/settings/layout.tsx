@@ -28,6 +28,12 @@ const sidebarNavItems: NavItem[] = [
         url: '/settings/taste',
         icon: null,
     },
+    {
+        // What it keeps, for how long, and where it does not look at all (PRD §16).
+        title: 'Privacy',
+        url: '/settings/privacy',
+        icon: null,
+    },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
