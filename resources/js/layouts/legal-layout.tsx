@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/app';
+import ProductLayout from '@/layouts/product-layout';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren, type ReactNode } from 'react';
@@ -23,10 +24,16 @@ interface LegalLayoutProps {
  * a 28rem column would make them punishing.
  */
 export default function LegalLayout({ title, lede, updated, children }: PropsWithChildren<LegalLayoutProps>) {
-    const { name } = usePage<SharedData>().props;
+    const { name, auth } = usePage<SharedData>().props;
 
-    return (
-        <div className="bg-paper min-h-screen">
+    // These two pages are PUBLIC on purpose — Art. 13 wants the notice readable at the
+    // moment data is obtained, which is the sign-up form, so a signed-out visitor has to
+    // be able to load them. That rules out wrapping them in the app shell unconditionally:
+    // the sidebar navigates to Dashboard/Explore/Kept and renders the user footer, and a
+    // guest has no user. So the shell follows the reader, not the route — signed in, you
+    // get the same navigation as every other screen; signed out, you get the document.
+    const page = (
+        <>
             <Head title={title} />
             <div className="mx-auto max-w-prose space-y-8 px-5 py-8">
                 <AppHeader />
@@ -59,8 +66,14 @@ export default function LegalLayout({ title, lede, updated, children }: PropsWit
                     <span className="text-body-card text-meta ml-auto">{name}</span>
                 </footer>
             </div>
-        </div>
+        </>
     );
+
+    if (auth.user) {
+        return <ProductLayout>{page}</ProductLayout>;
+    }
+
+    return <div className="bg-paper min-h-screen">{page}</div>;
 }
 
 /** A titled block. Kept here so both documents are laid out by one thing, not two. */
