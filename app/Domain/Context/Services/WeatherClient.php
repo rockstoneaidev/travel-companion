@@ -9,6 +9,7 @@ use App\Domain\Places\Services\CacheKeys;
 use App\Domain\Sources\Services\CircuitBreaker;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -23,6 +24,27 @@ use Illuminate\Support\Facades\Http;
  * down, the feed must still arrive without weather rather than every user waiting
  * out the timeout to learn what the last one already learned. A recommendation
  * missing its weather is a recommendation; one that never arrives is not.
+ *
+ * ---------------------------------------------------------------------------
+ *  WHAT LEAVES THE MACHINE — read before adding a parameter
+ * ---------------------------------------------------------------------------
+ *
+ * The coordinates sent to Open-Meteo are the TILE'S CENTROID, computed here, and
+ * never the caller's. This used to take `float $lat, float $lng` and RankSession
+ * passed the session origin — the user's actual position — so although the cache
+ * key was the tile, the request body was the person. The first user in each hex
+ * handed their precise location to a third party we have no Art. 28 DPA with, and
+ * the tile-shaped cache key made it look as though we had not (PROCESSORS.md §5,
+ * ROPA B1/B3).
+ *
+ * The centroid is derived from the h3 index rather than accepted as an argument
+ * precisely so a caller CANNOT pass a real position. Do not add a lat/lng
+ * parameter back: a rule the type system enforces is worth more than a comment
+ * asking callers to be careful, and this exact mistake has already been made once.
+ *
+ * A hex at res 8 is roughly 0.7 km², which is all the resolution a weather forecast
+ * has anyway — so this costs the product nothing and removes an entire recipient
+ * of personal data.
  */
 final class WeatherClient
 {
@@ -46,14 +68,37 @@ final class WeatherClient
      */
     public function __construct(private readonly CircuitBreaker $breaker) {}
 
+    /** @var array<string, array{float, float}> memoised per request — a feed asks for the same hex twice */
+    private array $centroids = [];
+
+    /**
+     * The centre of the hex, from the h3 extension (conventions/12 — H3 lives in
+     * Postgres, so this is the same implementation that assigned the index).
+     *
+     * @return array{float, float} [lat, lng]
+     */
+    private function centroid(string $h3Index): array
+    {
+        return $this->centroids[$h3Index] ??= (function () use ($h3Index): array {
+            $point = DB::selectOne(
+                'SELECT ST_Y(g) AS lat, ST_X(g) AS lng FROM (SELECT h3_cell_to_geometry(?::h3index) AS g) t',
+                [$h3Index],
+            );
+
+            return [(float) $point->lat, (float) $point->lng];
+        })();
+    }
+
     /** The sky over this tile now — or an empty context, which is a valid answer. */
-    public function forTile(string $h3Index, float $lat, float $lng): WeatherContext
+    public function forTile(string $h3Index): WeatherContext
     {
         $cached = Cache::get(CacheKeys::weather($h3Index));
 
         if ($cached !== null) {
             return $this->fromPayload($cached);
         }
+
+        [$lat, $lng] = $this->centroid($h3Index);
 
         $payload = $this->breaker->call(
             self::SOURCE,
@@ -90,12 +135,14 @@ final class WeatherClient
      *
      * Cached on the same tile key as `current`, with its own suffix.
      */
-    public function rainStartsAt(string $h3Index, float $lat, float $lng, CarbonImmutable $at): ?CarbonImmutable
+    public function rainStartsAt(string $h3Index, CarbonImmutable $at): ?CarbonImmutable
     {
         $key = CacheKeys::weather($h3Index).':hourly';
         $hourly = Cache::get($key);
 
         if ($hourly === null) {
+            [$lat, $lng] = $this->centroid($h3Index);
+
             $hourly = $this->breaker->call(
                 self::SOURCE,
                 fn (): ?array => Http::timeout(self::TIMEOUT_SECONDS)

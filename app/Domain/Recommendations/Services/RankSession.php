@@ -164,8 +164,9 @@ final class RankSession
         }
 
         // One call per TILE, not per candidate and never per user (conventions/12):
-        // everyone standing in this hex is standing under the same sky.
-        $weather = $this->weather->forTile($coverage->originCell, $session->origin->lat, $session->origin->lng);
+        // everyone standing in this hex is standing under the same sky. The hex is all
+        // Open-Meteo gets — we used to hand it the session origin, which is a person.
+        $weather = $this->weather->forTile($coverage->originCell);
 
         $scored = [];
 

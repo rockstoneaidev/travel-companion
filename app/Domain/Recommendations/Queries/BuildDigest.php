@@ -167,12 +167,7 @@ final class BuildDigest
             return 'Good morning.';
         }
 
-        $rainAt = $this->weather->rainStartsAt(
-            (string) $session->origin_h3_index,
-            (float) $session->lat,
-            (float) $session->lng,
-            $at,
-        );
+        $rainAt = $this->weather->rainStartsAt((string) $session->origin_h3_index, $at);
 
         if ($rainAt === null) {
             return 'Good morning — it stays dry today.';
