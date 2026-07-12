@@ -90,7 +90,21 @@ final class RankSession
      */
     public function plan(ExploreSessionData $session, ?CarbonImmutable $at = null, ?ScoringModel $modelOverride = null): array
     {
-        $at ??= now()->toImmutable();
+        // Second precision, deliberately.
+        //
+        // `served_at` is a timestamp(0) — the database truncates it. So a serve
+        // taken at microsecond precision is replayed from a clock up to a second
+        // EARLIER than the one it actually ran on, and temporal_urgency is a
+        // function of that clock. Measured: the replay produced a different
+        // composite than the original serve in ~7% of instants.
+        //
+        // That is not a rounding nit. The replayer exists to answer "did my change
+        // alter what we serve" (PRD §15.2), and it was answering "yes" one time in
+        // fourteen for a pipeline that had not changed at all. A tool that lies at
+        // that rate is worse than no tool, because people believe it.
+        //
+        // Truncating here makes the stored clock exactly the clock we ranked on.
+        $at ??= now()->toImmutable()->startOfSecond();
         $started = hrtime(true);
 
         $model = $modelOverride ?? $this->resolver->resolve();
@@ -144,6 +158,10 @@ final class RankSession
             'context' => $context,
             'scout_summary' => $scoutSummary,
             'rank_ms' => (int) ((hrtime(true) - $started) / 1_000_000),
+            // The exact clock this plan was ranked on. persist() stores it as
+            // `served_at`, and the replayer reads it back — so the replay runs on
+            // the very same instant, not on a nearby one.
+            'at' => $at,
         ];
     }
 
@@ -192,7 +210,11 @@ final class RankSession
                 'scoring_model_version' => $model->version,
                 'taxonomy_version' => 1,
                 'resolver_version' => (string) config('resolver.version'),
-                'served_at' => now(),
+                // The clock we RANKED on, not the clock we happen to be writing at.
+                // These differ by however long the rank took, and the replayer
+                // replays from this column — so writing now() here would hand the
+                // replayer a clock the pipeline never actually used (PRD §15.2).
+                'served_at' => $plan['at'],
                 // Per-recommendation cost (PRD §14.3). Phase 1 ranks off our own
                 // database, so these are zero — but they are *measured* zero, not
                 // asserted zero: the CostMeter counts every outbound call made

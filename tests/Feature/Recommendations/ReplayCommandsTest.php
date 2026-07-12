@@ -10,6 +10,7 @@ use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Models\ExploreSession;
 use App\Domain\Trips\Models\Trip;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
@@ -92,6 +93,42 @@ it('replays a session and reports an identical serve', function () {
     $this->artisan('replay:session', ['session' => $session->id])
         ->expectsOutputToContain('identical serve')
         ->assertSuccessful();
+});
+
+it('ranks on the clock it stores, so a replay runs on the same instant', function () {
+    // The bug CI found and local runs did not:
+    //
+    //   serve   → clock taken at MICROSECOND precision
+    //   persist → served_at is a timestamp(0); the database truncates it
+    //   replay  → reads served_at back, and runs on a clock up to a second EARLIER
+    //
+    // temporal_urgency is a function of that clock, so the replay produced a
+    // different composite than the serve it was replaying — measured at ~7% of
+    // instants. The replayer exists to answer "did my change alter what we serve"
+    // (PRD §15.2), and it was answering "yes" one time in fourteen for a pipeline
+    // that had not changed at all. A tool that lies at that rate is worse than no
+    // tool, because people believe it.
+    //
+    // Asserting on the composite would only fail 7% of the time, and asserting
+    // served_at->micro === 0 proves nothing (the column truncates either way). The
+    // honest invariant is that the SLACK we recorded is the slack a replay
+    // recomputes — freeze a clock with a fat sub-second part and compare.
+    $this->travelTo(CarbonImmutable::parse('2026-07-12 11:00:00.831742', 'Europe/Stockholm'));
+
+    $session = servedSession();
+    $data = ExploreSessionData::fromModel($session);
+
+    $recommendation = Recommendation::query()
+        ->where('explore_session_id', $session->id)
+        ->orderBy('position')
+        ->firstOrFail();
+    $servedSlack = $recommendation->score_inputs['raw']['temporal_urgency']['slack_min'];
+
+    // Replay exactly as ReplaySessionCommand does: from the stored clock.
+    $replayed = app(RankSession::class)->plan($data, $recommendation->served_at->toImmutable());
+    $replayedSlack = $replayed['picked'][0]['raw_inputs']['temporal_urgency']['slack_min'];
+
+    expect($replayedSlack)->toBe($servedSlack);
 });
 
 it('shows the pipeline funnel, not just what was served', function () {
