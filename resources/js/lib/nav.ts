@@ -1,5 +1,5 @@
 import { type NavItem, type SharedData } from '@/types';
-import { Activity, BookOpen, Compass, Gauge, LayoutGrid, Map, ScrollText, Shield, Users } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, Compass, Gauge, LayoutGrid, Map, ScrollText, Shield, Users } from 'lucide-react';
 
 /**
  * The app navigation, shared by the sidebar (app chrome) and the menu sheet on the
@@ -15,6 +15,11 @@ export const mainNavItems: NavItem[] = [
         title: 'Explore',
         url: '/explore',
         icon: Compass,
+    },
+    {
+        title: 'Kept',
+        url: '/kept',
+        icon: Bookmark,
     },
     {
         title: 'Trips',

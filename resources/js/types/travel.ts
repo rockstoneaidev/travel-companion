@@ -97,3 +97,22 @@ export interface VisitPrompt {
     place_name: string;
     location: { lat: number; lng: number };
 }
+
+/**
+ * One kept item (SCREENS S6).
+ * Mirrors app/Http/Resources/Api/V1/KeptItemResource.php.
+ *
+ * `still_possible` is the server's live re-check against the world model, not a
+ * property of the keep — a thing kept while its window was open can be passed by
+ * the time you look at the list.
+ */
+export interface KeptItem {
+    recommendation_id: string;
+    opportunity_id: string | null;
+    title: string;
+    note: string | null;
+    location: { lat: number; lng: number };
+    kept_at: string;
+    window_ends_at: string | null;
+    still_possible: boolean;
+}

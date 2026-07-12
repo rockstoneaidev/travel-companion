@@ -4,6 +4,7 @@ use App\Http\Controllers\PwaManifestController;
 use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
+use App\Http\Controllers\Web\KeptController;
 use App\Http\Controllers\Web\OpportunityController;
 use App\Http\Controllers\Web\PlaceSearchController;
 use App\Http\Controllers\Web\RecommendationFeedbackController;
@@ -68,6 +69,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('explore/{exploreSession}/end', [ExploreSessionEndController::class, 'store'])
         ->can('update', 'exploreSession')
         ->name('explore.end');
+
+    // S6 — KEPT. Windows are re-checked on every open, so this is a GET with no cache.
+    Route::get('kept', [KeptController::class, 'index'])->name('kept.index');
 
     Route::get('trips', [TripController::class, 'index'])->name('trips.index');
 
