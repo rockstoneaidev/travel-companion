@@ -14,6 +14,7 @@ use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Places\Services\CoverageGeometry;
 use App\Domain\Places\Services\ScoutRunner;
 use App\Domain\Places\Services\TileUniquenessSignals;
+use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Profiles\Services\TasteProfiles;
 use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Models\Recommendation;
@@ -142,6 +143,25 @@ final class RankSession
         );
 
         $tripEvents = $this->tripHistory($session->tripId, $at);
+
+        /*
+         * Sensitive-zone suppression (PRD §16). Nothing inside the user's declared
+         * home zone is served — being told about the café at the end of your own
+         * street is not a travel recommendation.
+         *
+         * Applied HERE, before scoring, rather than as a filter on the way out: a
+         * suppressed place must never be scored, never be learned from, and never
+         * appear in a decision trace. Ranking it and then hiding it would leave it
+         * in the funnel, which is a record of where someone lives.
+         */
+        $homeZone = HomeZone::forUser($session->userId);
+
+        if ($homeZone->declared()) {
+            $gated['kept'] = array_values(array_filter(
+                $gated['kept'],
+                static fn (array $c): bool => ! $homeZone->contains((float) $c['lat'], (float) $c['lng']),
+            ));
+        }
 
         // One call per TILE, not per candidate and never per user (conventions/12):
         // everyone standing in this hex is standing under the same sky.

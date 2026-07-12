@@ -7,6 +7,8 @@ namespace App\Domain\Context\Actions;
 use App\Domain\Context\Data\NewContextEventData;
 use App\Domain\Context\Exceptions\ExploreSessionNotAcceptingEvents;
 use App\Domain\Context\Models\ContextEvent;
+use App\Domain\Places\Contracts\TileIndexer;
+use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
 
 /**
@@ -21,7 +23,10 @@ use App\Domain\Trips\Contracts\ExploreSessionLookup;
  */
 final class RecordContextEvent
 {
-    public function __construct(private readonly ExploreSessionLookup $sessions) {}
+    public function __construct(
+        private readonly ExploreSessionLookup $sessions,
+        private readonly TileIndexer $tiles,
+    ) {}
 
     public function __invoke(NewContextEventData $data): ContextEvent
     {
@@ -31,13 +36,36 @@ final class RecordContextEvent
             throw new ExploreSessionNotAcceptingEvents($data->exploreSessionId);
         }
 
+        /*
+         * Sensitive-zone suppression, the half that cannot be undone (PRD §16).
+         *
+         * Inside the declared home zone we keep the H3 cell — coarse presence, which
+         * is what the pipeline actually needs — and NEVER the coordinates. Not for
+         * thirty days, not for thirty seconds. The retention job can coarsen a
+         * coordinate later; it cannot un-store one that was written, and "we'll
+         * delete it on schedule" is not the same promise as "we never had it".
+         */
+        $location = $data->location;
+        $accuracy = $data->accuracyMeters;
+        $cell = null;
+
+        if ($location !== null) {
+            $cell = $this->tiles->cellFor($location->lat, $location->lng);
+
+            if (HomeZone::forUser($session->userId)->contains($location->lat, $location->lng)) {
+                $location = null;
+                $accuracy = null;   // the accuracy of a coordinate we did not keep is not a fact about anything
+            }
+        }
+
         return ContextEvent::query()->create([
             'explore_session_id' => $session->id,
             'trip_id' => $session->tripId,          // denormalised: the privacy erase scans by trip
             'user_id' => $session->userId,
             'occurred_at' => $data->occurredAt(),
-            'location' => $data->location,
-            'accuracy_meters' => $data->accuracyMeters,
+            'location' => $location,
+            'h3_index' => $cell,
+            'accuracy_meters' => $accuracy,
             'movement_mode' => $data->movementMode,
             'speed_mps' => $data->speedMps,
             'heading' => $data->heading,
