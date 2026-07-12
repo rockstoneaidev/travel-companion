@@ -23,7 +23,7 @@ function overtureFixture(): array
 }
 
 it('normalizes Overture features into typed candidates', function () {
-    $candidates = new OvertureAdapter()->normalize(overtureFixture());
+    $candidates = new OvertureAdapter()->normalize(overtureFixture(), 'sv');
 
     $byName = collect($candidates)->keyBy('name');
 
@@ -35,7 +35,7 @@ it('normalizes Overture features into typed candidates', function () {
 });
 
 it('drops unmapped categories and nameless features', function () {
-    $names = array_column(new OvertureAdapter()->normalize(overtureFixture()), 'name');
+    $names = array_column(new OvertureAdapter()->normalize(overtureFixture(), 'sv'), 'name');
 
     expect($names)->not->toContain('Some Insurance Office') // insurance_agency is not a place we rank
         ->and(count($names))->toBe(3);                       // the nameless restaurant is gone too

@@ -54,7 +54,7 @@ final class OvertureAdapter implements ScoutSource
         return $geojson['features'] ?? [];
     }
 
-    public function normalize(array $raw): array
+    public function normalize(array $raw, string $locale): array
     {
         $candidates = [];
 
@@ -91,7 +91,7 @@ final class OvertureAdapter implements ScoutSource
                     'confidence' => $props['confidence'] ?? null,
                 ],
                 externalRefs: [], // GERS bridge refs arrive with ER Stage 1 (ENTITY-RESOLUTION §3)
-                language: 'sv',
+                language: $locale,
             );
         }
 

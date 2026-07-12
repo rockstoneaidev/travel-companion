@@ -96,7 +96,7 @@ final class CoverageGeometry
                 continue;
             }
 
-            $delta = abs((((float) $row->bearing - $headingDeg + 540) % 360) - 180);
+            $delta = abs(fmod((float) $row->bearing - $headingDeg + 540.0, 360.0) - 180.0);
             $allowed = $delta <= $halfAngle ? $reachM : $reachM * $behind;
 
             if ((float) $row->dist <= $allowed) {

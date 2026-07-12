@@ -45,7 +45,7 @@ final class RegionIngest
         }
 
         $raw = $adapter->search($request);
-        $candidates = $adapter->normalize($raw);
+        $candidates = $adapter->normalize($raw, $request->locale);
 
         if ($candidates === []) {
             return ['fetched' => count($raw), 'candidates' => 0, 'tiles' => 0];

@@ -45,7 +45,7 @@ final class WikidataAdapter implements ScoutSource
         return $response->json('results.bindings') ?? [];
     }
 
-    public function normalize(array $raw): array
+    public function normalize(array $raw, string $locale): array
     {
         // One binding row per (item, class); group per item first — pure array work.
         $items = [];
@@ -76,16 +76,16 @@ final class WikidataAdapter implements ScoutSource
                 continue;
             }
 
-            $labelSv = $row['labelSv']['value'] ?? null;
+            $labelLocal = $row['labelLocal']['value'] ?? null;
             $labelEn = $row['labelEn']['value'] ?? null;
-            $name = $labelSv ?? $labelEn;
+            $name = $labelLocal ?? $labelEn;
             if ($name === null) {
                 continue;
             }
 
             $externalRefs = array_filter([
                 'wikidata' => $qid,
-                'wikipedia_sv' => $row['svArticle']['value'] ?? null,
+                'wikipedia' => $row['localArticle']['value'] ?? null,
             ]);
 
             $candidates[] = $this->candidate(
@@ -97,7 +97,7 @@ final class WikidataAdapter implements ScoutSource
                 type: $type,
                 sourceTags: ['p31' => array_values(array_unique($item['classes']))],
                 externalRefs: $externalRefs,
-                language: $labelSv !== null ? 'sv' : 'en',
+                language: $labelLocal !== null ? $locale : 'en',
             );
         }
 
@@ -111,17 +111,19 @@ final class WikidataAdapter implements ScoutSource
 
     private function sparql(ScoutRequest $request): string
     {
+        $locale = $request->locale;
+
         return <<<SPARQL
-        SELECT ?item ?coord ?class ?labelSv ?labelEn ?svArticle WHERE {
+        SELECT ?item ?coord ?class ?labelLocal ?labelEn ?localArticle WHERE {
           SERVICE wikibase:box {
             ?item wdt:P625 ?coord .
             bd:serviceParam wikibase:cornerSouthWest "Point({$request->west} {$request->south})"^^geo:wktLiteral .
             bd:serviceParam wikibase:cornerNorthEast "Point({$request->east} {$request->north})"^^geo:wktLiteral .
           }
           ?item wdt:P31 ?class .
-          OPTIONAL { ?item rdfs:label ?labelSv . FILTER(LANG(?labelSv) = "sv") }
+          OPTIONAL { ?item rdfs:label ?labelLocal . FILTER(LANG(?labelLocal) = "{$locale}") }
           OPTIONAL { ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
-          OPTIONAL { ?svArticle schema:about ?item ; schema:isPartOf <https://sv.wikipedia.org/> }
+          OPTIONAL { ?localArticle schema:about ?item ; schema:isPartOf <https://{$locale}.wikipedia.org/> }
         }
         LIMIT 25000
         SPARQL;

@@ -23,7 +23,7 @@ function wikidataFixture(): array
 }
 
 it('normalizes recorded SPARQL rows into typed candidates, grouping multi-class items', function () {
-    $candidates = new WikidataAdapter()->normalize(wikidataFixture());
+    $candidates = new WikidataAdapter()->normalize(wikidataFixture(), 'sv');
 
     expect($candidates)->not->toBeEmpty();
 
@@ -40,7 +40,7 @@ it('normalizes recorded SPARQL rows into typed candidates, grouping multi-class 
 });
 
 it('prefers the Swedish label and records the language', function () {
-    $candidates = new WikidataAdapter()->normalize(wikidataFixture());
+    $candidates = new WikidataAdapter()->normalize(wikidataFixture(), 'sv');
     $treKronor = collect($candidates)->firstWhere('external_id', 'Q147009');
 
     expect($treKronor['language'])->toBe('sv');
@@ -49,7 +49,7 @@ it('prefers the Swedish label and records the language', function () {
 it('drops rows without coordinates or labels', function () {
     $candidates = new WikidataAdapter()->normalize([
         ['item' => ['value' => 'http://www.wikidata.org/entity/Q999999001'], 'class' => ['value' => 'http://www.wikidata.org/entity/Q23413']],
-    ]);
+    ], 'sv');
 
     expect($candidates)->toBeEmpty();
 });

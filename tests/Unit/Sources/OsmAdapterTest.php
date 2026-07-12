@@ -23,7 +23,7 @@ function osmFixture(): array
 }
 
 it('normalizes recorded Overpass elements into typed candidates', function () {
-    $candidates = new OsmAdapter()->normalize(osmFixture());
+    $candidates = new OsmAdapter()->normalize(osmFixture(), 'sv');
 
     expect($candidates)->not->toBeEmpty();
 
@@ -43,7 +43,7 @@ it('normalizes recorded Overpass elements into typed candidates', function () {
 });
 
 it('keeps every candidate typed, located, and versioned', function () {
-    foreach (new OsmAdapter()->normalize(osmFixture()) as $candidate) {
+    foreach (new OsmAdapter()->normalize(osmFixture(), 'sv') as $candidate) {
         expect($candidate['type'])->not->toBeNull()
             ->and($candidate['lat'])->toBeFloat()
             ->and($candidate['lng'])->toBeFloat()
@@ -53,11 +53,32 @@ it('keeps every candidate typed, located, and versioned', function () {
     }
 });
 
+it('reads local names for the region locale, not a hard-coded Swedish one', function () {
+    // The France corridor (E13) ingests with locale "fr". Nothing about the
+    // adapter may assume Sweden — it reads name:{locale} and stamps that language.
+    $raw = [[
+        'type' => 'node', 'id' => 1, 'lat' => 48.86, 'lon' => 2.35,
+        'tags' => [
+            'tourism' => 'museum',
+            'name' => 'Musée de Cluny',
+            'name:fr' => 'Musée de Cluny — Musée national du Moyen Âge',
+            'name:sv' => 'Clunymuseet',
+        ],
+    ]];
+
+    $candidates = new OsmAdapter()->normalize($raw, 'fr');
+
+    expect($candidates)->toHaveCount(1)
+        ->and($candidates[0]['language'])->toBe('fr')
+        ->and($candidates[0]['alt_names'])->toContain('Musée de Cluny — Musée national du Moyen Âge')
+        ->and($candidates[0]['alt_names'])->not->toContain('Clunymuseet');
+});
+
 it('drops unnamed elements unless they are practical infrastructure', function () {
     $candidates = new OsmAdapter()->normalize([
         ['type' => 'node', 'id' => 1, 'lat' => 59.3, 'lon' => 18.0, 'tags' => ['tourism' => 'viewpoint']],
         ['type' => 'node', 'id' => 2, 'lat' => 59.3, 'lon' => 18.0, 'tags' => ['amenity' => 'toilets']],
-    ]);
+    ], 'sv');
 
     expect($candidates)->toHaveCount(1)
         ->and($candidates[0]['type'])->toBe('toilet');

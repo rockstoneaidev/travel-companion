@@ -15,7 +15,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q23413"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Tre Kronor"
@@ -25,7 +25,7 @@
      "type": "literal",
      "value": "Tre Kronor Castle"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Tre_Kronor_(byggnad)"
     }
@@ -44,7 +44,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q46865913"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stockholms kommuns geografi"
@@ -54,7 +54,7 @@
      "type": "literal",
      "value": "geography of Stockholm"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stockholms_kommuns_geografi"
     }
@@ -73,7 +73,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Kråkgränd"
@@ -83,7 +83,7 @@
      "type": "literal",
      "value": "Kråkgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Kr%C3%A5kgr%C3%A4nd"
     }
@@ -102,7 +102,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q959782"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Riksgropen"
@@ -112,7 +112,7 @@
      "type": "literal",
      "value": "Riksgropen"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Riksgropen"
     }
@@ -131,7 +131,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q860861"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Järnpojke"
@@ -141,7 +141,7 @@
      "type": "literal",
      "value": "Järnpojke"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/J%C3%A4rnpojke"
     }
@@ -160,7 +160,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q33506"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stockholms slott"
@@ -170,7 +170,7 @@
      "type": "literal",
      "value": "Stockholm Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
     }
@@ -189,7 +189,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1497375"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stockholms slott"
@@ -199,7 +199,7 @@
      "type": "literal",
      "value": "Stockholm Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
     }
@@ -218,7 +218,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2065736"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stockholms slott"
@@ -228,7 +228,7 @@
      "type": "literal",
      "value": "Stockholm Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
     }
@@ -247,7 +247,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q53536964"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stockholms slott"
@@ -257,7 +257,7 @@
      "type": "literal",
      "value": "Stockholm Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stockholms_slott"
     }
@@ -276,7 +276,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q16560"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Tessinska palatset"
@@ -286,7 +286,7 @@
      "type": "literal",
      "value": "Tessin Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Tessinska_palatset"
     }
@@ -305,7 +305,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1497375"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Tessinska palatset"
@@ -315,7 +315,7 @@
      "type": "literal",
      "value": "Tessin Palace"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Tessinska_palatset"
     }
@@ -334,7 +334,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q23442"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Helgeandsholmen"
@@ -344,7 +344,7 @@
      "type": "literal",
      "value": "Helgeandsholmen"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Helgeandsholmen"
     }
@@ -363,7 +363,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Köpmangatan"
@@ -373,7 +373,7 @@
      "type": "literal",
      "value": "Köpmangatan"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/K%C3%B6pmangatan,_Stockholm"
     }
@@ -392,7 +392,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q298742"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Sveriges riksregalier"
@@ -402,7 +402,7 @@
      "type": "literal",
      "value": "Royal Regalia of Sweden"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Sveriges_riksregalier"
     }
@@ -421,7 +421,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2668072"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Sveriges riksregalier"
@@ -431,7 +431,7 @@
      "type": "literal",
      "value": "Royal Regalia of Sweden"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Sveriges_riksregalier"
     }
@@ -450,7 +450,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2065736"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Livrustkammaren"
@@ -460,7 +460,7 @@
      "type": "literal",
      "value": "Royal Armoury"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
     }
@@ -479,7 +479,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2668072"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Livrustkammaren"
@@ -489,7 +489,7 @@
      "type": "literal",
      "value": "Royal Armoury"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
     }
@@ -508,7 +508,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2772772"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Livrustkammaren"
@@ -518,7 +518,7 @@
      "type": "literal",
      "value": "Royal Armoury"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Livrustkammaren"
     }
@@ -537,7 +537,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q174782"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Köpmantorget"
@@ -547,7 +547,7 @@
      "type": "literal",
      "value": "Köpmantorget"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/K%C3%B6pmantorget"
     }
@@ -566,7 +566,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q16970"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Finska kyrkan"
@@ -576,7 +576,7 @@
      "type": "literal",
      "value": "Finnish Church"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Finska_kyrkan"
     }
@@ -595,7 +595,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Själagårdsgatan"
@@ -605,7 +605,7 @@
      "type": "literal",
      "value": "Själagårdsgatan"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Sj%C3%A4lag%C3%A5rdsgatan"
     }
@@ -624,7 +624,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Kindstugatan"
@@ -634,7 +634,7 @@
      "type": "literal",
      "value": "Kindstugatan"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Kindstugatan"
     }
@@ -653,7 +653,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Baggensgatan"
@@ -663,7 +663,7 @@
      "type": "literal",
      "value": "Baggensgatan"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Baggensgatan"
     }
@@ -682,7 +682,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q174782"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Brända tomten"
@@ -692,7 +692,7 @@
      "type": "literal",
      "value": "Brända tomten"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Br%C3%A4nda_tomten"
     }
@@ -711,7 +711,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q174782"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bollhustäppan"
@@ -736,7 +736,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q24354"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stora Bollhuset"
@@ -746,7 +746,7 @@
      "type": "literal",
      "value": "Bollhuset"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
     }
@@ -765,7 +765,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q805248"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stora Bollhuset"
@@ -775,7 +775,7 @@
      "type": "literal",
      "value": "Bollhuset"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
     }
@@ -794,7 +794,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q19860854"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stora Bollhuset"
@@ -804,7 +804,7 @@
      "type": "literal",
      "value": "Bollhuset"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stora_Bollhuset"
     }
@@ -823,7 +823,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bollhusgränd"
@@ -833,7 +833,7 @@
      "type": "literal",
      "value": "Bollhusgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bollhusgr%C3%A4nd"
     }
@@ -852,7 +852,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bredgränd"
@@ -862,7 +862,7 @@
      "type": "literal",
      "value": "Bredgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bredgr%C3%A4nd,_Stockholm"
     }
@@ -881,7 +881,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Brunnsgränd"
@@ -891,7 +891,7 @@
      "type": "literal",
      "value": "Brunnsgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Brunnsgr%C3%A4nd"
     }
@@ -910,7 +910,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Drakens gränd"
@@ -920,7 +920,7 @@
      "type": "literal",
      "value": "Drakens gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Drakens_gr%C3%A4nd"
     }
@@ -939,7 +939,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Ferkens gränd"
@@ -949,7 +949,7 @@
      "type": "literal",
      "value": "Ferkens gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Ferkens_gr%C3%A4nd"
     }
@@ -968,7 +968,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Finska kyrkogränd"
@@ -978,7 +978,7 @@
      "type": "literal",
      "value": "Finska Kyrkogränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Finska_kyrkogr%C3%A4nd"
     }
@@ -997,7 +997,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q174782"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Fiskartorget"
@@ -1007,7 +1007,7 @@
      "type": "literal",
      "value": "Fisketorget"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Fiskartorget"
     }
@@ -1026,7 +1026,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q17146103"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Kungliga Hovstaterna"
@@ -1036,7 +1036,7 @@
      "type": "literal",
      "value": "Royal Court of Sweden"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Kungliga_Hovstaterna"
     }
@@ -1055,7 +1055,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Lejonbacken"
@@ -1065,7 +1065,7 @@
      "type": "literal",
      "value": "Lejonbacken"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Lejonbacken"
     }
@@ -1084,7 +1084,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Nygränd"
@@ -1094,7 +1094,7 @@
      "type": "literal",
      "value": "Nygränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Nygr%C3%A4nd"
     }
@@ -1113,7 +1113,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q860861"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Obelisken i Stockholm"
@@ -1123,7 +1123,7 @@
      "type": "literal",
      "value": "Obelisk at Slottsbacken"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Obelisken_i_Stockholm"
     }
@@ -1142,7 +1142,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q12731"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Peder Fredags gränd"
@@ -1152,7 +1152,7 @@
      "type": "literal",
      "value": "Peder Fredags gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Peder_Fredags_gr%C3%A4nd"
     }
@@ -1171,7 +1171,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Peder Fredags gränd"
@@ -1181,7 +1181,7 @@
      "type": "literal",
      "value": "Peder Fredags gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Peder_Fredags_gr%C3%A4nd"
     }
@@ -1200,7 +1200,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Skeppar Olofs gränd"
@@ -1210,7 +1210,7 @@
      "type": "literal",
      "value": "Skeppar Olofs gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Skeppar_Olofs_gr%C3%A4nd"
     }
@@ -1229,7 +1229,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Skeppar Karls gränd"
@@ -1239,7 +1239,7 @@
      "type": "literal",
      "value": "Skeppar Karls gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Skeppar_Karls_gr%C3%A4nd"
     }
@@ -1258,7 +1258,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Skottgränd"
@@ -1268,7 +1268,7 @@
      "type": "literal",
      "value": "Skottgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Skottgr%C3%A4nd"
     }
@@ -1287,7 +1287,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Slottskajen"
@@ -1297,7 +1297,7 @@
      "type": "literal",
      "value": "Slottskajen"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Slottskajen"
     }
@@ -1316,7 +1316,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q79007"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Slottsbacken"
@@ -1326,7 +1326,7 @@
      "type": "literal",
      "value": "Slottsbacken"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Slottsbacken"
     }
@@ -1345,7 +1345,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q12731"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Staffan Sasses gränd"
@@ -1355,7 +1355,7 @@
      "type": "literal",
      "value": "Staffan Sasses gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Staffan_Sasses_gr%C3%A4nd"
     }
@@ -1374,7 +1374,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Staffan Sasses gränd"
@@ -1384,7 +1384,7 @@
      "type": "literal",
      "value": "Staffan Sasses gränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Staffan_Sasses_gr%C3%A4nd"
     }
@@ -1403,7 +1403,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Stora Hoparegränd"
@@ -1413,7 +1413,7 @@
      "type": "literal",
      "value": "Stora Hoparegränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Stora_Hoparegr%C3%A4nd"
     }
@@ -1432,7 +1432,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Telegrafgränd"
@@ -1442,7 +1442,7 @@
      "type": "literal",
      "value": "Telegrafgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Telegrafgr%C3%A4nd"
     }
@@ -1461,7 +1461,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Trädgårdsgatan"
@@ -1471,7 +1471,7 @@
      "type": "literal",
      "value": "Trädgårdsgatan"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Tr%C3%A4dg%C3%A5rdsgatan,_Stockholm"
     }
@@ -1490,7 +1490,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1251403"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Trädgårdstvärgränd"
@@ -1500,7 +1500,7 @@
      "type": "literal",
      "value": "Trädgårdstvärgränd"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Tr%C3%A4dg%C3%A5rdstv%C3%A4rgr%C3%A4nd"
     }
@@ -1519,7 +1519,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q207694"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Gustav III:s antikmuseum"
@@ -1529,7 +1529,7 @@
      "type": "literal",
      "value": "Gustav III's museum of antiquities"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Gustav_III:s_antikmuseum"
     }
@@ -1548,7 +1548,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q2065736"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Gustav III:s antikmuseum"
@@ -1558,7 +1558,7 @@
      "type": "literal",
      "value": "Gustav III's museum of antiquities"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Gustav_III:s_antikmuseum"
     }
@@ -1577,7 +1577,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q33506"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Skattkammaren"
@@ -1587,7 +1587,7 @@
      "type": "literal",
      "value": "Treasury of Sweden"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Skattkammaren"
     }
@@ -1606,7 +1606,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q41176"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Andromeda 7"
@@ -1616,7 +1616,7 @@
      "type": "literal",
      "value": "Andromeda 7"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Andromeda_7"
     }
@@ -1635,7 +1635,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q41176"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bartelska och Törneska husen"
@@ -1645,7 +1645,7 @@
      "type": "literal",
      "value": "Cepheus 25"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bartelska_och_T%C3%B6rneska_husen"
     }
@@ -1664,7 +1664,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q1497375"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bartelska och Törneska husen"
@@ -1674,7 +1674,7 @@
      "type": "literal",
      "value": "Cepheus 25"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bartelska_och_T%C3%B6rneska_husen"
     }
@@ -1693,7 +1693,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q20655472"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bernadottebiblioteket"
@@ -1703,7 +1703,7 @@
      "type": "literal",
      "value": "Bernadotte Library"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bernadottebiblioteket"
     }
@@ -1722,7 +1722,7 @@
      "type": "uri",
      "value": "http://www.wikidata.org/entity/Q188507"
     },
-    "labelSv": {
+    "labelLocal": {
      "xml:lang": "sv",
      "type": "literal",
      "value": "Bernadottevåningen"
@@ -1732,7 +1732,7 @@
      "type": "literal",
      "value": "Bernadotte Floor"
     },
-    "svArticle": {
+    "localArticle": {
      "type": "uri",
      "value": "https://sv.wikipedia.org/wiki/Bernadottev%C3%A5ningen"
     }

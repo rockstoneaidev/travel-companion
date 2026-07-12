@@ -29,10 +29,14 @@ interface ScoutSource
      * raw source JSON it returns candidates, so every adapter's normalization
      * is unit-tested against recorded fixtures.
      *
+     * $locale is the region's language (ScoutRequest::$locale, from IngestRegion).
+     * It is passed explicitly rather than read from the request so normalize()
+     * stays pure — no region is hard-coded into any adapter (PRD §9.4).
+     *
      * @param  list<array<string, mixed>>  $raw
      * @return list<array<string, mixed>>
      */
-    public function normalize(array $raw): array;
+    public function normalize(array $raw, string $locale): array;
 
     /** Per PRD §9.3's TTL-by-data-class table. */
     public function ttl(): DateInterval;

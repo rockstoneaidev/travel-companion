@@ -85,7 +85,7 @@ final class OsmAdapter implements ScoutSource
         ];
     }
 
-    public function normalize(array $raw): array
+    public function normalize(array $raw, string $locale): array
     {
         $candidates = [];
 
@@ -119,7 +119,7 @@ final class OsmAdapter implements ScoutSource
                 externalId: $element['type'].'/'.$element['id'],
                 name: $name ?? $type->value,
                 altNames: array_filter([
-                    $tags['name:sv'] ?? '',
+                    $tags["name:{$locale}"] ?? '',
                     $tags['name:en'] ?? '',
                     $tags['alt_name'] ?? '',
                     $tags['old_name'] ?? '',
@@ -129,7 +129,7 @@ final class OsmAdapter implements ScoutSource
                 type: $type,
                 sourceTags: $tags,
                 externalRefs: $externalRefs,
-                language: 'sv',
+                language: $locale,
             );
         }
 
