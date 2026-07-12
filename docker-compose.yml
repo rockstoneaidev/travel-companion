@@ -84,6 +84,7 @@ services:
       ADMINER_DEFAULT_DB: '${DB_DATABASE:-travel_companion}'
     volumes:
       - ./deployment/docker/adminer/prefill-login.php:/var/www/html/plugins-enabled/prefill-login.php:ro
+      - ./deployment/docker/adminer/select-by-default.php:/var/www/html/plugins-enabled/select-by-default.php:ro
     ports:
       - '${ADMINER_PORT:-8080}:8080'
     depends_on:

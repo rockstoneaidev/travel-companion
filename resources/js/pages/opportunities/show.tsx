@@ -66,9 +66,10 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                         </figcaption>
                     </figure>
                 ) : (
-                    <div className="paper-stripe rounded-photo border-border relative h-44 border">
-                        <span className="text-quiet absolute bottom-2 left-3 font-mono text-[10px]">photo: {place.name ?? 'place'}</span>
-                    </div>
+                    // No Commons image for this place: the paper stripe IS the
+                    // designed state (SCREENS build note 6) — no caption, no
+                    // apology, and never debug-style text in product UI (DESIGN §2.3).
+                    <div className="paper-stripe rounded-photo border-border h-28 border" aria-hidden="true" />
                 )}
 
                 <div className="space-y-1">
