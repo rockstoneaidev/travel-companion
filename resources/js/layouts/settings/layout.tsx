@@ -22,6 +22,12 @@ const sidebarNavItems: NavItem[] = [
         url: '/settings/appearance',
         icon: null,
     },
+    {
+        // What the product has concluded about you — and the button to undo it.
+        title: 'Taste',
+        url: '/settings/taste',
+        icon: null,
+    },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

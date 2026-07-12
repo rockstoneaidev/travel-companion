@@ -1,5 +1,6 @@
-import { PeekSheet, TabBar } from '@/components/app';
+import { EmptyFeed, PeekSheet, StalenessLine, TabBar } from '@/components/app';
 import type { MapItem } from '@/components/app/paper-map';
+import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
@@ -23,6 +24,7 @@ interface ExploreMapProps {
 
 export default function ExploreMap({ session, opportunities }: ExploreMapProps) {
     const exploreSession = session.data;
+    const { online, lastFreshAt } = useOnline('map');
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
     const items = opportunities.data;
@@ -65,6 +67,27 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
             <Head title="Map" />
 
             <div className="bg-map-bg relative flex-1">
+                {/*
+                 * Offline the tiles are gone, and a blank paper rectangle looks like a
+                 * broken map rather than a missing network. Say which it is (S11) —
+                 * and the pins we already know about still have somewhere to be.
+                 */}
+                {!online && (
+                    <div className="absolute inset-x-0 top-0 z-30 px-3 pt-3">
+                        <StalenessLine lastFreshAt={lastFreshAt} className="bg-card/90 rounded-[14px] border-none px-3" />
+                    </div>
+                )}
+
+                {/* Silence is a designed state here too: an empty map is not an error. */}
+                {items.length === 0 && (
+                    <div className="absolute inset-0 z-10 grid place-items-center px-8">
+                        <EmptyFeed
+                            headline="Nothing on the map yet."
+                            body="I'm watching the places around you — when something's worth the walk, it'll appear here."
+                        />
+                    </div>
+                )}
+
                 <Suspense
                     fallback={<div className="bg-map-bg text-quiet grid h-full place-items-center font-serif text-sm italic">Unfolding the map…</div>}
                 >

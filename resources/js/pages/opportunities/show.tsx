@@ -1,5 +1,7 @@
-import { EvidenceList, NavMenu, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, WhyYou } from '@/components/app';
+import { EvidenceList, NavMenu, PrimaryPill, QuietAction, SecondaryPill, SectionLabel, StalenessLine, WhyYou } from '@/components/app';
+import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
+import { sendFeedback } from '@/lib/feedback';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -20,11 +22,15 @@ interface OpportunityShowProps {
 }
 
 export default function OpportunityShow({ opportunity, place, recommendation, explanation, image, sessionId }: OpportunityShowProps) {
+    const { online, lastFreshAt } = useOnline('opportunity');
     const [dismissed, setDismissed] = useState(false);
     const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Queued to disk first, sent second (S11). "Not for me" tapped in a dead zone
+    // is still an opinion, and "Take me there" hands off to a maps app that has its
+    // own offline story — neither may depend on our network.
     const feedback = (event: string, metadata: Record<string, string | number | boolean> = {}) => {
-        router.post(`/recommendations/${recommendation.id}/feedback`, { event, metadata }, { preserveScroll: true, preserveState: true });
+        sendFeedback(recommendation.id, event, metadata);
     };
 
     const takeMeThere = () => {
@@ -45,6 +51,7 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
             <div className="bg-paper min-h-full flex-1">
                 <Head title={opportunity.title} />
                 <div className="mx-auto max-w-md space-y-6 px-5 py-8">
+                    {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
                     <div className="flex items-center gap-2">
                         <NavMenu />
                         {sessionId !== null && (
