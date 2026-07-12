@@ -31,12 +31,14 @@ export interface MapItem {
 export interface PaperMapProps {
     items: MapItem[];
     origin: { lat: number; lng: number } | null;
+    /** What the origin marker IS. "you" is a claim; do not make it unless it is true. */
+    originLabel?: string;
     selectedId: string | null;
     onSelect: (id: string | null) => void;
     className?: string;
 }
 
-export default function PaperMap({ items, origin, selectedId, onSelect, className }: PaperMapProps) {
+export default function PaperMap({ items, origin, originLabel = 'you', selectedId, onSelect, className }: PaperMapProps) {
     const container = useRef<HTMLDivElement>(null);
     const map = useRef<maplibregl.Map | null>(null);
 
@@ -158,7 +160,7 @@ export default function PaperMap({ items, origin, selectedId, onSelect, classNam
                 return createPortal(pin, node, item.id);
             })}
 
-            {originNode !== null && createPortal(<YouMarker />, originNode, 'origin')}
+            {originNode !== null && createPortal(<YouMarker label={originLabel} />, originNode, 'origin')}
 
             {/*
              * ODbL requires this to be visible, and OpenFreeMap requires the credit

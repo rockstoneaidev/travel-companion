@@ -1,7 +1,7 @@
 import { AppHeader, EditorialLede, PrimaryPill, SectionLabel, TextAction, Thumb, type ThumbImage } from '@/components/app';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, Link, router } from '@inertiajs/react';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 /**
  * Home — "today".
@@ -63,7 +63,40 @@ interface DashboardProps {
 
 export default function Dashboard({ digest, hero, session, map, kept }: DashboardProps) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
     const evening = digest.variant === 'evening';
+
+    /*
+     * WHERE YOU ACTUALLY ARE — or an honest label saying otherwise.
+     *
+     * The marker said "you" and pointed at the origin of your LAST session. That is not
+     * a rounding error: the map was telling you that you were somewhere you were not.
+     *
+     * So we ask the browser. Only if permission is ALREADY granted, though — opening the
+     * home screen must not throw a location prompt at someone who did not ask to be
+     * found (PRD §8: foreground, in context, never on app open). If we cannot have it,
+     * we fall back to the last origin and CALL IT WHAT IT IS: "last start", not "you".
+     *
+     * Nothing is sent to the server. This position only moves a pin on your own screen.
+     */
+    useEffect(() => {
+        if (!navigator.geolocation || !navigator.permissions) return;
+
+        void navigator.permissions
+            .query({ name: 'geolocation' })
+            .then((status) => {
+                if (status.state !== 'granted') return;
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => setHere({ lat: position.coords.latitude, lng: position.coords.longitude }),
+                    () => setHere(null),
+                    { timeout: 8_000 },
+                );
+            })
+            .catch(() => undefined);
+    }, []);
+
+    const origin = here ?? map.origin;
 
     // A new array on every render would tear down the GL context on each pin tap —
     // the bug S3 already paid for once.
@@ -140,13 +173,20 @@ export default function Dashboard({ digest, hero, session, map, kept }: Dashboar
 
                     {/* THE MAP. Not a widget — the imagery. And not a map of everything: you,
                         what you kept, and the ones the ranker weighed and held back. */}
-                    {map.origin !== null && (
+                    {origin !== null && (
                         <section className="space-y-2">
                             <SectionLabel>Around you</SectionLabel>
 
                             <div className="rounded-card border-border shadow-card relative h-72 overflow-hidden border lg:h-80">
                                 <Suspense fallback={<div className="bg-map-bg h-full w-full" />}>
-                                    <PaperMap items={pins} origin={map.origin} selectedId={selectedId} onSelect={setSelectedId} />
+                                    <PaperMap
+                                        items={pins}
+                                        origin={origin}
+                                        // "you" is a claim. Only make it when it is true.
+                                        originLabel={here !== null ? 'you' : 'last start'}
+                                        selectedId={selectedId}
+                                        onSelect={setSelectedId}
+                                    />
                                 </Suspense>
 
                                 {/* Tapping a pin should go somewhere. A map you can only look at

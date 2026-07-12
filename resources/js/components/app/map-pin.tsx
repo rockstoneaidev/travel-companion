@@ -41,11 +41,16 @@ export function PlacePin({ label, dimmed = false, className, ...props }: React.C
     );
 }
 
-export function YouMarker({ className, ...props }: React.ComponentProps<'div'>) {
+/**
+ * `label` exists because this marker is not always "you". On the home map it may be the
+ * origin of your LAST session — and calling a stale start point "you" is not a rounding
+ * error, it is the map telling you that you are somewhere you are not.
+ */
+export function YouMarker({ label = 'you', className, ...props }: React.ComponentProps<'div'> & { label?: string }) {
     return (
         <div className={cn('flex flex-col items-center gap-1', className)} {...props}>
             <div className="bg-card ring-olive size-[13px] rounded-full ring-[3px]" />
-            <span className="bg-card text-facet text-meta shadow-card rounded-full px-2 py-0.5 font-medium lowercase">you</span>
+            <span className="bg-card text-facet text-meta shadow-card rounded-full px-2 py-0.5 font-medium lowercase">{label}</span>
         </div>
     );
 }
