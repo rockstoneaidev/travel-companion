@@ -36,5 +36,18 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!--
+            No model keys in tests. The queue is SYNC here, so a job dispatched
+            from the ranking path runs inline — which means the suite would make
+            real, paid Gemini calls on every run, and a test's assertions would
+            depend on what a model felt like saying that afternoon.
+
+            Empty key ⇒ GeminiClient fails fast ⇒ the caller falls back to the
+            template, which is the same path production takes when the model is
+            down. Tests that DO want a generation bind a FakeLlmClient explicitly.
+        -->
+        <env name="GEMINI_API_KEY" value=""/>
+        <env name="DATATOURISME_API_KEY" value=""/>
+        <env name="OPENAGENDA_API_KEY" value=""/>
     </php>
 </phpunit>

@@ -85,12 +85,39 @@ Push to `main` → `.github/workflows/deploy-staging.yml`:
    ```bash
    echo "IMAGE_TAG=${SHA}" > .env
    docker compose pull
-   docker compose up -d
-   docker compose exec -T app php artisan migrate --force
+
+   docker compose up -d postgres                                    # db first, healthy
+   docker compose run --rm --no-deps app php artisan migrate --force  # migrate BEFORE the swap
+   docker compose up -d                                             # swap app + scheduler
+   docker compose exec -T app php artisan horizon:terminate         # cycle workers
    docker image prune -f
    ```
 
 **Rollback:** `echo "IMAGE_TAG=<previous-sha>" > .env && docker compose pull && docker compose up -d`.
+
+### Why the order matters (2026-07-14)
+
+**Horizon runs inside the `app` container** (supervisord — one fewer container on the shared box),
+so anything true of the app container is true of the queue workers.
+
+Two rules fall out of that, and both were violated by the original pipeline:
+
+- **Migrate before the swap, never after.** The pipeline used to `up -d` and *then* migrate. Horizon
+  `autostart`s with the container, so for the whole window between container start and migration
+  completing there were workers running **new code against an old schema**. A job touching a new
+  column fails into `failed_jobs`, the deploy reports success, and the failure is invisible until
+  someone goes looking. Migrations now run in a one-off container off the new image, before the
+  serving app is replaced.
+- **A worker that is not restarted is a worker running last week's code.** Long-running PHP processes
+  never pick up a new container binding or job class. Recreating the container normally handles this
+  (the image tag changes every deploy), but `horizon:terminate` is called explicitly so a re-run on
+  an unchanged tag still cycles the workers. It is graceful — supervisord's `stopsignal=QUIT` with
+  `stopwaitsecs=60` lets in-flight jobs finish.
+
+This was found the hard way: 11 `GenerateOpportunityVoiceJob`s failed silently in local dev against
+a Horizon that had been up for 40 hours and had never seen the `LlmClient` binding. The deploy now
+also emits a GitHub warning if `failed_jobs` is non-empty — a queue that fails quietly is precisely
+the problem being fixed here.
 
 The dedicated Postgres image (`ghcr.io/rockstoneaidev/travel-postgres:pg18`) is built and pushed
 by a separate, rarely-run workflow (`.github/workflows/postgres-image.yml`), not on every deploy.

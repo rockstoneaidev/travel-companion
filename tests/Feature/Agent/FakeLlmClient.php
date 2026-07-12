@@ -41,8 +41,20 @@ final class FakeLlmClient implements LlmClient
             throw GenerationFailed::transport($promptVersion, 'fake failure');
         }
 
+        // Each prompt has its own schema, and a fake that ignores that is a fake
+        // that passes tests the real client would fail.
+        $output = str_starts_with($promptVersion, 'curated_claim')
+            ? [
+                'title' => 'Backstreet workshop',
+                'claim' => $this->summary,
+                'facets' => ['craft'],
+                'grounded_in' => ['datatourisme'],
+                'confidence_note' => '',
+            ]
+            : ['summary' => $this->summary, 'grounded_in' => ['curated']];
+
         return new GenerationResult(
-            output: ['summary' => $this->summary, 'grounded_in' => ['curated']],
+            output: $output,
             promptVersion: $promptVersion,
             model: 'fake-model',
             inputTokens: 100,

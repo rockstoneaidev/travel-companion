@@ -10,6 +10,7 @@ use App\Domain\Agent\Data\GenerationResult;
 use App\Domain\Agent\Enums\LlmTier;
 use App\Domain\Agent\Exceptions\GenerationFailed;
 use App\Domain\Places\Services\CacheKeys;
+use App\Enums\AppealFacet;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -42,6 +43,35 @@ final class AgentOrchestrator
         ],
         'required' => ['summary', 'grounded_in'],
     ];
+
+    private const CLAIM_PROMPT = 'curated_claim.v1';
+
+    /**
+     * A method rather than a const, because the facet enum is the single source
+     * of truth for the vocabulary and a const cannot call into it. Adding a facet
+     * to the taxonomy therefore widens the schema automatically.
+     *
+     * @return array<string, mixed>
+     */
+    private static function claimSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'title' => ['type' => 'string'],
+                'claim' => ['type' => 'string'],
+                'facets' => [
+                    'type' => 'array',
+                    // Constrained to the taxonomy (TAXONOMY §4): the model may not
+                    // invent a facet, because facets drive who gets shown the item.
+                    'items' => ['type' => 'string', 'enum' => AppealFacet::values()],
+                ],
+                'grounded_in' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'confidence_note' => ['type' => 'string'],
+            ],
+            'required' => ['title', 'claim', 'facets', 'grounded_in', 'confidence_note'],
+        ];
+    }
 
     public function __construct(private readonly LlmClient $llm) {}
 
@@ -84,6 +114,65 @@ final class AgentOrchestrator
         }
 
         if (! is_string($result->output['summary'] ?? null) || trim($result->output['summary']) === '') {
+            return null;
+        }
+
+        Cache::put($key, ['output' => $result->output, 'model' => $result->model], now()->addDays(30));
+
+        return $result;
+    }
+
+    /**
+     * A pack draft for the review queue (CURATION §3 step 2, E14).
+     *
+     * Runs on the CAPABLE tier, unlike the card summary. The economics are
+     * inverted here: a card summary is read once and costs a fraction of a cent,
+     * while a bad pack draft costs a founder's minutes in review — and review
+     * hours are the scarcest resource in this project. Spending more per token to
+     * spend fewer minutes per item is the right trade.
+     *
+     * Returns null when there is nothing to draft from. A curator's queue full of
+     * empty drafts is worse than a shorter queue.
+     */
+    public function curatedClaim(EvidenceBundle $bundle, string $placeName, string $placeType): ?GenerationResult
+    {
+        if ($bundle->isEmpty()) {
+            return null;
+        }
+
+        $key = CacheKeys::llm(self::CLAIM_PROMPT, $bundle->id());
+
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return new GenerationResult(
+                output: $cached['output'],
+                promptVersion: self::CLAIM_PROMPT,
+                model: $cached['model'],
+                inputTokens: 0,
+                outputTokens: 0,
+                cached: true,
+            );
+        }
+
+        try {
+            $result = $this->llm->generate(
+                systemPrompt: $this->prompt(self::CLAIM_PROMPT),
+                userPrompt: <<<PROMPT
+                PLACE: {$placeName}
+                TYPE: {$placeType}
+
+                EVIDENCE (this is everything you know about this place):
+                {$bundle->toPrompt()}
+                PROMPT,
+                schema: self::claimSchema(),
+                tier: LlmTier::Capable,
+                promptVersion: self::CLAIM_PROMPT,
+            );
+        } catch (GenerationFailed) {
+            return null;
+        }
+
+        if (! is_string($result->output['claim'] ?? null) || trim($result->output['claim']) === '') {
             return null;
         }
 

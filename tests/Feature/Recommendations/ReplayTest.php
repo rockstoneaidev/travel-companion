@@ -89,6 +89,15 @@ it('shows a diff when a scoring constant changes (a new version, never an edit)'
 });
 
 it('persists resolver_version and honest cost fields on the served trace', function () {
+    // The session's started_at is pinned (10:45), and feedFor() reads the REAL
+    // clock — so without freezing time this test quietly depends on what hour of
+    // the day CI runs at. It passed all morning and failed after 13:45, when more
+    // than the session's 180-minute budget had "elapsed" and nothing was reachable
+    // any more. Freeze the clock inside the budget; the reachability gate's
+    // behaviour under a depleted budget is ReachabilityGateTest's job, not this
+    // test's accident.
+    $this->travelTo(CarbonImmutable::parse('2026-07-12 11:00:00', 'Europe/Stockholm'));
+
     $data = replaySession();
 
     $recommendations = app(RankSession::class)->feedFor($data);
