@@ -4,11 +4,24 @@
  * Offline *data* (last feed, KEPT, journal — SCREENS S11) arrives with E15;
  * this worker only makes the shell installable and resilient.
  */
-// Bump the suffix whenever the caching contract changes: the activate handler
-// below deletes every cache whose key is not this one, so an old shell is evicted
-// on the next activation rather than left to serve stale code forever.
-// v2: Inertia page fetches are cached too, not just full navigations (S11).
-const SHELL_CACHE = 'app-shell-v2';
+/*
+ * THE CACHE NAME IS THE BUILD. Do not hand-edit it — scripts/build-sw.mjs stamps
+ * the Vite manifest hash in here at build time, so every deploy produces a
+ * byte-different worker with a cache nobody else owns.
+ *
+ * It used to be the constant 'app-shell-v2', and that is a bug with a long fuse.
+ * A worker installed by an old deploy keeps serving that old deploy's cached
+ * responses for the same URLs, forever, because the name never changes and the
+ * activate handler below only deletes caches that are NOT the current name. Typing
+ * a URL still worked (that is a fresh navigation), but tapping a link inside the
+ * running app — an Inertia XHR against the same URL — was answered from the stale
+ * shell, and the app just sat there. The only cure was a hard refresh, which is not
+ * an instruction you can give someone holding a phone in Nice.
+ *
+ * Tie the cache to the build and the whole class of bug goes away: a new build
+ * cannot read the old build's cache, so there is nothing stale left to serve.
+ */
+const SHELL_CACHE = 'app-shell-__BUILD_ID__';
 
 self.addEventListener('install', (event) => {
     event.waitUntil(self.skipWaiting());

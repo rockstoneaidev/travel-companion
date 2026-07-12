@@ -24,3 +24,6 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# Generated per build by scripts/build-sw.mjs — the cache name is the build hash.
+/public/sw.js

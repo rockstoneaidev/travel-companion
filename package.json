@@ -2,8 +2,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "tsc --noEmit && vite build",
-        "build:ssr": "vite build && vite build --ssr",
+        "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
+        "build:ssr": "vite build && vite build --ssr && node scripts/build-sw.mjs",
         "dev": "vite",
         "typecheck": "tsc --noEmit",
         "format": "prettier --write resources/",

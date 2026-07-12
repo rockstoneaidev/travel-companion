@@ -39,4 +39,27 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         void navigator.serviceWorker.register('/sw.js');
     });
+
+    /*
+     * When a new worker takes over, THIS page is still running the old shell — the
+     * one whose cache the new worker just deleted. Left alone it limps: assets it
+     * asks for are gone from the cache it expects, and in-app navigation can wedge
+     * while a full page load looks fine. That is the bug we shipped, and the only
+     * cure anyone found was a hard refresh.
+     *
+     * So reload once, automatically — but ONLY if this page was already controlled
+     * when it loaded. `clients.claim()` makes `controllerchange` fire on the very
+     * first install too, and a page that has just been claimed for the first time was
+     * never stale: reloading there would spin every first-time visitor through a
+     * pointless extra load.
+     */
+    const wasControlled = navigator.serviceWorker.controller !== null;
+    let reloading = false;
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!wasControlled || reloading) return;
+
+        reloading = true;
+        window.location.reload();
+    });
 }
