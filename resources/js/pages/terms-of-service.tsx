@@ -40,9 +40,9 @@ export default function TermsOfService({ contactEmail, updated }: TermsOfService
 
             <LegalSection heading="What this is, and what it isn't">
                 <p>
-                    This is <strong>unfinished software in a private pilot</strong>. It is free, there is nothing to pay, and there is no service level
-                    of any kind. It may break, lose data, be taken down for a day, or be discontinued. If you're relying on it for something that
-                    matters, don't.
+                    This is <strong>unfinished software in a private pilot</strong>. It is free, there is nothing to pay, and there is no service
+                    level of any kind. It may break, lose data, be taken down for a day, or be discontinued. If you're relying on it for something
+                    that matters, don't.
                 </p>
                 <p>
                     It suggests places you might enjoy, near where you are, in the time you have. That's all it does. It is not a navigation system, a
@@ -71,10 +71,10 @@ export default function TermsOfService({ contactEmail, updated }: TermsOfService
                     </li>
                 </ul>
                 <p>
-                    <strong>You decide whether to go.</strong> The app can tell you there's a viewpoint twenty minutes away; it cannot tell you whether
-                    the path is icy, whether the neighbourhood is somewhere you want to be after dark, or whether you're well enough for the walk. Use
-                    your judgement, and don't outsource your safety to a suggestion engine. If something looks wrong when you get there, it probably
-                    is.
+                    <strong>You decide whether to go.</strong> The app can tell you there's a viewpoint twenty minutes away; it cannot tell you
+                    whether the path is icy, whether the neighbourhood is somewhere you want to be after dark, or whether you're well enough for the
+                    walk. Use your judgement, and don't outsource your safety to a suggestion engine. If something looks wrong when you get there, it
+                    probably is.
                 </p>
             </LegalSection>
 
@@ -101,15 +101,13 @@ export default function TermsOfService({ contactEmail, updated }: TermsOfService
                     </Link>
                     , and it's worth reading — particularly the part about what the taste profile can end up inferring about you.
                 </p>
-                <p>
-                    Your travel history is yours. You can export it in full, and delete it in full, at any time.
-                </p>
+                <p>Your travel history is yours. You can export it in full, and delete it in full, at any time.</p>
             </LegalSection>
 
             <LegalSection heading="Whose content is whose">
                 <p>
-                    The places, geometry and map data come from open projects — OpenStreetMap and others — and are used under their licences, which are
-                    credited on the{' '}
+                    The places, geometry and map data come from open projects — OpenStreetMap and others — and are used under their licences, which
+                    are credited on the{' '}
                     <Link href="/licenses" className="text-ink underline underline-offset-[3px]">
                         data &amp; licenses
                     </Link>{' '}
@@ -121,14 +119,14 @@ export default function TermsOfService({ contactEmail, updated }: TermsOfService
             <LegalSection heading="What I'm liable for">
                 <p>
                     The service is provided <strong>as is</strong>, with no warranty that it will be accurate, available, or fit for anything in
-                    particular. To the extent the law allows, I'm not liable for loss you suffer from relying on a suggestion — a wasted walk, a closed
-                    door, a missed train.
+                    particular. To the extent the law allows, I'm not liable for loss you suffer from relying on a suggestion — a wasted walk, a
+                    closed door, a missed train.
                 </p>
                 <p>
                     <strong>But I'm not going to pretend that clause does more than it does.</strong> Under Swedish and EU law you have rights that a
-                    document like this cannot sign away, and nothing here limits my liability for death or personal injury caused by my negligence, for
-                    fraud, or for anything else the law says I can't exclude. If a court decides part of this page is unenforceable, the rest still
-                    stands.
+                    document like this cannot sign away, and nothing here limits my liability for death or personal injury caused by my negligence,
+                    for fraud, or for anything else the law says I can't exclude. If a court decides part of this page is unenforceable, the rest
+                    still stands.
                 </p>
             </LegalSection>
 

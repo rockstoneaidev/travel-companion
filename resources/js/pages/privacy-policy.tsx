@@ -29,10 +29,13 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
         >
             <LegalSection heading="The short version">
                 <ul className="list-disc space-y-1.5 pl-5">
-                    <li>I collect your location, but only while an explore session is open and only when the app is in front of you. Never in the background.</li>
                     <li>
-                        I keep your exact coordinates for <strong>{retentionDays} days</strong>, then destroy them and keep only a roughly 0.7 km² grid
-                        cell.
+                        I collect your location, but only while an explore session is open and only when the app is in front of you. Never in the
+                        background.
+                    </li>
+                    <li>
+                        I keep your exact coordinates for <strong>{retentionDays} days</strong>, then destroy them and keep only a roughly 0.7 km²
+                        grid cell.
                     </li>
                     <li>You can declare a home zone. Inside it I store nothing precise, learn nothing, and suggest nothing.</li>
                     <li>I build a picture of your taste only if you say yes — and I delete it the moment you say no.</li>
@@ -55,8 +58,8 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
 
             <LegalSection heading="What I collect, and what allows me to">
                 <p>
-                    <strong>Your name and email</strong>, so you have an account you can log back into. If you sign in with Google, I also receive your
-                    Google ID, name and profile picture. I need this to run the service you signed up for.
+                    <strong>Your name and email</strong>, so you have an account you can log back into. If you sign in with Google, I also receive
+                    your Google ID, name and profile picture. I need this to run the service you signed up for.
                 </p>
                 <p>
                     <strong>Your precise location</strong>, while an explore session is open. This is not optional: a recommendation engine that
@@ -85,12 +88,10 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
             </LegalSection>
 
             <LegalSection heading="What this can reveal about you">
+                <p>This is the most sensitive thing the app does, so I'd rather say it here than bury it.</p>
                 <p>
-                    This is the most sensitive thing the app does, so I'd rather say it here than bury it.
-                </p>
-                <p>
-                    <strong>The taste profile can end up revealing things you never told me.</strong> It learns from the kinds of places you choose. If
-                    you keep choosing churches, chapels or cathedrals, it accumulates a high weight for religious and spiritual places — and that
+                    <strong>The taste profile can end up revealing things you never told me.</strong> It learns from the kinds of places you choose.
+                    If you keep choosing churches, chapels or cathedrals, it accumulates a high weight for religious and spiritual places — and that
                     weight is, in substance, a statement about your religious beliefs, inferred from your behaviour. The same mechanism could reach
                     your health, if you repeatedly went somewhere for it.
                 </p>
@@ -130,13 +131,11 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
                         <strong>Resend</strong> (USA) — receives your email address when I send you a password reset or a verification link.
                     </li>
                 </ul>
+                <p>Transfers to the USA rely on the EU–US Data Privacy Framework, backed by standard contractual clauses.</p>
                 <p>
-                    Transfers to the USA rely on the EU–US Data Privacy Framework, backed by standard contractual clauses.
-                </p>
-                <p>
-                    <strong>The sharpest one, said out loud:</strong> to tell you something is a seven-minute walk rather than guessing, I have to send
-                    where you're standing to Google. That's a real transfer of a real coordinate to a US company. It goes anonymously — Google receives
-                    a point on a map, not a person — but it goes, and you should know that it does.
+                    <strong>The sharpest one, said out loud:</strong> to tell you something is a seven-minute walk rather than guessing, I have to
+                    send where you're standing to Google. That's a real transfer of a real coordinate to a US company. It goes anonymously — Google
+                    receives a point on a map, not a person — but it goes, and you should know that it does.
                 </p>
                 <p>
                     <strong>What never leaves:</strong> your name, your email, your taste profile, your feedback history, and your home zone.
@@ -150,8 +149,8 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
                         roughly 0.7 km² grid cell: enough to learn that you like waterfront viewpoints, not enough to find your door.
                     </li>
                     <li>
-                        <strong>Anything inside your home zone: never stored precisely at all.</strong> There's nothing to delete, because it was never
-                        written down.
+                        <strong>Anything inside your home zone: never stored precisely at all.</strong> There's nothing to delete, because it was
+                        never written down.
                     </li>
                     <li>
                         <strong>What I suggested and why:</strong> kept, because it's how the app explains itself. Its coordinates are stripped on the
@@ -184,12 +183,12 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
                 </p>
                 <ul className="list-disc space-y-1.5 pl-5">
                     <li>
-                        <strong>See everything I hold.</strong> One button, and you get a file with all of it — your trips, everything I showed you and
-                        why, everything you told me back, and the taste profile itself. Not a summary. The actual thing that decides what you see.
+                        <strong>See everything I hold.</strong> One button, and you get a file with all of it — your trips, everything I showed you
+                        and why, everything you told me back, and the taste profile itself. Not a summary. The actual thing that decides what you see.
                     </li>
                     <li>
-                        <strong>Delete your account</strong> and everything attached to it, permanently. The feedback history goes too. It's valuable to
-                        me and it's yours, and "delete my account" is not a negotiation.
+                        <strong>Delete your account</strong> and everything attached to it, permanently. The feedback history goes too. It's valuable
+                        to me and it's yours, and "delete my account" is not a negotiation.
                     </li>
                     <li>
                         <strong>Delete a trip's location history</strong> without deleting the trip.
@@ -227,9 +226,9 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
                     you: it suggests a viewpoint, you ignore it, nothing happens.
                 </p>
                 <p>
-                    You can still ask it <em>why</em>. Every card can tell you what it weighed, because every recommendation stores its full reasoning.
-                    That's not there because the law demands it. It's there because a companion that can't say why it suggested something doesn't
-                    deserve to be trusted.
+                    You can still ask it <em>why</em>. Every card can tell you what it weighed, because every recommendation stores its full
+                    reasoning. That's not there because the law demands it. It's there because a companion that can't say why it suggested something
+                    doesn't deserve to be trusted.
                 </p>
             </LegalSection>
 
@@ -240,8 +239,8 @@ export default function PrivacyPolicy({ retentionDays, contactEmail, updated }: 
             <LegalSection heading="Changes to this page">
                 <p>
                     If I change what I collect, who gets it, or how long I keep it, I'll update this page and say so. If the change means the taste
-                    profile starts inferring something new, <strong>your existing consent stops counting and I'll ask you again</strong> — that's built
-                    into how consent is stored, not a promise I'm making.
+                    profile starts inferring something new, <strong>your existing consent stops counting and I'll ask you again</strong> — that's
+                    built into how consent is stored, not a promise I'm making.
                 </p>
             </LegalSection>
         </LegalLayout>
