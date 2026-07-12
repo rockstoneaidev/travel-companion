@@ -14,6 +14,17 @@ use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
+/** Calibration needs explicit consent now (Art. 9(2)(a)) — see ProfilingConsentTest. */
+function consentedUser(): User
+{
+    $user = User::factory()->create();
+
+    test()->actingAs($user);
+    test()->post('/calibrate/consent');
+
+    return $user;
+}
+
 /*
 |--------------------------------------------------------------------------
 | S10 — "Reset my taste profile"
@@ -28,7 +39,7 @@ uses(RefreshDatabase::class);
 */
 
 it('shows what we think we know before offering to throw it away', function () {
-    $this->actingAs($user = User::factory()->create());
+    $user = consentedUser();
 
     $this->post('/calibrate/1', ['side' => 'a']);
     $this->post('/calibrate/practical', ['walk_minutes' => 40, 'price_band' => 3]);
@@ -44,7 +55,7 @@ it('shows what we think we know before offering to throw it away', function () {
 });
 
 it('takes a user back to knowing nothing — α returns to 0', function () {
-    $this->actingAs($user = User::factory()->create());
+    $user = consentedUser();
 
     $this->post('/calibrate/1', ['side' => 'a']);
     $this->post('/calibrate/practical', ['walk_minutes' => 40, 'price_band' => 3]);
@@ -71,7 +82,7 @@ it('takes a user back to knowing nothing — α returns to 0', function () {
 });
 
 it('forgets what it concluded about you, not what you did', function () {
-    $this->actingAs($user = User::factory()->create());
+    $user = consentedUser();
 
     $opportunity = Opportunity::factory()->create(['status' => OpportunityStatus::Served]);
     $recommendation = Recommendation::query()->create([
@@ -97,7 +108,7 @@ it('forgets what it concluded about you, not what you did', function () {
 });
 
 it('does not reset one traveller from another traveller\'s settings', function () {
-    $this->actingAs($mine = User::factory()->create());
+    $mine = consentedUser();
     $this->post('/calibrate/1', ['side' => 'a']);
     $this->post('/calibrate/practical', ['walk_minutes' => 40, 'price_band' => 3]);
 

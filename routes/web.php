@@ -42,6 +42,10 @@ Route::middleware(['auth'])->group(function () {
     | next unanswered pair.
     */
     Route::get('welcome', [CalibrationController::class, 'welcome'])->name('calibrate.welcome');
+
+    // Explicit consent to be profiled (Art. 9(2)(a), DPIA §3.2). A separate,
+    // affirmative act — never a side effect of pressing "start".
+    Route::post('calibrate/consent', [CalibrationController::class, 'consent'])->name('calibrate.consent');
     Route::get('calibrate/practical', [CalibrationController::class, 'practical'])->name('calibrate.practical');
     Route::post('calibrate/practical', [CalibrationController::class, 'complete'])->name('calibrate.complete');
     Route::get('calibrate/{number}', [CalibrationController::class, 'pair'])->whereNumber('number')->name('calibrate.pair');

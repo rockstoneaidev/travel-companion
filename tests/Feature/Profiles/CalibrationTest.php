@@ -14,6 +14,22 @@ use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
+/**
+ * Calibration is gated on explicit consent now (Art. 9(2)(a), DPIA §3.2) — the nine
+ * pairs are the most concentrated profiling this product does, and one of the facets
+ * they separate is `spiritual`. So these tests consent first, exactly as a real user
+ * must. ProfilingConsentTest is the one that proves what happens when they don't.
+ */
+function consenting(): User
+{
+    $user = User::factory()->create();
+
+    test()->actingAs($user);
+    test()->post('/calibrate/consent');
+
+    return $user;
+}
+
 /*
 |--------------------------------------------------------------------------
 | S9 — onboarding taste calibration (ONBOARDING.md, PRD §13.2)
@@ -26,7 +42,7 @@ uses(RefreshDatabase::class);
 */
 
 it('serves the pairs from the backend, and never the answer key', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     $response = $this->actingAs($user)->get('/calibrate/1');
 
@@ -49,7 +65,7 @@ it('serves the pairs from the backend, and never the answer key', function () {
 });
 
 it('moves the chosen facets up and the rejected ones down', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     // Pair 1: the chapel (spiritual/architecture/history/offbeat) against the
     // grand museum (art/educational).
@@ -65,7 +81,7 @@ it('moves the chosen facets up and the rejected ones down', function () {
 });
 
 it('records a skip without teaching anything from it', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     $this->actingAs($user)->post('/calibrate/1', ['side' => null])->assertRedirect('/calibrate/2');
 
@@ -83,7 +99,7 @@ it('records a skip without teaching anything from it', function () {
 });
 
 it('resumes at the next unanswered pair after the app is killed mid-flow', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     $this->actingAs($user)->post('/calibrate/1', ['side' => 'a']);
     $this->actingAs($user)->post('/calibrate/2', ['side' => 'b']);
@@ -95,7 +111,7 @@ it('resumes at the next unanswered pair after the app is killed mid-flow', funct
 });
 
 it('sends you to the practicals after the last pair', function () {
-    $user = User::factory()->create();
+    $user = consenting();
     $last = app(CalibrationContent::class)->count();
 
     $this->actingAs($user)
@@ -104,7 +120,7 @@ it('sends you to the practicals after the last pair', function () {
 });
 
 it('seeds friction from the practicals — never taste', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     $this->actingAs($user)->post('/calibrate/1', ['side' => 'a']);
     $this->actingAs($user)
@@ -135,7 +151,7 @@ it('lifts a calibrated user out of cold start — this is the whole point', func
 });
 
 it('does not grant α₀ to someone who skipped every pair', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     foreach (range(1, app(CalibrationContent::class)->count()) as $number) {
         $this->actingAs($user)->post("/calibrate/{$number}", ['side' => null]);
@@ -154,7 +170,7 @@ it('does not grant α₀ to someone who skipped every pair', function () {
 });
 
 it('does not make a calibrated user sit through it again', function () {
-    $user = User::factory()->create();
+    $user = consenting();
 
     $this->actingAs($user)->post('/calibrate/1', ['side' => 'a']);
     $this->actingAs($user)->post('/calibrate/practical', ['walk_minutes' => 20, 'price_band' => 2]);

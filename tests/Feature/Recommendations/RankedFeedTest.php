@@ -47,7 +47,7 @@ beforeEach(function () {
 });
 
 it('serves a ranked feed with full decision traces, then replays it stably', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $session = startSession($user);
 
     $response = $this->actingAs($user)->getJson("/api/v1/explore-sessions/{$session->id}/opportunities");
@@ -66,7 +66,7 @@ it('serves a ranked feed with full decision traces, then replays it stably', fun
 });
 
 it('moves facet weights on feedback and rejects other users', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $session = startSession($user);
     $this->actingAs($user)->getJson("/api/v1/explore-sessions/{$session->id}/opportunities")->assertOk();
 
@@ -92,13 +92,13 @@ it('moves facet weights on feedback and rejects other users', function () {
     expect(UserTasteProfile::for($user->id)->facet_weights[$facets[0]])->toEqualWithDelta(0.4313, 0.001);
 
     // Another user cannot write feedback against this recommendation.
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(profilingConsent(User::factory()->create()))
         ->postJson("/api/v1/recommendations/{$recommendation->id}/feedback", ['event' => 'saved'])
         ->assertForbidden();
 });
 
 it('batches ignored feedback for un-interacted cards on session end', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $session = startSession($user);
     $this->actingAs($user)->getJson("/api/v1/explore-sessions/{$session->id}/opportunities")->assertOk();
 

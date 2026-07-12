@@ -13,7 +13,7 @@ final class PrivacySettings
     public function forUser(int $userId): array
     {
         $user = DB::table('users')
-            ->selectRaw('research_consent, home_zone_radius_meters,
+            ->selectRaw('research_consent, home_zone_radius_meters, profiling_consent_at, profiling_consent_version,
                          ST_Y(home_zone_center::geometry) AS lat, ST_X(home_zone_center::geometry) AS lng')
             ->where('id', $userId)
             ->first();
@@ -25,6 +25,10 @@ final class PrivacySettings
                 'radius_meters' => (int) $user->home_zone_radius_meters,
             ],
             'research_consent' => (bool) ($user->research_consent ?? false),
+
+            // Art. 9(2)(a) — the consent that lets us infer a taste profile at all.
+            'profiling_consent' => $user?->profiling_consent_at !== null
+                && $user->profiling_consent_version === config('privacy.profiling_consent_version'),
             'retention_days' => (int) config('privacy.raw_location_retention_days'),
             'default_radius_meters' => (int) config('privacy.home_zone.default_radius_meters'),
         ];

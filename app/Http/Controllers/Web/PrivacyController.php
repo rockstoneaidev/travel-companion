@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Domain\Privacy\Actions\DeleteAccount;
 use App\Domain\Privacy\Actions\ExportUserData;
+use App\Domain\Privacy\Actions\SetProfilingConsent;
 use App\Domain\Privacy\Actions\UpdatePrivacySettings;
 use App\Domain\Privacy\Queries\PrivacySettings;
 use App\Http\Controllers\Controller;
@@ -55,6 +56,25 @@ final class PrivacyController extends Controller
     public function forgetHomeZone(Request $request, UpdatePrivacySettings $update): RedirectResponse
     {
         $update->forgetHomeZone((int) $request->user()->id);
+
+        return back();
+    }
+
+    /**
+     * Give or take back consent to be profiled (Art. 9(2)(a), Art. 7(3)).
+     *
+     * Withdrawal DELETES the profile, and that is a legal reading rather than a UX
+     * flourish: holding a vector from which someone's religious belief can be deduced
+     * is itself processing, so "stop learning but keep what you inferred" would leave
+     * us storing Art. 9 data with no basis at all — worse than never having asked.
+     */
+    public function updateProfilingConsent(Request $request, SetProfilingConsent $consent): RedirectResponse
+    {
+        $validated = $request->validate(['consent' => ['required', 'boolean']]);
+
+        $userId = (int) $request->user()->id;
+
+        $validated['consent'] ? $consent->grant($userId) : $consent->withdraw($userId);
 
         return back();
     }

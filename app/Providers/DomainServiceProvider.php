@@ -14,6 +14,10 @@ use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Queries\LookupPlaces;
 use App\Domain\Places\Services\LookupPlaceImages;
 use App\Domain\Places\Services\PlaceExternalIds;
+use App\Domain\Privacy\Contracts\ProfilingConsent;
+use App\Domain\Privacy\Services\UserProfilingConsent;
+use App\Domain\Profiles\Actions\ResetTasteProfile;
+use App\Domain\Profiles\Contracts\TasteProfileEraser;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
 use App\Domain\Trips\Contracts\TripLocationEraser;
@@ -43,6 +47,14 @@ final class DomainServiceProvider extends ServiceProvider
         // Trips — what other modules may know about a session / a trip's locations.
         ExploreSessionLookup::class => FindExploreSession::class,
         TripLocationEraser::class => EraseTripLocations::class,
+
+        // Privacy — may we learn a taste profile at all? (Art. 9(2)(a), DPIA §3.2).
+        // Asked by the LEARNER, which is the one place a weight can actually move.
+        ProfilingConsent::class => UserProfilingConsent::class,
+
+        // ...and the other direction: withdrawing consent must delete the profile, and
+        // Privacy asks Profiles to do it through a contract rather than reaching in.
+        TasteProfileEraser::class => ResetTasteProfile::class,
 
         // Context — the Context half of trip-level location erasure (PRD §16).
         ContextLocationEraser::class => EraseContextLocations::class,

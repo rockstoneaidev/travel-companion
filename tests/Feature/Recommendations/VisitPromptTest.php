@@ -70,7 +70,7 @@ function tookMeThere(Recommendation $recommendation, int $minutesAgo): void
 }
 
 it('asks once enough time has passed to have actually got there', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     tookMeThere(servedRecommendation($user), minutesAgo: 45);
 
     $prompts = app(PendingVisitPrompts::class)->forUser($user->id);
@@ -81,14 +81,14 @@ it('asks once enough time has passed to have actually got there', function () {
 });
 
 it('does not ask five minutes after a Take me — they are still walking', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     tookMeThere(servedRecommendation($user), minutesAgo: 5);
 
     expect(app(PendingVisitPrompts::class)->forUser($user->id))->toBeEmpty();
 });
 
 it('does not ask about an item they never said Take me to', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $recommendation = servedRecommendation($user);
 
     // Merely served, and separately merely saved — neither is a navigation start.
@@ -103,7 +103,7 @@ it('does not ask about an item they never said Take me to', function () {
 });
 
 it('stops asking once answered, either way', function (string $answer) {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $recommendation = servedRecommendation($user);
     tookMeThere($recommendation, minutesAgo: 45);
 
@@ -113,7 +113,7 @@ it('stops asking once answered, either way', function (string $answer) {
 })->with(['visited', 'visit_prompt_declined']);
 
 it('learns the golden label from "I was there"', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $recommendation = servedRecommendation($user);
     tookMeThere($recommendation, minutesAgo: 45);
 
@@ -127,7 +127,7 @@ it('learns the golden label from "I was there"', function () {
 });
 
 it('learns nothing at all from "Didn\'t go"', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
     $recommendation = servedRecommendation($user);
     tookMeThere($recommendation, minutesAgo: 45);
 

@@ -49,8 +49,10 @@ function userWithHistory(): User
         'trip_id' => $trip->id, 'user_id' => $user->id,
     ]);
 
-    // Calibration, taste, a served recommendation, and feedback on it.
-    test()->actingAs($user)->post('/calibrate/1', ['side' => 'a']);
+    // Calibration, taste, a served recommendation, and feedback on it. Consent first —
+    // the nine pairs are gated on it now (Art. 9(2)(a), DPIA §3.2).
+    test()->actingAs($user)->post('/calibrate/consent');
+    test()->post('/calibrate/1', ['side' => 'a']);
     test()->post('/calibrate/practical', ['walk_minutes' => 40, 'price_band' => 3]);
 
     $recommendationId = (string) Str::uuid();

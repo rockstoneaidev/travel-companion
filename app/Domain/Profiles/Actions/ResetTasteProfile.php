@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Profiles\Actions;
 
+use App\Domain\Profiles\Contracts\TasteProfileEraser;
 use App\Domain\Profiles\Models\ProfileSignal;
 use App\Domain\Profiles\Models\UserTasteProfile;
 use Illuminate\Support\Facades\DB;
@@ -29,8 +30,14 @@ use Illuminate\Support\Facades\DB;
  * So this is "forget what you concluded about me", not "forget what I did". The
  * second one is account deletion, and it lives in Privacy (E17, PRD §16).
  */
-final class ResetTasteProfile
+final class ResetTasteProfile implements TasteProfileEraser
 {
+    /** Privacy calls this through the contract when consent is withdrawn (DPIA §3.2). */
+    public function eraseForUser(int $userId): void
+    {
+        $this($userId);
+    }
+
     public function __invoke(int $userId): void
     {
         DB::transaction(function () use ($userId): void {

@@ -52,7 +52,7 @@ function keptFixture(User $user, ?string $windowEndsAt, string $name = 'Färgfab
 }
 
 it('splits what you can still do from what has quietly passed', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
 
     $open = keptFixture($user, now()->addHours(3)->toDateTimeString(), 'Färgfabriken');
     $closed = keptFixture($user, now()->subHour()->toDateTimeString(), 'Midsummer concert');
@@ -79,7 +79,7 @@ it('splits what you can still do from what has quietly passed', function () {
 });
 
 it('retracts a keep without deleting it — the ledger is append-only', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
 
     $id = keptFixture($user, null);
 
@@ -94,7 +94,7 @@ it('retracts a keep without deleting it — the ledger is append-only', function
 });
 
 it('keeps it again after a removal — latest event wins', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
 
     $id = keptFixture($user, null);
 
@@ -106,7 +106,7 @@ it('keeps it again after a removal — latest event wins', function () {
 });
 
 it('does not teach the taste profile anything when you tidy the list', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
 
     $id = keptFixture($user, null);
 
@@ -123,7 +123,7 @@ it('does not teach the taste profile anything when you tidy the list', function 
 });
 
 it('survives the opportunity it points at being reaped — trace, moat and all', function () {
-    $this->actingAs($user = User::factory()->create());
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
 
     $id = keptFixture($user, null, 'Färgfabriken');
     $this->post("/recommendations/{$id}/feedback", ['event' => 'saved']);
@@ -146,11 +146,11 @@ it('survives the opportunity it points at being reaped — trace, moat and all',
 });
 
 it('shows one traveller nothing of another traveller\'s keeps', function () {
-    $this->actingAs($mine = User::factory()->create());
+    $this->actingAs($mine = profilingConsent(User::factory()->create()));
     $id = keptFixture($mine, null);
     $this->post("/recommendations/{$id}/feedback", ['event' => 'saved']);
 
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(profilingConsent(User::factory()->create()));
 
     $this->get('/kept')
         ->assertOk()

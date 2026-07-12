@@ -65,7 +65,7 @@ beforeEach(function () {
 });
 
 it('walks the M1 slice: start form → session → feed → detail → feedback', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
 
     // S2 — the start form is what you get with no session open.
     $this->actingAs($user)
@@ -136,7 +136,7 @@ it('refuses to start a session without an origin, rather than guessing one', fun
     // The screen used to default the origin to a hard-coded Liljeholmen constant,
     // so a user who denied location permission was silently placed there. There
     // is no default origin any more — on either side of the wire.
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(profilingConsent(User::factory()->create()))
         ->post('/explore', [
             'travel_mode' => 'walk',
             'time_budget_minutes' => 90,
@@ -147,7 +147,7 @@ it('refuses to start a session without an origin, rather than guessing one', fun
 });
 
 it('carries an optional destination through to the session, making it a route', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
 
     // "Heading somewhere?" on S2 — the session becomes a route context, and
     // route_fit enters the composite (SCORING §6).
@@ -167,7 +167,7 @@ it('carries an optional destination through to the session, making it a route', 
 });
 
 it('sends you back to your open session instead of a second start form', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
 
     $this->actingAs($user)->post('/explore', [
         'origin' => ['lat' => LILJEHOLMEN_LAT, 'lng' => LILJEHOLMEN_LNG],
@@ -181,7 +181,7 @@ it('sends you back to your open session instead of a second start form', functio
 });
 
 it('never serves an unreachable item on the minimum budget', function () {
-    $user = User::factory()->create();
+    $user = profilingConsent(User::factory()->create());
 
     // 15 minutes is the floor (config/trips.php). On foot that is a very short leash.
     $this->actingAs($user)->post('/explore', [

@@ -42,6 +42,21 @@ return [
     'trace_location_retention_days' => 30,
 
     /*
+    | Explicit consent for the inferred taste profile (Art. 9(2)(a), DPIA §3.2).
+    |
+    | We never ASK for special-category data. But the taxonomy has a `religious_sacred`
+    | domain and a `spiritual` facet, and the profile learns a weight for them — so a
+    | person who keeps visiting churches accumulates a vector that is, in substance, an
+    | inferred statement about their religious belief. Art. 6 consent does not cover
+    | that; Art. 9(2)(a) requires EXPLICIT consent.
+    |
+    | Versioned because the thing consented TO can change: if the profile ever infers
+    | more than it does today, the old agreement does not cover it and we must ask
+    | again. Bumping this invalidates every existing consent — which is the point.
+    */
+    'profiling_consent_version' => 'v1',
+
+    /*
     | The declared home zone (Phase 1's whole sensitive-zone scope).
     |
     | Inside it: no learning, no opportunities served, no precise storage. Automatic

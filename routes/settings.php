@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/privacy', [PrivacyController::class, 'edit'])->name('privacy.edit');
     Route::put('settings/privacy/home-zone', [PrivacyController::class, 'updateHomeZone'])->name('privacy.home-zone.update');
     Route::delete('settings/privacy/home-zone', [PrivacyController::class, 'forgetHomeZone'])->name('privacy.home-zone.forget');
+    Route::put('settings/privacy/profiling-consent', [PrivacyController::class, 'updateProfilingConsent'])->name('privacy.profiling-consent');
     Route::put('settings/privacy/research-consent', [PrivacyController::class, 'updateResearchConsent'])->name('privacy.research-consent');
     Route::get('settings/privacy/export', [PrivacyController::class, 'export'])->name('privacy.export');
     Route::delete('settings/privacy/account', [PrivacyController::class, 'destroy'])->name('privacy.account.destroy');

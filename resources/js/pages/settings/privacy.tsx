@@ -19,6 +19,7 @@ import { useState } from 'react';
 interface PrivacyProps {
     privacy: {
         home_zone: { lat: number; lng: number; radius_meters: number } | null;
+        profiling_consent: boolean;
         research_consent: boolean;
         retention_days: number;
         default_radius_meters: number;
@@ -114,6 +115,25 @@ export default function Privacy({ privacy }: PrivacyProps) {
                                 </Button>
                             )}
                         </div>
+                    </section>
+
+                    {/* Art. 9(2)(a). Withdrawing must be exactly as easy as giving
+                        (Art. 7(3)) — one click, no password, no "are you sure you want to
+                        lose your personalised experience". */}
+                    <section className="border-border space-y-3 rounded-lg border p-4">
+                        <HeadingSmall
+                            title="Learning your taste"
+                            description="I build a picture of what you enjoy from the places you pick. It's a guess — but because it learns from the kinds of places you choose, it can end up reflecting personal things, like an interest in religious sites. Turning this off stops the learning AND deletes what I concluded: I shouldn't keep a guess I no longer have your permission to have made. You'll still get suggestions, just less about you."
+                        />
+
+                        <Button
+                            variant={privacy.profiling_consent ? 'default' : 'outline'}
+                            onClick={() =>
+                                router.put('/settings/privacy/profiling-consent', { consent: !privacy.profiling_consent }, { preserveScroll: true })
+                            }
+                        >
+                            {privacy.profiling_consent ? 'On — turn it off and forget my taste' : 'Off — let it learn my taste'}
+                        </Button>
                     </section>
 
                     <section className="border-border space-y-3 rounded-lg border p-4">
