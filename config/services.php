@@ -60,4 +60,18 @@ return [
         'key' => env('OPENAGENDA_API_KEY'),
     ],
 
+    /*
+    | Gemini behind the LlmClient port (PRD Appendix A). Two tiers: a card summary
+    | is not worth what a pack draft is worth. Model ids verified against the live
+    | models endpoint — a wrong id is a 404 on every generation.
+    */
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'timeout' => env('GEMINI_TIMEOUT', 30),
+        'models' => [
+            'cheap' => env('GEMINI_MODEL_CHEAP', 'gemini-3.1-flash-lite'),
+            'capable' => env('GEMINI_MODEL_CAPABLE', 'gemini-3.5-flash'),
+        ],
+    ],
+
 ];

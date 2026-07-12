@@ -13,6 +13,7 @@ use App\Domain\Profiles\Services\TasteProfiles;
 use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Trips\Data\ExploreSessionData;
+use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -161,6 +162,8 @@ final class RankSession
             'summary' => $c['curated_claim'] ?? null,   // a reviewed human/curated claim may speak (conventions/10)
         ], $picked));
 
+        $this->requestVoiceFor($picked, $opportunities, $session);
+
         $recommendations = [];
         foreach ($picked as $position => $candidate) {
             $recommendations[] = Recommendation::query()->create([
@@ -207,6 +210,43 @@ final class RankSession
         }
 
         return $recommendations;
+    }
+
+    /**
+     * Ask the Agent module for a voice on the items we are about to serve
+     * (conventions/10).
+     *
+     * Dispatched, never awaited. The feed goes out now, with the template; the
+     * generated line lands on the next read. A user waiting on a model is a user
+     * watching a spinner, and the whole product is a promise not to waste their
+     * attention.
+     *
+     * An item that already speaks — a reviewed curated claim — is skipped. A human
+     * who read the evidence outranks a model that read the same evidence.
+     *
+     * @param  list<array<string, mixed>>  $picked
+     * @param  array<string, string>  $opportunities  place_id => opportunity_id
+     */
+    private function requestVoiceFor(array $picked, array $opportunities, ExploreSessionData $session): void
+    {
+        $partOfDay = match (true) {
+            now()->hour < 12 => 'morning',
+            now()->hour < 18 => 'afternoon',
+            default => 'evening',
+        };
+
+        foreach ($picked as $candidate) {
+            if (($candidate['curated_claim'] ?? null) !== null) {
+                continue;
+            }
+
+            GenerateOpportunityVoiceJob::dispatch(
+                $opportunities[$candidate['place_id']],
+                $partOfDay,
+                $session->travelMode->value,
+                (int) round((float) $candidate['reachability']['travel_min']),
+            );
+        }
     }
 
     /**

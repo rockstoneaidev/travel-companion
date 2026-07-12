@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Agent\Contracts\LlmClient;
+use App\Domain\Agent\Services\GeminiClient;
 use App\Domain\Places\Contracts\ResolvableItems;
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Places\Services\PostgresTileIndexer;
@@ -54,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
         // Request-scoped spend counter (PRD §14.3) — read once when the
         // recommendation trace is written.
         $this->app->singleton(CostMeter::class);
+
+        // The LLM port (conventions/10). Swapping provider is this one line;
+        // tests bind a fake and nothing reaches the network.
+        $this->app->bind(LlmClient::class, GeminiClient::class);
 
         $this->app->singleton(ScoutRunner::class, function ($app) {
             return new ScoutRunner(
