@@ -14,10 +14,11 @@ interface OpportunityShowProps {
     place: { name: string | null; lat: number | null; lng: number | null; type: string | null; facets: string[] };
     recommendation: { id: string; walk_minutes: number | null };
     explanation: { why_you: string | null; evidence: { text: string }[] };
+    image: { url: string; attribution: string | null; license: string | null } | null;
     sessionId: string | null;
 }
 
-export default function OpportunityShow({ opportunity, place, recommendation, explanation, sessionId }: OpportunityShowProps) {
+export default function OpportunityShow({ opportunity, place, recommendation, explanation, image, sessionId }: OpportunityShowProps) {
     const [dismissed, setDismissed] = useState(false);
     const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,11 +53,23 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                     )}
                 </div>
 
-                <div className="paper-stripe rounded-photo border-border relative h-44 border">
-                    <span className="text-quiet absolute bottom-2 left-3 font-mono text-[10px]">
-                        photo: {place.name ?? 'place'} — arrives with the photo pipeline
-                    </span>
-                </div>
+                {image !== null ? (
+                    <figure className="space-y-1">
+                        {/* Warm 35mm treatment (DESIGN §2.4) — a CSS filter is enough in v1. */}
+                        <img
+                            src={image.url}
+                            alt={place.name ?? opportunity.title}
+                            className="rounded-photo border-border h-44 w-full border object-cover [filter:sepia(0.14)_contrast(0.96)_saturate(0.9)]"
+                        />
+                        <figcaption className="text-quiet text-right text-[10px]">
+                            {[image.attribution, image.license, 'via Wikimedia Commons'].filter(Boolean).join(' · ')}
+                        </figcaption>
+                    </figure>
+                ) : (
+                    <div className="paper-stripe rounded-photo border-border relative h-44 border">
+                        <span className="text-quiet absolute bottom-2 left-3 font-mono text-[10px]">photo: {place.name ?? 'place'}</span>
+                    </div>
+                )}
 
                 <div className="space-y-1">
                     <h1 className="text-title-detail text-ink font-serif font-medium">{opportunity.title}</h1>

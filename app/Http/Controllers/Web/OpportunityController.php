@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Opportunities\Models\Opportunity;
+use App\Domain\Places\Models\PlaceImage;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Recommendations\Queries\ExplainRecommendation;
 use App\Http\Controllers\Controller;
@@ -29,6 +30,12 @@ final class OpportunityController extends Controller
 
         $candidate = $recommendation->score_inputs['candidate'] ?? [];
 
+        $image = PlaceImage::query()
+            ->where('place_id', $opportunity->place_id)
+            ->where('url', '!=', '')
+            ->orderBy('id')
+            ->first();
+
         return Inertia::render('opportunities/show', [
             'opportunity' => [
                 'id' => $opportunity->id,
@@ -42,6 +49,11 @@ final class OpportunityController extends Controller
                 'lng' => $candidate['lng'] ?? null,
                 'type' => $candidate['type'] ?? null,
                 'facets' => $candidate['facets'] ?? [],
+            ],
+            'image' => $image === null ? null : [
+                'url' => $image->url,
+                'attribution' => $image->attribution,
+                'license' => $image->license,
             ],
             'recommendation' => [
                 'id' => $recommendation->id,

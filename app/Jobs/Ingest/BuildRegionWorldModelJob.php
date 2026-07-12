@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\Ingest;
 
+use App\Domain\Places\Services\FetchCommonsImages;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionIngest;
@@ -47,7 +48,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         return 600;
     }
 
-    public function handle(RegionIngest $ingest, SourceRegistry $registry, ResolveRegion $resolve): void
+    public function handle(RegionIngest $ingest, SourceRegistry $registry, ResolveRegion $resolve, FetchCommonsImages $photos): void
     {
         $region = IngestRegion::named($this->regionKey);
 
@@ -66,17 +67,33 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             return;
         }
 
-        $tiles = $resolve->unresolvedTiles($region, self::RESOLVE_BATCH_TILES);
+        if ($this->phase === 'resolve') {
+            $tiles = $resolve->unresolvedTiles($region, self::RESOLVE_BATCH_TILES);
 
-        if ($tiles === []) {
-            Log::info("world-model build complete for {$this->regionKey}");
+            if ($tiles === []) {
+                self::dispatch($this->regionKey, 'photos');
+
+                return;
+            }
+
+            $totals = $resolve->resolveTiles($tiles);
+            Log::info("world-model resolve {$this->regionKey} batch", [...$totals, 'tiles' => count($tiles)]);
+
+            self::dispatch($this->regionKey, 'resolve');
 
             return;
         }
 
-        $totals = $resolve->resolveTiles($tiles);
-        Log::info("world-model resolve {$this->regionKey} batch", [...$totals, 'tiles' => count($tiles)]);
+        // phase: photos — Commons imagery in the same self-chaining shape.
+        $result = $photos->fetchBatch();
+        Log::info("world-model photos {$this->regionKey} batch", $result);
 
-        self::dispatch($this->regionKey, 'resolve');
+        if ($result['candidates'] > 0) {
+            self::dispatch($this->regionKey, 'photos');
+
+            return;
+        }
+
+        Log::info("world-model build complete for {$this->regionKey}");
     }
 }
