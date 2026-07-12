@@ -21,7 +21,7 @@ authoritative — epics carry scope, not design.
 | [#5](https://github.com/rockstoneaidev/travel-companion/issues/5) | Tile cache, scouts & mode-aware coverage | backend | 1, 2 |
 | [#6](https://github.com/rockstoneaidev/travel-companion/issues/6) | Reachability gate & travel-time estimator | backend | 1, 4 |
 | [#7](https://github.com/rockstoneaidev/travel-companion/issues/7) | Scoring, feed selection & taste learner | backend | 1, 5, 6 |
-| [#8](https://github.com/rockstoneaidev/travel-companion/issues/8) | Passo UI foundation & PWA shell | frontend | — (parallel from day 1) |
+| [#8](https://github.com/rockstoneaidev/travel-companion/issues/8) | UI foundation & PWA shell | frontend | — (parallel from day 1) |
 | [#9](https://github.com/rockstoneaidev/travel-companion/issues/9) | Core screens: session start, feed, detail, empty | frontend | 4, 7, 8 |
 | [#10](https://github.com/rockstoneaidev/travel-companion/issues/10) | Replayer, decision traces & cost instrumentation | platform | 7 |
 | [#11](https://github.com/rockstoneaidev/travel-companion/issues/11) | Curation pipeline & the stockholm-test pack | content | 1, 3 |

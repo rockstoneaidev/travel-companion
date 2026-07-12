@@ -627,10 +627,10 @@ Opportunities that don't clear the push/feed bar don't die — they surface in a
   (manifest + service worker, foreground geolocation), and the same UI as a desktop web app —
   explicitly desired, not an afterthought. No Expo shell, no app store. This rides the existing
   Laravel + Inertia 2 + React 19 scaffold directly.
-- **Visual design — DECIDED (2026-07-12): the "Passo" direction** (warm/analog travel journal;
+- **Visual design — DECIDED (2026-07-12): the warm/analog direction** (warm/analog travel journal;
   working wordmark, name may change). Design system and per-screen specs:
   [design/DESIGN.md](design/DESIGN.md) · [design/SCREENS.md](design/SCREENS.md).
-- **Phase 2:** background behavior, battery, permission UX, and notification quality are make-or-break — move to native Swift/Kotlin **or** React Native with a mature native background-geolocation SDK. This decision is explicitly deferred until Phase 1 proves quality. The mobile app lives in a **separate repository**, is a pure consumer of `/api/v1` + Sanctum (the API-first boundary exists for exactly this — nothing in the backend restructures), and implements the **same Passo design system** ([design/DESIGN.md](design/DESIGN.md) is platform-agnostic by design; share tokens + API types across repos, not components). Do not scaffold that repo before the Phase 1 exit criteria are met.
+- **Phase 2:** background behavior, battery, permission UX, and notification quality are make-or-break — move to native Swift/Kotlin **or** React Native with a mature native background-geolocation SDK. This decision is explicitly deferred until Phase 1 proves quality. The mobile app lives in a **separate repository**, is a pure consumer of `/api/v1` + Sanctum (the API-first boundary exists for exactly this — nothing in the backend restructures), and implements the **same design system** ([design/DESIGN.md](design/DESIGN.md) is platform-agnostic by design; share tokens + API types across repos, not components). Do not scaffold that repo before the Phase 1 exit criteria are met.
 
 ### 13.2 Onboarding taste calibration (cold start)
 
