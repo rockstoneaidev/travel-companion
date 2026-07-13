@@ -38,12 +38,14 @@ authoritative — epics carry scope, not design.
 | [#16](https://github.com/rockstoneaidev/travel-companion/issues/16) | Edge enrichment & context: Google verify, weather, astronomy | backend | 5, 7 |
 | [#17](https://github.com/rockstoneaidev/travel-companion/issues/17) | Privacy plumbing: retention, home zone, deletion, export | platform | 4 |
 | [#18](https://github.com/rockstoneaidev/travel-companion/issues/18) | Digest & Journal *(stretch)* | frontend | 7, 15, 16 |
+| [#24](https://github.com/rockstoneaidev/travel-companion/issues/24) | Cost ledger, kill-switch & admin cost strip | platform | 10, 12, 16, 17 |
 
 ## M3 — Phase 1 complete (post-trip)
 
 | # | Epic | Track | Depends on |
 |---|---|---|---|
 | [#19](https://github.com/rockstoneaidev/travel-companion/issues/19) | Pilot expansion & exit-criteria instrumentation | platform | everything |
+| [#25](https://github.com/rockstoneaidev/travel-companion/issues/25) | Cost explorer, rollup & allocation | platform | 24 |
 
 ## Critical path & parallel tracks
 
@@ -55,6 +57,7 @@ Content:        #11 → #14                  (founder review-hours — the scarc
                                             start harvesting week 1)
 France:         #13 → #14 · #16 · #17      (M2)
 Auth/mail:      #22                        (independent — no dependencies, nothing waits on it)
+Cost:           #24 → #25                  (ledger + kill-switch before the trip; explorer after)
 ```
 
 The France-ready cut line (decided): NOW + session start + detail + KEPT + offline + calibration +
