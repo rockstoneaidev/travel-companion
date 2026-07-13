@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Agent\Services;
 
+use App\Cost\Services\CostMeter;
 use App\Domain\Agent\Contracts\LlmClient;
 use App\Domain\Agent\Data\EvidenceBundle;
 use App\Domain\Agent\Data\GenerationResult;
@@ -73,7 +74,58 @@ final class AgentOrchestrator
         ];
     }
 
-    public function __construct(private readonly LlmClient $llm) {}
+    public function __construct(
+        private readonly LlmClient $llm,
+        private readonly CostMeter $cost,
+    ) {}
+
+    /**
+     * A cache hit: cost nothing, and record what it WOULD have cost.
+     *
+     * This is the only place the value of the LLM cache is observable. The output cache
+     * is keyed by evidence bundle, not by user (deliberately — conventions/12), so the
+     * second traveller past a church pays nothing for a line the first one paid for.
+     * A hit that recorded silence would be indistinguishable from a request that never
+     * happened, and the difference between those two IS the saving: Σ(would_have_billed
+     * − billed) is the number that says whether shared caching is working (COST.md §2.2).
+     *
+     * The token counts come from the cached payload — we store what the original
+     * generation actually consumed, so the counterfactual is a measurement rather than
+     * an estimate. Entries written before this change carry no counts and price at zero
+     * for up to 30 days; they under-state the saving, which is the harmless direction.
+     *
+     * @param  array<string, mixed>  $cached
+     */
+    private function fromCache(array $cached, string $promptVersion): GenerationResult
+    {
+        $this->cost->recordLlm(
+            model: (string) $cached['model'],
+            inputTokens: (int) ($cached['input_tokens'] ?? 0),
+            outputTokens: (int) ($cached['output_tokens'] ?? 0),
+            promptVersion: $promptVersion,
+            cached: true,
+        );
+
+        return new GenerationResult(
+            output: $cached['output'],
+            promptVersion: $promptVersion,
+            model: (string) $cached['model'],
+            inputTokens: 0,   // a cache hit costs nothing, and must not claim to
+            outputTokens: 0,
+            cached: true,
+        );
+    }
+
+    /** What a generation is worth remembering: its output, and what it cost to get. */
+    private function remember(string $key, GenerationResult $result): void
+    {
+        Cache::put($key, [
+            'output' => $result->output,
+            'model' => $result->model,
+            'input_tokens' => $result->inputTokens,
+            'output_tokens' => $result->outputTokens,
+        ], now()->addDays(30));
+    }
 
     /**
      * The card's "why now" line. Returns null when we have nothing to say — the
@@ -89,14 +141,7 @@ final class AgentOrchestrator
 
         $cached = Cache::get($key);
         if (is_array($cached)) {
-            return new GenerationResult(
-                output: $cached['output'],
-                promptVersion: self::SUMMARY_PROMPT,
-                model: $cached['model'],
-                inputTokens: 0,   // a cache hit costs nothing, and must not claim to
-                outputTokens: 0,
-                cached: true,
-            );
+            return $this->fromCache($cached, self::SUMMARY_PROMPT);
         }
 
         try {
@@ -117,7 +162,7 @@ final class AgentOrchestrator
             return null;
         }
 
-        Cache::put($key, ['output' => $result->output, 'model' => $result->model], now()->addDays(30));
+        $this->remember($key, $result);
 
         return $result;
     }
@@ -144,14 +189,7 @@ final class AgentOrchestrator
 
         $cached = Cache::get($key);
         if (is_array($cached)) {
-            return new GenerationResult(
-                output: $cached['output'],
-                promptVersion: self::CLAIM_PROMPT,
-                model: $cached['model'],
-                inputTokens: 0,
-                outputTokens: 0,
-                cached: true,
-            );
+            return $this->fromCache($cached, self::CLAIM_PROMPT);
         }
 
         try {
@@ -176,7 +214,7 @@ final class AgentOrchestrator
             return null;
         }
 
-        Cache::put($key, ['output' => $result->output, 'model' => $result->model], now()->addDays(30));
+        $this->remember($key, $result);
 
         return $result;
     }

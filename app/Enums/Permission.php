@@ -20,6 +20,18 @@ enum Permission: string
     case ViewUsers = 'users_view';
     case ManageUserRoles = 'users_manage_roles';
     case ViewActivity = 'activity_view';
+    case ViewCosts = 'costs_view';
+
+    /**
+     * Held by NO role — superadmin-only, via Gate::before (ADMIN §3.2), like
+     * `privacy_operate`.
+     *
+     * Seeing what we spend is an operator's job. Making the whole product quieter for
+     * every user in the field is not: a pause degrades the voice to the template and
+     * routing to the estimator for everybody, and that is a decision the person who
+     * owns the bill should make.
+     */
+    case PauseCost = 'cost_pause';
 
     public function label(): string
     {
@@ -29,6 +41,8 @@ enum Permission: string
             self::ViewUsers => 'View users',
             self::ManageUserRoles => 'Manage user roles',
             self::ViewActivity => 'View the activity log',
+            self::ViewCosts => 'View spend & the cost ledger',
+            self::PauseCost => 'Pause & resume all paid calls',
         };
     }
 }

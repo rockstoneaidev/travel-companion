@@ -163,6 +163,51 @@ it('deletes an account completely — every table, verified', function () {
 |
 */
 
+it('detaches the person from the cost ledger without erasing the money', function () {
+    // The one table in this schema that deliberately does NOT cascade from `users`
+    // (COST.md §10). A cascade here would mean an erasure request could delete the
+    // accounting — "forget me" must not be able to rewrite the P&L. So the person is
+    // nulled out and the money stays exactly where it is.
+    //
+    // Note this is the OPPOSITE resolution to finding B7, and the difference is the
+    // point: `activity_log` had no user column and no lawful basis to keep the row, so
+    // the row goes. Here the row has a lawful basis of its own (billing integrity,
+    // legitimate interest) and a `user_id` column that erasure can empty. Same
+    // principle — keep no more of the person than you can justify — opposite mechanics.
+    $user = userWithHistory();
+
+    DB::table('cost_events')->insert([
+        'occurred_at' => now(),
+        'actor_kind' => 'user',
+        'category' => 'llm',
+        'vendor' => 'gemini',
+        'resource' => 'gemini-3.1-flash-lite',
+        'user_id' => $user->id,
+        'h3_cell' => '881f1d4881fffff',
+        'input_tokens' => 1_500,
+        'output_tokens' => 150,
+        'billed_usd_micros' => 600,
+        'would_have_billed_usd_micros' => 600,
+        'price_version' => '2026-07',
+        'created_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->delete('/settings/privacy/account', ['password' => 'password'])
+        ->assertRedirect('/');
+
+    // The person is gone from the row...
+    expect(DB::table('cost_events')->whereNotNull('user_id')->count())
+        ->toBe(0, 'The cost ledger still names a user who asked to be forgotten.');
+
+    expect(DB::table('cost_events')->whereNotNull('h3_cell')->count())
+        ->toBe(0, 'A location survived erasure in the cost ledger.');
+
+    // ...and the money is still there. Both halves matter; either one alone is a bug.
+    expect((int) DB::table('cost_events')->sum('billed_usd_micros'))
+        ->toBe(600, 'Erasure destroyed the accounting.');
+});
+
 it('erases admin audit rows naming the user — on both ends of the morph', function () {
     $admin = User::factory()->create();
     $target = userWithHistory();

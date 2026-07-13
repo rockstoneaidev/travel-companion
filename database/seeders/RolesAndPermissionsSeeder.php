@@ -34,6 +34,7 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::ViewOps->value,
             Permission::ViewUsers->value,
             Permission::ViewActivity->value,
+            Permission::ViewCosts->value,
         ]);
 
         // Superadmin holds no permissions directly: Gate::before in
