@@ -82,11 +82,43 @@ final class Harvest
     /** Shout when less than a tenth of the window's budget is left. */
     private const BUDGET_WARN_FRACTION = 0.1;
 
-    /** @param array<string, mixed> $query */
+    /**
+     * ===========================================================================
+     *  AN EMPTY QUERY ARRAY IS NOT "NO QUERY". IT IS "DELETE THE QUERY".
+     * ===========================================================================
+     *
+     * `$request->get($url, [])` hands Guzzle `RequestOptions::QUERY => []`, and Guzzle
+     * treats that option as a REPLACEMENT for the URI's query string — not a merge. So
+     * an empty array silently strips every parameter already on the URL.
+     *
+     * That one default wrecked the French world model. DATAtourisme builds its filter
+     * into the URL (`?geo_bounding=…`, and its cursor pages carry an opaque `crs=…`),
+     * passes no query array, and every one of those parameters was deleted on the way
+     * out. We were not asking for Paris. We were asking for FRANCE — 26,283 pages,
+     * half a million POIs — and then walking it, which is why:
+     *
+     *   · the ingest always "exceeded 500 pages", for every region, including Nantes,
+     *     which the API says is eleven pages;
+     *   · the rows it did store were from the Alps, Alsace and the Aude;
+     *   · every region's own bbox came back with ZERO DATAtourisme rows;
+     *   · and it burned a 1,000-call rate-limit budget doing it.
+     *
+     * The bug arrived with this class: the adapter used to call `Http::get()` with the
+     * parameters inline in the URL and no second argument, which works. Routing it
+     * through a shared policy — a good change — added an argument whose default is
+     * destructive.
+     *
+     * So: pass the query ONLY when there is one. A caller with parameters in the URL
+     * keeps them; a caller passing an array gets exactly what it asked for.
+     *
+     * @param  array<string, mixed>  $query
+     */
     public function get(string $url, array $query = [], array $headers = [], int $timeout = 60): HarvestResult
     {
         return $this->send(
-            fn (PendingRequest $request): Response => $request->get($url, $query),
+            fn (PendingRequest $request): Response => $query === []
+                ? $request->get($url)
+                : $request->get($url, $query),
             $headers,
             $timeout,
         );

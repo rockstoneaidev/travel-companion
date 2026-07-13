@@ -99,3 +99,41 @@ it('says nothing about a source that publishes no budget', function () {
 
     Log::shouldNotHaveReceived('warning');
 });
+
+/*
+|--------------------------------------------------------------------------
+| An empty query array is not "no query" — it is "delete the query"
+|--------------------------------------------------------------------------
+|
+| `$request->get($url, [])` hands Guzzle `RequestOptions::QUERY => []`, and Guzzle
+| treats that as a REPLACEMENT for the URI's query string, not a merge. So the
+| default argument silently stripped every parameter already on the URL.
+|
+| It wrecked the French world model. DATAtourisme puts its filter in the URL
+| (`?geo_bounding=…`, and its cursor pages carry an opaque `crs=…`) and passes no
+| query array — so we were never asking for Paris. We were asking for FRANCE:
+| 26,283 pages, half a million POIs. Hence "exceeds 500 pages" for every region
+| including Nantes (which is eleven pages), rows from the Alps and Alsace, zero
+| DATAtourisme rows inside any region's own bbox, and a 1,000-call rate-limit
+| budget burned to fetch the wrong country.
+|
+*/
+
+it('keeps the query string that is already on the URL', function () {
+    Http::fake(['api.datatourisme.fr/*' => Http::response(['objects' => []], 200)]);
+
+    app(Harvest::class)->get('https://api.datatourisme.fr/v1/catalog?geo_bounding=48.9,2.2,48.8,2.4');
+
+    // The filter must still be there. Without it we are asking for the whole country.
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'geo_bounding=48.9,2.2,48.8,2.4'));
+});
+
+it('still applies a query array when the caller passes one', function () {
+    Http::fake(['data.culture.gouv.fr/*' => Http::response(['results' => []], 200)]);
+
+    // Mérimée passes its parameters as an array — that path must keep working.
+    app(Harvest::class)->get('https://data.culture.gouv.fr/api/records', ['limit' => 100, 'offset' => 200]);
+
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'limit=100')
+        && str_contains($request->url(), 'offset=200'));
+});
