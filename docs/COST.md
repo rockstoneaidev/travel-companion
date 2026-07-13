@@ -238,7 +238,12 @@ and flags any mismatch for a human to review and land as a new dated entry.
 
 ---
 
-## 7. Derived views (deferred until there is a bill)
+## 7. Derived views & the admin surface
+
+ADMIN.md stays authoritative for everything under `/admin`; this section extends its §7.1 with
+decisions made 2026-07-13. All cost UI is gated by `costs_view` (which does not exist yet).
+
+### 7.1 Rollup (deferred until there is a bill)
 
 A nightly rollup job → `cost_daily` (per user_id × category × vendor × day), which is where:
 
@@ -247,11 +252,57 @@ A nightly rollup job → `cost_daily` (per user_id × category × vendor × day)
 - the **infra allocation rate** (monthly bill ÷ total `cpu_ms`) is applied,
 - `admin_emulated` rows are excluded from product metrics (ADMIN §2.4).
 
-The `/admin/costs` dashboard (ADMIN §7.1, `costs_view` permission — which does not exist yet)
-reads these views. Its priority list stands: cost per active trip-hour first (PRD §14.3, open
-question 4), then vendor/tier breakdown, cost-per-recommendation distribution
-(a €0.40 recommendation is a bug — conventions/10), cache savings (§2.2 counterfactual), breaker
-states.
+### 7.2 Overview strip on `/admin` (ships with the ledger)
+
+The dashboard (`App\Admin\Queries\DashboardStats`, ADMIN §5) gains a cost strip — the
+glance-and-sleep-at-night view. At pilot scale these are direct aggregates over `cost_events`
+(partition-pruned); once `cost_daily` exists, month/all-time read from it instead.
+
+1. **Spend today** vs the daily cap (§8) as a progress bar — the same number the kill-switch
+   watches, so the widget and the breaker can never disagree.
+2. **Spend this month** + **projected month-end** (linear burn on month-to-date).
+3. **All-time total.**
+4. **Biggest line item today** (vendor + resource, one line) — the "what is eating the money"
+   headline, linking into §7.3.
+
+The strip shows the **whole bill** — `system` and `admin_emulated` included, because the wallet
+does not care who spent it. The actor split is one drill-down away; only *product* metrics
+(trip-hour etc.) exclude emulated spend (ADMIN §2.4). Day boundary = the cap's day boundary
+(one timezone, in config), or the widget and the breaker drift apart at midnight.
+
+### 7.3 Cost explorer (`/admin/costs`, step 3)
+
+The ADMIN §7.1 priority list stands (cost per active trip-hour first — PRD §14.3, open question
+4; vendor/tier breakdown; cost-per-recommendation distribution — a €0.40 recommendation is a bug,
+conventions/10; cache savings §2.2; breaker states). On top of it, the navigation rule:
+
+- **Every number is a link one level down.** Time-range picker (today / 7 d / 30 d / custom),
+  then: category → vendor → resource/SKU → correlation dimension → individual `cost_events`
+  rows. No dead-end numbers.
+- **"Most costly" top-N tables**, one per dimension: model, SKU, region, `prompt_version`,
+  job class, and user (`actor_kind = user` only — the abuse-detection view, §10 LI basis).
+  Each row shows share-of-total, not just the absolute — a $2 item is a headline in a $10 day
+  and noise in a $1,000 one.
+- **CSV export** of any view (accounting wants files, not screenshots).
+
+### 7.4 Total-control checklist (the rest of the cockpit)
+
+What else the admin needs to *control* cost, not just observe it:
+
+- **Kill-switch panel**: current cap values (read-only — caps live in config; changing one is a
+  deliberate deploy, not a 2 a.m. slider), today's consumption per cap, which breakers have
+  tripped and when, and a manual **"pause paid calls now / resume"** toggle — superadmin,
+  audit-logged, same degradation path as the automatic cap (§8).
+- **Alerts, not vigilance**: email at 50% / 80% / 100% of the daily cap, and a spend-rate
+  anomaly alert (today's burn ≥ 3× the trailing 7-day average at the same hour). The dashboard
+  is for mornings; the alerts are for everything else.
+- **Free-tier gauge**: Google's free monthly events consumed (10,000 Essentials) — the
+  "when do I actually start paying" number, invisible in spend-based views because free-tier
+  usage bills $0 while eating runway.
+- **Price-sheet status**: active `price_version`, drift-check last run and result (§6.1) — a
+  stale or drifting sheet means every number above is quietly wrong.
+- **Per-user ceiling view**: users near their daily ceiling (§8), so a looping client is a row
+  in a table before it is an incident.
 
 ---
 
@@ -321,9 +372,12 @@ rule ("if you add a table with personal data, ROPA.md is wrong until you update 
    retention/erasure work in the same PR.
 3. `config/pricing.php` with the verified 2026-07 sheet.
 4. The §8 kill-switch.
+5. The `/admin` overview cost strip (§7.2) — a few aggregate queries and a widget; the pilot's
+   only cost visibility, and the human check on the kill-switch.
 
 **Later (when there is spend to look at):** nightly rollup, amortized/capex allocation, the
-`/admin/costs` dashboard (`costs_view` permission), storage size report, infra allocation rate.
+`/admin/costs` explorer (§7.3) and control panel (§7.4), storage size report, infra allocation
+rate.
 
 ## 12. Open questions
 

@@ -225,6 +225,11 @@ needed it"). Views, in priority order:
 
 Emulated-context costs are shown, but flagged and excluded from the trip-hour metric (§2.4).
 
+**Extended by [COST.md](COST.md) §7 (2026-07-13):** the underlying `cost_events` ledger, an
+overview cost strip on the `/admin` dashboard itself (spend today vs cap / month + projection /
+all-time / biggest line item), drill-down navigation and top-N "most costly" views for this page,
+and the cost-control panel (kill-switch status, cap alerts, free-tier gauge, price-sheet status).
+
 ### 7.2 Source health (step 2)
 
 Per adapter, from `SourceRegistry` + `scout_runs` (PRD §14.2 observability tables): license class,
