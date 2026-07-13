@@ -72,8 +72,12 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      # v4 still declares node20 in its own action.yml, so the runner force-runs it on
+      # node24 and warns. The app was already on 24 everywhere that matters (the
+      # Dockerfile pins NODE_VERSION=24 and setup-node asks for '24') — it is only the
+      # ACTION RUNTIMES that lagged. Inputs are unchanged between these majors.
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
@@ -122,7 +126,7 @@ jobs:
         run: composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress
 
       - name: Setup Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
