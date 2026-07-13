@@ -89,6 +89,14 @@ acting as an acquisition funnel for the app. Recorded here with its honest shape
   attribution obligations outward-facing (anticipated — ODBL-REVIEW treats the core as
   publishable), and every archived evidence row already carries its license and attribution for
   exactly this moment.
+- **For counsel, alongside the ODbL confirmation (ODBL-REVIEW §9):** the fact-vs-provenance
+  question for the archive once it feeds a public site. Working position (2026-07-13): "facts
+  aren't copyrightable" does not clear retention — API ToS bind contractually regardless of
+  copyright, and the EU sui generis database right (96/9/EC) protects systematic extraction of
+  facts as such (the same right that makes ODbL enforceable for us). A fact is archivable when it
+  arrived through an unencumbered channel; restricted sources are *leads*, and the archive stores
+  the corroborating open provenance, never the restricted feed's data. Confirm this reading
+  before the archive is published anywhere.
 
 ## 4. What this changes today
 
