@@ -258,6 +258,33 @@ jobs:
             # ---------------------------------------------------------------
             docker compose run --rm --no-deps app php artisan migrate --force
 
+            # ---------------------------------------------------------------
+            # Sync roles & permissions from the enums, every deploy.
+            # ---------------------------------------------------------------
+            # RolesAndPermissionsSeeder is idempotent by design (findOrCreate +
+            # syncPermissions) and its docblock has always said "safe to re-run
+            # on deploy" — but nothing ever re-ran it, so it was only true in
+            # theory.
+            #
+            # The gap is silent and it has already bitten: E24 added `costs_view`
+            # and `cost_pause` to App\Enums\Permission, the migration carried no
+            # trace of them (they live in the spatie tables, not in a schema
+            # change), and staging deployed a cost console that no operator could
+            # open. A permission that exists in code and not in the database is a
+            # 403 with no error and no clue.
+            #
+            # Runs in a one-off container alongside the migration, before the
+            # swap — for the same reason the migration does: the workers that come
+            # up next must not see a half-configured authorization table.
+            docker compose run --rm --no-deps app php artisan db:seed \
+              --class=RolesAndPermissionsSeeder --force
+
+            # The gate cache is per-process, and Horizon's workers are long-lived.
+            # Seeding without clearing it means the new permission exists and is
+            # invisible until something restarts — which is exactly the bug above,
+            # wearing a different hat.
+            docker compose run --rm --no-deps app php artisan permission:cache-reset
+
             # Now swap. Recreating the app container restarts Horizon with the
             # new code — long-running workers never pick up a new binding or job
             # class on their own, so a worker that is not restarted is a worker
