@@ -52,7 +52,23 @@ final readonly class SessionOpportunityData
         public bool $kept = false,
     ) {}
 
-    /** The one item that wins the GO NOW slot (Opportunities\Services\UrgentSlot). */
+    /**
+     * The one item that wins the GO NOW slot (Opportunities\Services\UrgentSlot).
+     *
+     * ===================================================================
+     *  EVERY FIELD MUST BE CARRIED. `kept` was not, and it cost the user their Keep.
+     * ===================================================================
+     *
+     * This is a hand-rolled copy constructor, and it did what hand-rolled copy
+     * constructors do: it silently dropped the field somebody added after it was
+     * written. `kept` fell back to its default of FALSE, so the moment an item was
+     * promoted to GO NOW it forgot it had been kept — the card said "Keep" again on the
+     * very next reload, and the user's tap had gone nowhere they could see.
+     *
+     * It only broke in the EVENING, which is why it survived: whether an item wins the
+     * urgent slot depends on its time window against the clock, so the bug was invisible
+     * every time anyone happened to look at it before five.
+     */
     public function asUrgent(): self
     {
         return new self(
@@ -70,6 +86,7 @@ final readonly class SessionOpportunityData
             walkMinutes: $this->walkMinutes,
             urgent: true,
             image: $this->image,
+            kept: $this->kept,
         );
     }
 }
