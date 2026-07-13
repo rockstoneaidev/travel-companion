@@ -57,9 +57,24 @@ final class BuildDigest
         return new DigestData(
             variant: $evening ? 'evening' : 'morning',
             lede: $lede,
+            /*
+             * "…— these will keep" was two faults in five words.
+             *
+             * `these` had nothing to point at: the subline sits directly under the
+             * greeting, and the items it meant are further down the page, so on screen it
+             * read as though it referred to the weather.
+             *
+             * And `keep` collides with our own dictionary. KEPT is a first-class concept
+             * here — a screen, a FeedbackEvent, a verb the user performs, and literally
+             * the next line on the map ("the places you kept"). Using it in its unrelated
+             * sense (stay fresh, can wait) meant "these will keep" could be read as "these
+             * have been kept", which is a different claim entirely.
+             *
+             * The evening twin never had either problem. Now they match.
+             */
             subline: $evening
                 ? 'Nothing needs deciding tonight.'
-                : 'Nothing needs deciding now — these will keep.',
+                : 'Nothing needs deciding now.',
             items: $this->items($userId, $at),
             tripId: $trip?->id,
             tripName: $trip?->name,

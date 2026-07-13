@@ -203,7 +203,15 @@ export default function Dashboard({ digest, hero, session, map, kept }: Dashboar
                                 )}
                             </div>
 
-                            <p className="text-body-card text-meta">You, what you kept, and — hollow — what I weighed and passed over.</p>
+                            {/* A legend, so it is written as one. The old line — "You, what you
+                                kept, and — hollow — what I weighed and passed over" — wedged the
+                                pin STYLE into the middle of a clause, so "hollow" had no noun to
+                                attach to and the reader had to work out that it described the
+                                drawing rather than the places. Two short sentences: what you see,
+                                then what it means. */}
+                            <p className="text-body-card text-meta">
+                                You, and the places you kept. The empty circles are ones I considered but didn&rsquo;t suggest.
+                            </p>
                         </section>
                     )}
 

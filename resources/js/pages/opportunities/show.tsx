@@ -113,8 +113,8 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                     {place.facets.length > 0 && <SectionLabel>{place.facets.slice(0, 3).join(' · ')}</SectionLabel>}
 
                     {/*
-                     * The passed-over state. The digest already tells the user these are
-                     * "what I weighed and passed over", so the honest thing on arrival is to
+                     * The passed-over state. The map already tells the user these are ones I
+                     * "considered but didn't suggest", so the honest thing on arrival is to
                      * say the same thing in the same voice — not to fake a recommendation, and
                      * not to offer Keep / Not-for-me, which would have no served item to write
                      * against. "Take me there" still stands: the place is real and reachable
