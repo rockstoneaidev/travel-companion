@@ -20,7 +20,9 @@ learning (SCORING §4.1):
 |---|---|---|
 | **Take me** | `accepted` (+ `metadata.opened_map`/`started_navigation`) | weak positive (η .08) |
 | **Keep** / **Remind me** | `saved` | strong intent (η .15) |
+| **Kept** (tapped again) / **Remove** (S6) | `unsaved` | nothing — housekeeping, never a verdict |
 | **Not for me** | `dismissed` | explicit negative — the "not my thing" affordance (η .25) |
+| **Show me these again** (S6) | `undismissed` | retracts the dismissal (see below) |
 | "I was here" confirmation | `visited` | golden label (η .30) |
 | card served, no interaction | `ignored` (batched on session end) | near-zero (η .02) |
 
@@ -28,6 +30,20 @@ learning (SCORING §4.1):
 until it expires**. At η .25 this is the strongest single signal the Phase 1 learner gets (PRD
 §13.3's weak-signal judgment call), and it's reachable by swipe — one mis-tap must not pollute a
 taste profile learned from sparse data. No undo needed for *Keep* (reversible in KEPT) or *Take me*.
+
+**The snackbar is not the only undo.** It covers the five seconds in which you notice; it cannot
+cover the mis-tap you notice tomorrow, and `dismissed` both hides the card *and* narrows what you
+are ever shown again. So the dismissal stays reversible for good, from KEPT (S6) — and reversing it
+**retracts what it taught**: `undismissed` applies the exact inverse of the dismiss update
+(`w ← w / (1 − η)`, clamped) and decrements the event count, rather than applying some positive η of
+its own. "I didn't mean that" is not "I love this."
+
+**Both toggles are latest-wins over an append-only ledger.** The feedback stream is the moat
+(PRD §14.5) — a keep is retracted by `unsaved`, a dismissal by `undismissed`, and neither is ever
+deleted. `saved`/`unsaved` decides what is on KEPT; `dismissed`/`undismissed` decides what the feed
+hides. **The feed is served once and thereafter replayed from the stored recommendations, so the
+replay must consult the ledger** (`RankSession::feedFor`) — a dismissal that only hides the card
+client-side comes straight back on the next reload.
 
 ---
 
@@ -118,6 +134,19 @@ watching), caps footer **NEXT LIKELY MOMENT · {time}** if the backend provides 
 (with freshness-checked windows) / **Passed** (muted, window gone). Row = digest-style list line
 (title serif 16, time-right, one-line note). Actions: *Take me* (revalidates first), *Remove*.
 Kept items whose window re-approaches resurface in the NOW feed — note this on the screen footer.
+
+**"Not for me" lives here too**, as a collapsed section at the foot of the screen: the count, and on
+expand one row per dismissal (newest first) with a single action, *Show me these again*. It is the
+same question as KEPT asked with the opposite sign — *what have I told you about the things you
+showed me* — which is why it is a section and not a screen of its own with its own nav item. An undo
+nobody can find is not an undo.
+
+Deliberately quiet, collapsed, and last: it is a **repair tool, not a second feed**. The product's
+argument is that it shows you few things (PRD §12.1), and a browsable archive of everything you
+rejected is exactly the catalogue we refuse to be. It renders even when nothing is kept — dismissing
+everything and keeping nothing is precisely when a user needs the way back, and hiding it behind the
+"Nothing kept yet" empty state would bury the undo at the one moment it matters. Unlike KEPT, rows
+here are **not** window-checked: nothing is offered, so there is nothing to revalidate.
 
 ## S7 · JOURNAL
 

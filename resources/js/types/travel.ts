@@ -67,6 +67,8 @@ export interface Place {
  * the composite and `scoring_model_version`.
  */
 export interface SessionOpportunity {
+    /** Already kept — the card's action reads "Kept" on a cold load, not just after the tap. */
+    kept: boolean;
     id: string;
     kind: OpportunityKind;
     status: string;
@@ -118,4 +120,13 @@ export interface KeptItem {
     kept_at: string;
     window_ends_at: string | null;
     still_possible: boolean;
+}
+
+/** One "Not for me" row on KEPT (SCREENS S6) — no window, because nothing here is offered. */
+export interface DismissedItem {
+    recommendation_id: string;
+    image: { url: string; attribution: string | null; license: string | null } | null;
+    title: string;
+    note: string | null;
+    dismissed_at: string;
 }

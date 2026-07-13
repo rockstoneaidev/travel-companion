@@ -41,6 +41,15 @@ final readonly class SessionOpportunityData
          * actually look at, rendered none of them.
          */
         public ?array $image = null,
+        /**
+         * Already kept (SCREENS S6's `saved`/`unsaved` toggle, latest-wins).
+         *
+         * The card has to be able to say "Kept" on a cold load, not just in the seconds
+         * after the tap. Local React state alone would show "Keep" on an item the KEPT
+         * screen is simultaneously listing — the same reload amnesia that let dismissals
+         * come back, wearing a different hat.
+         */
+        public bool $kept = false,
     ) {}
 
     /** The one item that wins the GO NOW slot (Opportunities\Services\UrgentSlot). */

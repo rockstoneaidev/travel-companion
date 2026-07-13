@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Opportunities\Queries;
 
 use App\Domain\Context\Contracts\Routing;
+use App\Domain\Feedback\Enums\FeedbackEvent;
+use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Data\SessionOpportunityData;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Opportunities\Services\UrgentSlot;
@@ -55,7 +57,43 @@ final class ListOpportunitiesForSession
         private readonly RankSession $rank,
         private readonly Routing $routing,
         private readonly PlaceImageLookup $images,
+        private readonly FeedbackLedger $ledger,
     ) {}
+
+    /**
+     * Which of these has the user already kept — latest of {saved, unsaved} wins, the
+     * same rule KEPT settles itself by (ListKeptForUser). One query for the whole feed.
+     *
+     * Typed as `object` rather than naming Recommendations' model: another module's
+     * Models are internal (conventions/01), and even a docblock reference is a
+     * dependency — the arch test is right to count it. We only need `->id`.
+     *
+     * @param  list<object{id: string}>  $recommendations
+     * @return array<string, true>
+     */
+    private function keptRecommendations(array $recommendations): array
+    {
+        $events = $this->ledger->eventsForRecommendations(
+            array_map(static fn ($r): string => $r->id, $recommendations)
+        );
+
+        $kept = [];
+        foreach ($events as $recommendationId => $stream) {
+            $latest = null;
+
+            foreach ($stream as $event) {   // ordered by occurred_at
+                if (FeedbackEvent::tryFrom($event['event'])?->togglesKeep() === true) {
+                    $latest = $event['event'];
+                }
+            }
+
+            if ($latest === FeedbackEvent::Saved->value) {
+                $kept[$recommendationId] = true;
+            }
+        }
+
+        return $kept;
+    }
 
     /** @return list<SessionOpportunityData> */
     public function __invoke(ExploreSessionData $session): array
@@ -88,6 +126,8 @@ final class ListOpportunitiesForSession
         $images = $this->images->forPlaces(
             $opportunities->pluck('place_id')->filter()->unique()->values()->all(),
         );
+
+        $kept = $this->keptRecommendations($recommendations);
 
         $out = [];
         foreach ($recommendations as $recommendation) {
@@ -149,6 +189,7 @@ final class ListOpportunitiesForSession
                 recommendationId: $recommendation->id,
                 walkMinutes: $walkMinutes,
                 image: $images[$opportunity->place_id] ?? null,
+                kept: isset($kept[$recommendation->id]),
             );
         }
 

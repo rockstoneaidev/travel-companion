@@ -17,6 +17,8 @@ export interface OpportunityCardProps {
     urgency?: { remaining: number; note: string };
     onTakeMe?: () => void;
     onKeep?: () => void;
+    /** Whether this is already kept — the action reads "Kept" and un-keeps on tap. */
+    kept?: boolean;
     className?: string;
 }
 
@@ -24,7 +26,18 @@ export interface OpportunityCardProps {
  * The core product object (DESIGN §3). Standard card: quiet, facet caps, text actions.
  * Urgent card: 1.5px ochre border, GO NOW badge, filled Take me pill — max one per feed.
  */
-export function OpportunityCard({ image, title, summary, facets = [], urgency, meta, onTakeMe, onKeep, className }: OpportunityCardProps) {
+export function OpportunityCard({
+    image,
+    title,
+    summary,
+    facets = [],
+    urgency,
+    meta,
+    onTakeMe,
+    onKeep,
+    kept = false,
+    className,
+}: OpportunityCardProps) {
     const urgent = urgency != null;
 
     return (
@@ -66,16 +79,36 @@ export function OpportunityCard({ image, title, summary, facets = [], urgency, m
                 <h3 className={cn('text-ink font-serif font-medium', urgent ? 'text-title-hero' : 'text-title')}>{title}</h3>
                 <p className="text-body-card text-body mt-1.5 flex-1">{summary}</p>
 
+                {/* gap-6: these actions carry invisible 44px hit boxes (buttons.tsx), and at
+                    gap-4 the boxes of two 12px words touch — a near-miss on Keep would land
+                    on Take me, which opens Maps. Overlapping targets are worse than small ones. */}
                 <div className={cn('mt-3 flex items-center justify-between gap-3 pt-3', !urgent && 'border-border-soft border-t')}>
                     <span className="text-meta-row text-meta font-medium">{meta}</span>
-                    <span className="flex items-center gap-4">
+                    <span className="flex items-center gap-6">
                         {/* Card actions must not bubble into a card-level tap-through (S1). */}
                         {urgent ? (
                             <PrimaryPill onClick={(e) => (e.stopPropagation(), onTakeMe?.())}>Take me</PrimaryPill>
                         ) : (
                             <>
                                 <TextAction onClick={(e) => (e.stopPropagation(), onTakeMe?.())}>Take me</TextAction>
-                                <QuietAction onClick={(e) => (e.stopPropagation(), onKeep?.())}>Keep</QuietAction>
+                                {/*
+                                 * Keep has to visibly *land*. It used to fire feedback and change
+                                 * nothing on screen, so a successful tap and a missed tap looked
+                                 * identical — and since the card underneath navigates, the missed
+                                 * one at least did something. The working button was the one that
+                                 * felt broken.
+                                 *
+                                 * Settled state is ink (DESIGN §1.1: terracotta is reserved for the
+                                 * single primary action), and tapping again un-keeps it — the same
+                                 * `unsaved` retraction the KEPT screen's Remove records.
+                                 */}
+                                <QuietAction
+                                    onClick={(e) => (e.stopPropagation(), onKeep?.())}
+                                    aria-pressed={kept}
+                                    className={cn(kept && 'text-ink font-semibold')}
+                                >
+                                    {kept ? 'Kept' : 'Keep'}
+                                </QuietAction>
                             </>
                         )}
                     </span>

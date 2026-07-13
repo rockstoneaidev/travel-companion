@@ -43,6 +43,9 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
     const { online, lastFreshAt } = useOnline('feed');
     const [dismissing, setDismissing] = useState<string | null>(null);
     const [hidden, setHidden] = useState<string[]>([]);
+    // Seeded from the ledger, not empty: a kept card must still say "Kept" after a
+    // reload. Keyed on the opportunity id, like `hidden`.
+    const [kept, setKept] = useState<string[]>(() => opportunities.data.filter((item) => item.kept).map((item) => item.id));
     const [answered, setAnswered] = useState<string[]>([]);
     const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
     const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +76,17 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
             `https://www.google.com/maps/dir/?api=1&destination=${item.place.location.lat},${item.place.location.lng}&travelmode=walking`,
             '_blank',
         );
+    };
+
+    // Keep toggles, and it SHOWS that it toggled. The retraction is `unsaved`, which
+    // teaches the profile nothing (FeedbackEvent::Unsaved) — un-keeping is housekeeping,
+    // not "fewer like this". Local state only: the card's job is to confirm the tap, and
+    // /kept is the screen that owns the list.
+    const toggleKeep = (item: SessionOpportunity) => {
+        const isKept = kept.includes(item.id);
+
+        feedback(item.recommendation_id, isKept ? 'unsaved' : 'saved');
+        setKept((ids) => (isKept ? ids.filter((id) => id !== item.id) : [...ids, item.id]));
     };
 
     // Not for me: hide immediately, POST only when the undo window closes.
@@ -178,7 +192,8 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                                                 // The card stays, the urgency doesn't.
                                                 urgency={online ? urgencyFor(item) : undefined}
                                                 onTakeMe={() => takeMe(item)}
-                                                onKeep={() => feedback(item.recommendation_id, 'saved')}
+                                                onKeep={() => toggleKeep(item)}
+                                                kept={kept.includes(item.id)}
                                             />
                                         </div>
                                         <div className="mt-1 flex justify-end">

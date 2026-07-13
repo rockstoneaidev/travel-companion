@@ -137,6 +137,17 @@ Onboarding calibration (PRD §13.2): each pair choice applies `(target 1, η 0.2
 side's separating facets and `(target 0, η 0.10)` to the rejected side's — same representation,
 same update rule, immediately overwritable by behavior.
 
+**Retraction.** Two events teach nothing but *undo* something: `unsaved` (Remove on KEPT) and
+`undismissed` ("Show me these again", SCREENS S6). `unsaved` is pure housekeeping and moves no
+weight. `undismissed` runs the learner **backwards**: the dismiss rule has target 0, so it is purely
+multiplicative (`w ← (1 − η)·w`) and therefore exactly invertible — `w ← w / (1 − η)`, clamped to 1
+— and the `dismissed` count is decremented so a withdrawn opinion cannot warm the user out of cold
+start (§6). Neither event applies a positive η: retracting a mis-tap must return the weight to where
+it was, not push it upward. Inversion is exact only if nothing else touched the facet in between;
+`saved`/`visited` are affine and do not commute with it, so a dismiss → keep → un-dismiss sequence
+lands near, not exactly on, the original weight. Bounded, self-correcting, and far closer to the
+truth than leaving a retracted opinion in the profile forever.
+
 This table belongs to the *learner*, not the scorer: its constants version under
 `profile_model_version`, not `scoring_model_version` (§9.3).
 

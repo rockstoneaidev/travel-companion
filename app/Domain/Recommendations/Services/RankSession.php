@@ -9,6 +9,7 @@ use App\Domain\Context\Data\WeatherContext;
 use App\Domain\Context\Services\GoogleHoursVerifier;
 use App\Domain\Context\Services\LightContextResolver;
 use App\Domain\Context\Services\WeatherClient;
+use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
 use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
 use App\Domain\Places\Enums\PlaceType;
@@ -90,7 +91,15 @@ final class RankSession
             ->all();
 
         if ($existing !== [] || $session->origin === null) {
-            return $existing;
+            // "Not for me" has to survive a reload, and the replay is where it was
+            // being lost: the feed is served ONCE and thereafter replayed from these
+            // stored rows, so a dismissal that only hid the card client-side came
+            // straight back on the next GET. The ledger already knew; nothing asked it.
+            //
+            // Filtered on the way out rather than deleted or flagged on the row: the
+            // recommendation is the decision trace (PRD §15.1) and must keep saying
+            // what we served, even after the user tells us they didn't want it.
+            return $this->withoutDismissed($existing);
         }
 
         $plan = $this->plan($session);
@@ -647,6 +656,43 @@ final class RankSession
         }
 
         return array_values($byPlace);
+    }
+
+    /**
+     * Drop the ones they said "Not for me" to — latest-wins over {dismissed,
+     * undismissed}, exactly as KEPT settles {saved, unsaved} (ListKeptForUser).
+     * A dismissal is retracted by a later `undismissed`, never by deletion: the
+     * ledger is append-only, and it is the moat (PRD §14.5).
+     *
+     * @param  list<Recommendation>  $recommendations
+     * @return list<Recommendation>
+     */
+    private function withoutDismissed(array $recommendations): array
+    {
+        if ($recommendations === []) {
+            return [];
+        }
+
+        $events = app(FeedbackLedger::class)->eventsForRecommendations(
+            array_map(static fn (Recommendation $r): string => $r->id, $recommendations)
+        );
+
+        return array_values(array_filter(
+            $recommendations,
+            static function (Recommendation $recommendation) use ($events): bool {
+                $latest = null;
+
+                // eventsForRecommendations() is ordered by occurred_at, so the last
+                // toggle we see is the one that stands.
+                foreach ($events[$recommendation->id] ?? [] as $event) {
+                    if (FeedbackEvent::tryFrom($event['event'])?->togglesDismiss() === true) {
+                        $latest = $event['event'];
+                    }
+                }
+
+                return $latest !== FeedbackEvent::Dismissed->value;
+            }
+        ));
     }
 
     /** @return list<array{type: ?string, type_domain: ?string, event: string, age_days: float}> */

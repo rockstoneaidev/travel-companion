@@ -58,6 +58,14 @@ final class FacetWeightLearner
             return $profile;   // no explicit consent, no profile — see the gate above
         }
 
+        // "Show me these again" (S6) is the one event that runs the learner
+        // BACKWARDS. Routed here, inside the gate, rather than from the caller —
+        // same reasoning as the gate itself: one entry point, nowhere for a future
+        // caller to bypass.
+        if ($event === FeedbackEvent::Undismissed) {
+            return $this->retract($profile, $facets);
+        }
+
         // Some events are recorded but teach nothing — "Didn't go" is the one
         // that matters (SCREENS S4). It must not move a weight, and it must not
         // count toward n_eff either: it is not evidence about this user's taste,
@@ -76,6 +84,59 @@ final class FacetWeightLearner
 
         $counts = $profile->event_counts;
         $counts[$event->value] = ($counts[$event->value] ?? 0) + 1;
+
+        $profile->forceFill([
+            'facet_weights' => $weights,
+            'event_counts' => $counts,
+            'profile_model_version' => self::VERSION,
+        ])->save();
+
+        return $profile;
+    }
+
+    /**
+     * Undo what a `dismissed` taught (SCREENS S6, "Show me these again").
+     *
+     * The dismiss rule has target 0, so it is purely multiplicative:
+     *
+     *     w' = w + η(0 − w) = (1 − η)·w
+     *
+     * which is exactly invertible — w = w' / (1 − η) — and that is what this does.
+     * Restoring a mis-tap therefore returns the weight to the value it had before
+     * the mis-tap, rather than shoving it upward with some invented positive η. The
+     * user said "I didn't mean that", not "I love this".
+     *
+     * The honest caveat: inversion is exact only if nothing else touched the facet
+     * in between. `saved`/`visited` are affine (w ← (1−η)w + η) and do not commute
+     * with this, so a dismiss → keep → un-dismiss sequence lands near, not exactly
+     * on, the original weight. Bounded and self-correcting, and vastly closer to the
+     * truth than leaving a retracted opinion in the profile forever — which is what
+     * we did before.
+     *
+     * `event_counts` is decremented for the same reason: n_eff drives α (SCORING §6),
+     * and a retracted event is not evidence about this user, so it may not warm them
+     * out of cold start.
+     *
+     * @param  list<string>  $facets
+     */
+    private function retract(UserTasteProfile $profile, array $facets): UserTasteProfile
+    {
+        $eta = self::LEARNING[FeedbackEvent::Dismissed->value]['eta'];
+
+        $weights = $profile->facet_weights;
+        foreach ($facets as $facet) {
+            if (! isset($weights[$facet])) {
+                continue;   // never learned — nothing to give back
+            }
+
+            // Clamped: an intervening `saved` can push w' above (1 − η), and a weight
+            // is in [0,1] by construction. Never let an undo be the thing that breaks it.
+            $weights[$facet] = round(min(1.0, $weights[$facet] / (1.0 - $eta)), 4);
+        }
+
+        $counts = $profile->event_counts;
+        $dismissed = FeedbackEvent::Dismissed->value;
+        $counts[$dismissed] = max(0, ($counts[$dismissed] ?? 0) - 1);
 
         $profile->forceFill([
             'facet_weights' => $weights,

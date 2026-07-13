@@ -3,8 +3,9 @@ import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
 import { cn } from '@/lib/utils';
-import { type KeptItem } from '@/types/travel';
+import { type DismissedItem, type KeptItem } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /**
@@ -18,20 +19,23 @@ import { useEffect, useState } from 'react';
 
 interface KeptProps {
     kept: { data: KeptItem[] };
+    dismissed: { data: DismissedItem[] };
 }
 
-export default function Kept({ kept }: KeptProps) {
+export default function Kept({ kept, dismissed }: KeptProps) {
     // KEPT is the screen you actually need in a dead zone — it's your list (S11).
     // It works offline because the service worker serves the last good copy of it.
     const { online, lastFreshAt } = useOnline('kept');
     const [removed, setRemoved] = useState<string[]>([]);
+    const [restored, setRestored] = useState<string[]>([]);
+    const [showDismissed, setShowDismissed] = useState(false);
 
     // Windows close while you are looking at the list. Re-ask on refocus so "Take
     // me" is never offered on something that passed while the tab sat in the
     // background — the check is cheap and the alternative is a lie. Pointless
     // offline, though, and S11 forbids retry-hammering.
     useEffect(() => {
-        const revalidate = () => navigator.onLine && router.reload({ only: ['kept'] });
+        const revalidate = () => navigator.onLine && router.reload({ only: ['kept', 'dismissed'] });
         window.addEventListener('focus', revalidate);
 
         return () => window.removeEventListener('focus', revalidate);
@@ -51,6 +55,16 @@ export default function Kept({ kept }: KeptProps) {
         sendFeedback(item.recommendation_id, 'unsaved');
         setRemoved((ids) => [...ids, item.recommendation_id]); // offline too: the list is the point
     };
+
+    // "Show me these again" — records `undismissed`, which retracts what the dismissal
+    // taught the profile (FacetWeightLearner::retract). It puts the item back in the
+    // feed; it does not claim the user now likes it.
+    const restore = (item: DismissedItem) => {
+        sendFeedback(item.recommendation_id, 'undismissed');
+        setRestored((ids) => [...ids, item.recommendation_id]);
+    };
+
+    const dismissedItems = dismissed.data.filter((item) => !restored.includes(item.recommendation_id));
 
     return (
         <ProductLayout>
@@ -92,6 +106,49 @@ export default function Kept({ kept }: KeptProps) {
                             )}
                         </>
                     )}
+
+                    {/*
+                     * "Not for me", and the way back from it (S6).
+                     *
+                     * Outside the empty-state branch on purpose: dismissing everything and
+                     * keeping nothing is exactly the state in which a user most needs this
+                     * list, and hiding it behind "nothing kept yet" would bury the undo at
+                     * the one moment it matters.
+                     *
+                     * Collapsed, quiet, and last. It is a repair tool, not a second feed —
+                     * the product's whole argument is that it shows you few things, and a
+                     * browsable graveyard of everything you rejected is the catalogue we
+                     * refuse to be (PRD §12.1).
+                     */}
+                    {dismissedItems.length > 0 && (
+                        <section className="border-border-soft border-t pt-6">
+                            <button
+                                type="button"
+                                aria-expanded={showDismissed}
+                                onClick={() => setShowDismissed((open) => !open)}
+                                className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+                            >
+                                <SectionLabel>Not for me ({dismissedItems.length})</SectionLabel>
+                                <ChevronDown
+                                    className={cn('text-meta size-4 transition-transform duration-150', showDismissed && 'rotate-180')}
+                                    aria-hidden
+                                />
+                            </button>
+
+                            {showDismissed && (
+                                <>
+                                    <p className="text-quiet mt-1 text-xs">
+                                        These are hidden from your feed, and I'm showing you fewer like them. Changed your mind?
+                                    </p>
+                                    <div className="divide-border-soft mt-2 divide-y opacity-70">
+                                        {dismissedItems.map((item) => (
+                                            <DismissedRow key={item.recommendation_id} item={item} onRestore={restore} />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </section>
+                    )}
                 </div>
             </div>
         </ProductLayout>
@@ -113,7 +170,7 @@ function KeptRow({ item, onTakeMe, onRemove }: { item: KeptItem; onTakeMe?: (ite
 
                 {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
 
-                <div className="mt-1.5 flex items-center gap-4">
+                <div className="mt-1.5 flex items-center gap-6">
                     {onTakeMe !== undefined && (
                         // A real link, so the browser opens maps inside the tap that asked
                         // for it — an async hop first is what popup blockers eat.
@@ -122,6 +179,27 @@ function KeptRow({ item, onTakeMe, onRemove }: { item: KeptItem; onTakeMe?: (ite
                         </a>
                     )}
                     <QuietAction onClick={() => onRemove(item)}>Remove</QuietAction>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * One dismissed item. No window, no "Take me", no thumbnail-as-invitation — this row
+ * exists to be undone, not to be re-sold. The only action is the way back.
+ */
+function DismissedRow({ item, onRestore }: { item: DismissedItem; onRestore: (item: DismissedItem) => void }) {
+    return (
+        <div className="flex gap-3 py-3">
+            <Thumb image={item.image} />
+
+            <div className="min-w-0 flex-1">
+                <h3 className="text-body font-serif text-base font-medium">{item.title}</h3>
+                {item.note !== null && <p className="text-body-card text-body mt-0.5 truncate">{item.note}</p>}
+
+                <div className="mt-1.5">
+                    <QuietAction onClick={() => onRestore(item)}>Show me these again</QuietAction>
                 </div>
             </div>
         </div>

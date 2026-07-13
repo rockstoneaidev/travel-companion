@@ -38,6 +38,7 @@ final class SessionOpportunityResource extends JsonResource
             'recommendation_id' => $this->recommendationId,
             'walk_minutes' => $this->walkMinutes,
             'image' => $this->image,
+            'kept' => $this->kept,
             'place' => new PlaceResource($this->place),
         ];
     }

@@ -45,16 +45,39 @@ enum FeedbackEvent: string
      */
     case Unsaved = 'unsaved';
 
+    /**
+     * "Show me these again" on the KEPT screen's dismissed list (SCREENS S6) — the
+     * undo of `Dismissed`, once the ~5 s snackbar has closed and the POST has landed.
+     *
+     * Same append-only reasoning as `Unsaved`: a dismissal is retracted by recording
+     * the retraction, never by deleting the dismissal. The ledger is the moat.
+     *
+     * It carries no η of its own — it is not a *positive* signal, and treating it as
+     * one would let a mis-tap plus its correction net out to a taste opinion the user
+     * never expressed. It instead *retracts* what the dismissal taught
+     * (FacetWeightLearner::retract()), so a corrected mis-tap ends where it started.
+     */
+    case Undismissed = 'undismissed';
+
     /** Whether this event teaches the taste profile (SCORING §4.1's η table). */
     public function teachesTaste(): bool
     {
-        return ! in_array($this, [self::VisitPromptDeclined, self::Unsaved], true);
+        return ! in_array($this, [self::VisitPromptDeclined, self::Unsaved, self::Undismissed], true);
     }
 
     /** The keep/un-keep pair, latest-wins, that decides what is on the KEPT screen. */
     public function togglesKeep(): bool
     {
         return in_array($this, [self::Saved, self::Unsaved], true);
+    }
+
+    /**
+     * The dismiss/un-dismiss pair, latest-wins, that decides whether an item is
+     * hidden from the feed (RankSession::feedFor) and listed as "Not for me" (S6).
+     */
+    public function togglesDismiss(): bool
+    {
+        return in_array($this, [self::Dismissed, self::Undismissed], true);
     }
 
     public function label(): string
