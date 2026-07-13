@@ -10,13 +10,20 @@ import { useRef, useState } from 'react';
  * actions. All text is template-over-trace (E12 brings the voice); facts
  * never originate here. "Not for me" carries the same deferred-POST undo
  * as the feed.
+ *
+ * `recommendation` is NULL for anything the ranker weighed and held back — the home
+ * screen's hero, its "Also worth knowing" rows and its dimmed pins are all built from
+ * exactly those (see OpportunityController). The page still opens, because refusing to
+ * show you a place you just tapped is not a defensible answer; it simply has no trace to
+ * explain and no served item to hold an opinion about, and it says so rather than
+ * offering buttons that would have nowhere to write.
  */
 
 interface OpportunityShowProps {
     opportunity: { id: string; kind: string; title: string; summary: string | null };
     place: { name: string | null; lat: number | null; lng: number | null; type: string | null; facets: string[] };
-    recommendation: { id: string; walk_minutes: number | null };
-    explanation: { why_you: string | null; evidence: { text: string }[] };
+    recommendation: { id: string; walk_minutes: number | null } | null;
+    explanation: { why_you: string | null; evidence: { text: string }[] } | null;
     image: { url: string; attribution: string | null; license: string | null } | null;
     sessionId: string | null;
 }
@@ -30,6 +37,7 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
     // is still an opinion, and "Take me there" hands off to a maps app that has its
     // own offline story — neither may depend on our network.
     const feedback = (event: string, metadata: Record<string, string | number | boolean> = {}) => {
+        if (recommendation === null) return; // nothing was served; there is nothing to attach this to
         sendFeedback(recommendation.id, event, metadata);
     };
 
@@ -83,20 +91,20 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                     <div className="space-y-1">
                         <h1 className="text-title-detail text-ink font-serif font-medium">{opportunity.title}</h1>
                         <p className="text-meta-row text-meta font-medium">
-                            {recommendation.walk_minutes !== null && `${Math.round(recommendation.walk_minutes)} min walk`}
-                            {place.type !== null && ` · ${place.type.replace(/_/g, ' ')}`}
+                            {recommendation?.walk_minutes != null && `${Math.round(recommendation.walk_minutes)} min walk`}
+                            {place.type !== null && `${recommendation?.walk_minutes != null ? ' · ' : ''}${place.type.replace(/_/g, ' ')}`}
                         </p>
                     </div>
 
                     {opportunity.summary !== null && <p className="text-body-detail text-body">{opportunity.summary}</p>}
 
-                    {explanation.why_you !== null && (
+                    {explanation !== null && explanation.why_you !== null && (
                         <div className="border-border-soft border-t pt-5">
                             <WhyYou>{explanation.why_you}</WhyYou>
                         </div>
                     )}
 
-                    {explanation.evidence.length > 0 && (
+                    {explanation !== null && explanation.evidence.length > 0 && (
                         <div className="border-border-soft border-t pt-5">
                             <EvidenceList items={explanation.evidence} />
                         </div>
@@ -104,29 +112,45 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
 
                     {place.facets.length > 0 && <SectionLabel>{place.facets.slice(0, 3).join(' · ')}</SectionLabel>}
 
+                    {/*
+                     * The passed-over state. The digest already tells the user these are
+                     * "what I weighed and passed over", so the honest thing on arrival is to
+                     * say the same thing in the same voice — not to fake a recommendation, and
+                     * not to offer Keep / Not-for-me, which would have no served item to write
+                     * against. "Take me there" still stands: the place is real and reachable
+                     * whatever the ranker thought of it.
+                     */}
+                    {recommendation === null && (
+                        <p className="text-body-card text-meta border-border-soft border-t pt-5">
+                            I weighed this one and passed it over — it didn't make today's few. It's here so you can see what I set aside.
+                        </p>
+                    )}
+
                     <div className="flex items-center gap-3 pt-2">
                         <PrimaryPill onClick={takeMeThere}>Take me there</PrimaryPill>
-                        <SecondaryPill onClick={() => feedback('saved')}>Keep</SecondaryPill>
+                        {recommendation !== null && <SecondaryPill onClick={() => feedback('saved')}>Keep</SecondaryPill>}
                     </div>
 
-                    <div className="pt-1 text-center">
-                        {dismissed ? (
-                            <span className="text-meta text-xs">
-                                Okay — fewer like this.{' '}
-                                <button
-                                    className="text-ink font-semibold underline underline-offset-[3px]"
-                                    onClick={() => {
-                                        clearTimeout(undoTimer.current ?? undefined);
-                                        setDismissed(false);
-                                    }}
-                                >
-                                    Undo
-                                </button>
-                            </span>
-                        ) : (
-                            <QuietAction onClick={notForMe}>Not for me — fewer like this</QuietAction>
-                        )}
-                    </div>
+                    {recommendation !== null && (
+                        <div className="pt-1 text-center">
+                            {dismissed ? (
+                                <span className="text-meta text-xs">
+                                    Okay — fewer like this.{' '}
+                                    <button
+                                        className="text-ink font-semibold underline underline-offset-[3px]"
+                                        onClick={() => {
+                                            clearTimeout(undoTimer.current ?? undefined);
+                                            setDismissed(false);
+                                        }}
+                                    >
+                                        Undo
+                                    </button>
+                                </span>
+                            ) : (
+                                <QuietAction onClick={notForMe}>Not for me — fewer like this</QuietAction>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </ProductLayout>

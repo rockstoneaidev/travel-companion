@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Places\Models;
 
+use App\Domain\Places\Casts\AsCoordinates;
 use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Places\Enums\PlaceTypeDomain;
 use App\Enums\AppealFacet;
@@ -35,6 +36,7 @@ final class Place extends Model
     {
         return [
             'alt_names' => 'array',
+            'location' => AsCoordinates::class,
             'type' => PlaceType::class,
             'type_domain' => PlaceTypeDomain::class,
             'facets' => AsEnumCollection::of(AppealFacet::class),

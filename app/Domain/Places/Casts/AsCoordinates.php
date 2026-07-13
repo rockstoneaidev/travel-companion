@@ -6,6 +6,7 @@ namespace App\Domain\Places\Casts;
 
 use App\Domain\Places\Data\Coordinates;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -36,8 +37,22 @@ final class AsCoordinates implements CastsAttributes
             return [$key => null];
         }
 
+        /*
+         * A raw PostGIS expression passes straight through.
+         *
+         * The write path below EMITS an Expression, so refusing to accept one was the cast
+         * contradicting itself — and it mattered the moment `places_core.location` gained
+         * this cast: the ingest path (ResolveSourceItem) and the place factory both build
+         * the geography in SQL, as `ST_SetSRID(ST_MakePoint(…))`, and a cast that rejected
+         * them would have made adding it to Place a choice between a readable model and a
+         * working importer.
+         */
+        if ($value instanceof Expression) {
+            return [$key => $value];
+        }
+
         if (! $value instanceof Coordinates) {
-            throw new InvalidArgumentException("Attribute [{$key}] must be a Coordinates instance.");
+            throw new InvalidArgumentException("Attribute [{$key}] must be a Coordinates instance or a raw PostGIS expression.");
         }
 
         return [$key => DB::raw(sprintf("ST_GeogFromText('SRID=4326;%s')", $value->toWkt()))];

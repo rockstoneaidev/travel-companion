@@ -115,6 +115,16 @@ COPY --from=composer /app/vendor ./vendor
 COPY . ./
 COPY --from=node_builder /app/public/build ./public/build
 
+# The service worker, and it has to be copied EXPLICITLY.
+#
+# `npm run build` generates it (scripts/build-sw.mjs — the cache name is the build hash),
+# and .gitignore excludes it precisely because it is generated, so `COPY . ./` above cannot
+# bring it: it is not in the source tree. Copying only `public/build` therefore shipped an
+# image with no /sw.js at all, which 404'd on every request, which meant the worker never
+# registered — so the offline KEPT screen (S11), the one thing the product promises will
+# work in a dead zone, has never once worked in production.
+COPY --from=node_builder /app/public/sw.js ./public/sw.js
+
 # Production uses compiled assets, not the Vite dev server
 RUN rm -f public/hot
 

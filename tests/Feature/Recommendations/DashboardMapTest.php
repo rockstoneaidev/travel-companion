@@ -90,3 +90,31 @@ it('never plots the world model — only what the system has an opinion about', 
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('map.pins', []));
 });
+
+it('draws no map when the last session origin has been erased, rather than crashing', function () {
+    $user = profilingAsked(User::factory()->create());
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+
+    $session = ExploreSession::factory()->at(59.3105, 18.0232)->create([
+        'trip_id' => $trip->id,
+        'user_id' => $user->id,
+        'status' => ExploreSessionStatus::Ended,
+        'started_at' => now()->subDay(),
+    ]);
+
+    /*
+     * `origin` is nullable BY DESIGN, and two things null it on purpose: the privacy
+     * erase (EraseTripLocations) and the 30-day retention pass that coarsens the
+     * coordinate to its H3 cell before deleting it (PRD §16).
+     *
+     * The query guarded "no session at all" and then dereferenced `$session->origin->lat`
+     * anyway — so the first user to exercise their right to erasure would have been met
+     * with a 500 on the home screen. Punished, by a crash, for using the privacy feature.
+     */
+    DB::table('explore_sessions')->where('id', $session->id)->update(['origin' => null]);
+
+    $this->actingAs($user)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('map.origin', null));
+});

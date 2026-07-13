@@ -38,6 +38,42 @@ export interface PaperMapProps {
     className?: string;
 }
 
+/** What the padding WANTS to be: S3's full-screen gutters, the bottom one sized to clear the peek card. */
+const DESIGNED_PADDING = { top: 72, bottom: 220, left: 56, right: 56 };
+
+/**
+ * Room to breathe around the fitted pins — SCALED TO THE MAP WE ACTUALLY HAVE.
+ *
+ * The numbers above were written for S3, where the map is the whole screen. The home
+ * screen then mounted the same component in a short card, and the padding did not care:
+ * 72 + 220 px of vertical gutter is essentially the entire height of that card, so
+ * fitBounds was asked to fit every pin into the ~25 px left over and answered the only
+ * way it could — by zooming out until half of Stockholm county fit in a box the size of
+ * a postcard. The map looked broken because a full-screen assumption was running inside
+ * a thumbnail.
+ *
+ * So the gutters are a RATIO, not a constant: keep their designed proportions, but shrink
+ * them together until they take no more than half of either axis, so at least half the map
+ * is always left for the thing the map is for. A full-screen map is comfortably over that
+ * line and keeps exactly the padding it was designed with; the card gets the same shape,
+ * scaled to fit.
+ */
+function fitPadding(container: HTMLDivElement): maplibregl.PaddingOptions {
+    const { clientHeight: height, clientWidth: width } = container;
+
+    const vertical = DESIGNED_PADDING.top + DESIGNED_PADDING.bottom;
+    const horizontal = DESIGNED_PADDING.left + DESIGNED_PADDING.right;
+
+    const scale = Math.max(0, Math.min(1, height / 2 / vertical, width / 2 / horizontal));
+
+    return {
+        top: DESIGNED_PADDING.top * scale,
+        bottom: DESIGNED_PADDING.bottom * scale,
+        left: DESIGNED_PADDING.left * scale,
+        right: DESIGNED_PADDING.right * scale,
+    };
+}
+
 export default function PaperMap({ items, origin, originLabel = 'you', selectedId, onSelect, className }: PaperMapProps) {
     const container = useRef<HTMLDivElement>(null);
     const map = useRef<maplibregl.Map | null>(null);
@@ -92,7 +128,7 @@ export default function PaperMap({ items, origin, originLabel = 'you', selectedI
 
         if (points.length > 1) {
             const bounds = points.reduce((box, point) => box.extend(point), new maplibregl.LngLatBounds(points[0], points[0]));
-            instance.fitBounds(bounds, { padding: { top: 72, bottom: 220, left: 56, right: 56 }, maxZoom: 16 });
+            instance.fitBounds(bounds, { padding: fitPadding(container.current), maxZoom: 16 });
         }
 
         const nodes: Record<string, HTMLElement> = {};

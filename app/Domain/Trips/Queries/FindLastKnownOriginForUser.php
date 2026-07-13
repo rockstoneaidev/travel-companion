@@ -29,7 +29,19 @@ final class FindLastKnownOriginForUser
             ->latest('started_at')
             ->first();
 
-        if ($session === null) {
+        /*
+         * A session with no origin is a session we have DELIBERATELY forgotten the origin
+         * of: `origin` is nullable and two things null it on purpose — the privacy erase
+         * (EraseTripLocations) and the 30-day retention pass, which coarsens the coordinate
+         * to its H3 cell on the way to deleting it (PRD §16).
+         *
+         * Only "no session at all" used to be guarded, so the first user to exercise their
+         * right to erasure would have got a 500 on the home screen — punished, by a crash,
+         * for using the privacy feature. Forgetting is a state this query has to be able to
+         * return: it lands on the same honest null as "you have never started one", and the
+         * screen simply draws no map.
+         */
+        if ($session?->origin === null) {
             return null;
         }
 
