@@ -12,6 +12,7 @@ Read before designing or implementing anything:
 - `docs/TAXONOMY.md` — the categorisation taxonomy (Type axis + appeal facets); load-bearing for onboarding, scoring, and learning. Implemented as enums per `conventions/02`.
 - `docs/SCORING.md` — the scoring model: every PRD §11 sub-score's v1 formula, constants, penalties, cold-start weight interpolation, and feed selection. Authoritative for implementing ranking.
 - `docs/ADMIN.md` — the admin & operations console: roles/permissions model, the `app/Admin/` platform namespace, section map, position-emulation design. Authoritative for anything under `/admin`.
+- `docs/COST.md` — the cost model & ledger: `cost_events` schema, versioned pricing config, spend kill-switch, unit-economics model, admin cost UI (extends ADMIN §7.1), GDPR handling of cost data, the Phase 3 chat seam. Authoritative for anything that spends or records money. Epics E24/E25.
 - `docs/ENTITY-RESOLUTION.md` — the v1 matching/merge algorithm behind the canonical `places` table (explicit-ID joins → blocked fuzzy matching → survivorship; `resolver_version`).
 - `docs/CURATION.md` — curated layer + Regional Knowledge Packs: schema, LLM-draft→ground→review pipeline, and the decided pack plan (Stockholm test + France-trip corridor).
 - `docs/ONBOARDING.md` — the taste-calibration content (9 facet-separating pairs + 2 practical questions; `calibration_version`).
