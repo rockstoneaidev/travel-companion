@@ -1,6 +1,11 @@
-name: CI & Deploy (staging → travel.bergsten.net)
+name: CI (main also deploys → travel.bergsten.net)
 
 # One workflow, one story: the checks and the deploy that they authorise.
+#
+# Every branch and PR gets the checks. ONLY a push to main gets the image build and
+# the staging deploy — see the `if:` on build-and-push, which deploy needs. The name
+# says so out loud because the run list shows this workflow against feature branches
+# too, and "CI & Deploy" on a feature branch reads like the branch is being deployed.
 #
 # They used to be two workflows on the same `push: main` trigger, which meant they
 # ran in PARALLEL and the deploy had no idea the gate existed. A commit could fail
