@@ -105,7 +105,18 @@ return [
         'routes.googleapis.com' => 'routes_essentials',
         'places.googleapis.com' => 'place_details_essentials',
 
+        /*
+        | Overpass is free — but it is a FLEET, and the adapter picks a mirror. The first
+        | real ingest logged hundreds of "spend recorded with no price" warnings for
+        | `lz4.overpass-api.de`, which is the instrumentation working exactly as designed
+        | (an unlisted host is `unknown`, never silently `free` — a paid API nobody
+        | configured must look conspicuous). It just happened to be right about a host
+        | that is genuinely free. Every mirror the adapter can choose is listed here.
+        */
         'overpass-api.de' => 'free',
+        'lz4.overpass-api.de' => 'free',
+        'overpass.kumi.systems' => 'free',
+
         'query.wikidata.org' => 'free',
         'www.wikidata.org' => 'free',
         'en.wikipedia.org' => 'free',

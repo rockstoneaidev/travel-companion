@@ -79,6 +79,8 @@ final class DatatourismeAdapter implements PagedScoutSource
             ),
         ]);
 
+        $totalPages = null;
+
         for ($page = 0; $page < self::MAX_PAGES && $url !== null; $page++) {
             // Was retry(3, 5000): a FIXED five-second delay, no jitter, and no regard
             // for Retry-After. Harvest is the ingest lane's shared policy (conventions/09).
@@ -91,16 +93,48 @@ final class DatatourismeAdapter implements PagedScoutSource
                 timeout: 60,
             )->throwIfUnknown('datatourisme search');
 
-            yield $response->json('objects') ?? [];
+            $objects = $response->json('objects') ?? [];
 
-            // The API paginates with an opaque cursor, not an offset.
+            // The bbox is exhausted. Nothing further can belong to this region.
+            if ($objects === []) {
+                return;
+            }
+
+            yield $objects;
+
+            /*
+             * ===========================================================================
+             *  THE CURSOR IS NOT A TERMINATOR, and trusting it walked us out of the city.
+             * ===========================================================================
+             *
+             * `meta.next` keeps handing out a URL AFTER the last page of the bounding box.
+             * Follow it and the walk leaves the region entirely: a Paris ingest ran past
+             * its 215th page and carried on through the national catalogue, writing POIs
+             * from the Alps, the Aude and Alsace as though they were Paris — and then
+             * threw `exceeds 500 pages`, because of course it never ran out.
+             *
+             * The result was the worst of both: Paris got NO DATAtourisme layer (the
+             * throw failed the source), and the database got a thousand rows of France at
+             * random. The API itself was never wrong — it says plainly that the box holds
+             * 4,284 POIs across 215 pages. We just never read the answer.
+             *
+             * So the walk is bounded by what the API SAYS the box contains. The cursor is
+             * followed, never believed.
+             */
+            $totalPages ??= (int) ($response->json('meta.total_pages') ?? 0);
+
+            if ($totalPages > 0 && $page + 1 >= $totalPages) {
+                return;
+            }
+
             $url = $response->json('meta.next');
         }
 
-        // A region that still has pages left is a region we ingested PARTIALLY, and a
-        // partial ingest that reports success is a lie the whole pipeline then builds
-        // on. Fail loudly instead (conventions/09) — after the pages already yielded
-        // have been written, which is strictly better than losing them too.
+        // Only reachable if a region genuinely holds more than MAX_PAGES pages — 10,000
+        // POIs, which no corridor city does. A partial ingest that reports success is a
+        // lie the whole pipeline then builds on, so fail loudly instead (conventions/09)
+        // — after the pages already yielded have been written, which is strictly better
+        // than losing them too.
         if ($url !== null) {
             throw new RuntimeException(sprintf(
                 'DATAtourisme region "%s" exceeds %d pages — raise MAX_PAGES rather than ship a truncated region.',
