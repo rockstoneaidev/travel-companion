@@ -160,6 +160,34 @@ Append-only, no updates ever, partitioned monthly on `occurred_at`.
 | `price_version`, `prompt_version` | audit trail (non-negotiable #7 spirit) |
 | `h3_cell` | res-8, for regional cost maps; nulled with `user_id` at de-identification (§10) |
 
+### 5.1 Designed-for future: per-user LLM chat (Phase 3 — noted 2026-07-13)
+
+A per-user "ask questions about this place" chat is a *possible* Phase 3 feature. Nothing is
+built for it now (phasing is strict — PRD §8, non-negotiable #5), but the ledger must not
+preclude it, because it inverts today's LLM economics:
+
+- Today every LLM call is user-independent and shared-cached; marginal per-user LLM cost is ~0.
+  A chat is **causally user-attributed by nature** — no shared cache, every turn is real money on
+  one user's row. Per-user LLM cost stops being a rounding error and likely becomes the dominant
+  per-user cost, ahead of Routes.
+- The ledger shape already fits (`category = llm`, `user_id`, `actor_kind = user`, one row per
+  turn), but **reserve a nullable `conversation_id` correlation column in the v1 migration** —
+  a spare column is cheap now, a backfill is not.
+- Multi-turn chat re-sends context every turn, so **cached-input pricing** (still unverified in
+  §6) becomes the load-bearing rate; per-turn `cached_input_tokens` is what separates a cheap
+  conversation from an expensive one.
+- The §8 **per-user daily ceiling becomes the binding control**, and at that point it must be
+  user-visible near the limit ("chat is resting for today"), not a silent degradation.
+- For pricing: chat is the natural **paid-tier feature** — the one surface where marginal cost
+  scales linearly with engagement instead of being flattened by shared caches. The free tier can
+  stay generous precisely because it excludes (or tightly rations) chat.
+- Non-cost implications, flagged now for the Phase 3 spec, not solved here: chat content is user
+  personal data (new tables → ROPA, retention, erasure; free-text questions can reveal Art. 9-
+  adjacent interests — the DPIA §3.2 trap again, worse because it is verbatim). Grounding rules
+  survive unchanged: the LLM is still never a source of facts (non-negotiable #3) — chat answers
+  generate from evidence bundles; and conventions/10's "never call a model synchronously in a web
+  request" needs a streaming answer for chat, not an exemption.
+
 **Write discipline (conventions/08):** never insert on the hot path per call. The in-process meter
 accumulates; a single batched multi-row insert flushes at the end of the unit of work — a
 terminating callback for requests, a `MetersCost` job middleware for queue jobs. One statement,
@@ -305,3 +333,5 @@ rule ("if you add a table with personal data, ROPA.md is wrong until you update 
 3. Cap values for §8 (proposal: $10/day global, $1/day/user for the pilot).
 4. Whether `cost_daily` is EUR-reported at a fixed monthly rate or per-day ECB rate (proposal:
    monthly, dated in config).
+5. Reserve `conversation_id` on `cost_events` in the v1 migration for the possible Phase 3
+   per-user chat (proposal: yes — §5.1).
