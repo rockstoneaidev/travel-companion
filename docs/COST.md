@@ -192,6 +192,22 @@ N rows. The job middleware doubles as the currently missing job base-class seam.
 Every ledger row stamps the sheet key as `price_version`. A price change is a new dated entry,
 never an edit.
 
+### 6.1 Price-drift check (automated verification, deliberate repricing)
+
+Machine-readable price feeds exist, but they must never price the ledger directly — a ledger
+repriced by a drifting third-party feed is not an audit trail, and the aggregators lag and
+occasionally err on exactly the rates that matter here (cached-input, batch). Their correct use
+is a **drift check**: a scheduled command (weekly, `schedule:` + Slack/log alert) that fetches
+current prices for our handful of SKUs, compares them to the active `config/pricing.php` sheet,
+and flags any mismatch for a human to review and land as a new dated entry.
+
+| Feed | Covers | Notes |
+|---|---|---|
+| LiteLLM `model_prices_and_context_window.json` (GitHub, BerriAI/litellm) | Hundreds of LLMs incl. Gemini; input/output/cached rates | De-facto community standard; free, no key; community-maintained → verify before freezing a sheet |
+| `models.dev/api.json` | Open-source model DB with per-model cost | Same caveat |
+| OpenRouter `GET /api/v1/models` | Live per-model pricing | Prices are OpenRouter's (usually provider list-price passthrough) |
+| **Cloud Billing Pricing API** (`cloudbilling.googleapis.com`) | **Authoritative** for everything billed through Google Cloud: Maps Platform SKUs (Routes, Place Details), and Gemini API on a Cloud-billed key | Official but clunky: per-SKU IDs, tiered pricing formulas, needs an API key. This is the one that can actually *close* the §12.1 verification loop |
+
 ---
 
 ## 7. Derived views (deferred until there is a bill)
