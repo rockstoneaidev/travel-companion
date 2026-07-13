@@ -300,7 +300,12 @@ jobs:
             # A queue that fails silently is the whole problem we are fixing, so
             # say so out loud. Not fatal: a pre-existing failure should not block
             # a deploy that might be the fix for it.
-            FAILED=$(docker compose exec -T app php artisan queue:failed --json 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ')
+            # `|| true` is load-bearing, and its absence broke the HAPPY path: grep exits
+            # 1 when it matches nothing, and under `set -euo pipefail` a non-zero anywhere
+            # in the pipe fails the step. So with ZERO failed jobs — the state we want —
+            # the deploy went red, having actually succeeded. A check for a problem must
+            # not itself become one when the problem is absent.
+            FAILED=$(docker compose exec -T app php artisan queue:failed --json 2>/dev/null | grep -o '"id"' | wc -l | tr -d ' ' || true)
             if [ "${FAILED:-0}" -gt 0 ]; then
               echo "::warning::${FAILED} job(s) in failed_jobs on staging — inspect with 'artisan queue:failed'"
             fi
