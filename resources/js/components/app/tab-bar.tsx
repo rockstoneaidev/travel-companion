@@ -17,9 +17,8 @@ export function TabBar({ tabs, className, ...props }: React.ComponentProps<'nav'
         <nav
             aria-label="Primary"
             className={cn(
-                'fixed bottom-6 left-1/2 z-40 -translate-x-1/2',
+                'fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2',
                 'border-border bg-card shadow-sheet flex items-center gap-1 rounded-full border px-2 py-1',
-                'pb-[max(0.25rem,env(safe-area-inset-bottom))]',
                 className,
             )}
             {...props}
