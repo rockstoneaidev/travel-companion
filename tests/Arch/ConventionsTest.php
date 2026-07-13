@@ -211,6 +211,56 @@ arch('admin platform code declares strict types')
 
 /*
 |--------------------------------------------------------------------------
+| docs/COST.md — the App\Cost platform namespace
+|--------------------------------------------------------------------------
+|
+| Metering is cross-cutting: it is spent in Agent, in Context, in Sources and in
+| Ingest, so it cannot live inside any one module (conventions/01), and the old
+| CostMeter sitting in Domain\Recommendations was already a quiet violation of that
+| — the Gemini client, in another module entirely, reached into it.
+|
+| The difference from App\Admin, and the reason the rules below are not a copy of
+| its rules: the DOMAIN MAY USE App\Cost. It has to — the thing that spends the money
+| is the thing that must record it, and a meter another layer has to remember to call
+| on the domain's behalf is a meter that will be forgotten. So the dependency runs the
+| other way from Admin's, deliberately, and the discipline that keeps it honest is
+| that App\Cost may not reach BACK into module internals.
+|
+*/
+
+arch('cost platform code is transport-agnostic')
+    ->expect('App\Cost')
+    ->not->toUse([
+        'Illuminate\Http\Request',
+        'Illuminate\Http\Response',
+        'Inertia\Inertia',
+        'Illuminate\Support\Facades\Route',
+        'App\Http\Resources',
+        'App\Http\Requests',
+        'App\Http\Controllers',
+    ]);
+
+arch('the cost platform does not reach into module internals')
+    ->expect('App\Cost')
+    ->not->toUse(array_merge(...array_map(
+        fn (string $module): array => [
+            "App\\Domain\\{$module}\\Models",
+            "App\\Domain\\{$module}\\Actions",
+            "App\\Domain\\{$module}\\Queries",
+        ],
+        MODULES,
+    )));
+
+arch('cost DTOs are readonly')
+    ->expect('App\Cost\Data')
+    ->toBeReadonly();
+
+arch('cost platform code declares strict types')
+    ->expect('App\Cost')
+    ->toUseStrictTypes();
+
+/*
+|--------------------------------------------------------------------------
 | E22 — the App\Auth platform namespace
 |--------------------------------------------------------------------------
 |

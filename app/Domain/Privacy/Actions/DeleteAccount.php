@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Privacy\Actions;
 
+use App\Cost\Services\CostMeter;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -46,6 +47,11 @@ use Illuminate\Support\Facades\Log;
  */
 final class DeleteAccount
 {
+    public function __construct(
+        private readonly DeidentifyCostEvents $costEvents,
+        private readonly CostMeter $meter,
+    ) {}
+
     public function __invoke(User $user): void
     {
         $id = $user->id;
@@ -54,8 +60,32 @@ final class DeleteAccount
             $this->forgetActivityLog($id);
             $this->forgetTelemetry($id);
 
+            // The THIRD table the cascade cannot reach — and unlike the two above, that
+            // is by design (COST.md §10).
+            //
+            // `cost_events` has no FK to users on purpose: a cascade would delete the
+            // accounting along with the account, and erasure must not be able to rewrite
+            // the P&L. So the person is detached and the money stays. The row keeps
+            // saying "$0.0006 of flash-lite at 14:32"; it stops saying who.
+            //
+            // Note the difference from B7: that table has a real `user_id` column, so the
+            // erasure test's information_schema enumeration DOES see it — and the test
+            // asserts it is NULLED rather than deleted. A missing FK that is a decision
+            // must be impossible to mistake for a missing FK that is a bug.
+            ($this->costEvents)($id);
+
             $user->delete();
         });
+
+        // And forget them on the meter that is STILL RUNNING.
+        //
+        // This request is itself metered, and its cost row is written by the terminating
+        // middleware — after this method returns, after the account is gone. Without this
+        // line, erasure nulls every historical row and then the flush writes a brand new
+        // one carrying the id of the user we just deleted: the ledger resurrects the
+        // person it erased, every single time. The erasure test caught it, which is
+        // exactly what that test is for.
+        $this->meter->forgetUser();
 
         // Logged as an EVENT, not with the data: an audit trail that preserves what
         // the user asked us to forget is not an audit trail, it is a copy.

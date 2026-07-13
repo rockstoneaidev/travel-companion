@@ -117,7 +117,20 @@ Enumerated from the schema, not from memory. Citations are to `database/migratio
 | **Calibration answers** | `chosen_side`, `chosen_facets`, `rejected_facets` | `profile_signals` | **Potentially Art. 9 — see §5** |
 | Behavioural | `event` (accepted / kept / dismissed / **visited**), `metadata` | `recommendation_feedback` | No — but it is what the profile is inferred *from* |
 | Decision traces | `scores`, `score_inputs` (jsonb — **contains candidate lat/lng**), `coverage_flags` | `recommendations` | No |
+| **Spend records** | `user_id`, `occurred_at`, `trip_id` / `session_id` / `recommendation_id` / `opportunity_id`, `h3_cell` (res-8), token counts, money | `cost_events` | No — but see the note below |
 | Free text | `name` (user-chosen trip name) | `trips` | No |
+
+**`cost_events` is personal data, and it was tempting to pretend otherwise** (E24, docs/COST.md §10).
+It looks like an accounting table. It is also a timestamped log of *when* a named person used the
+app, *how hard*, and *roughly where* — which, joined against nothing at all, is a movement and
+usage record. That it exists to answer "what did this cost us" does not change what it contains.
+
+- **Lawful basis:** legitimate interests (Art. 6(1)(f)) — billing integrity, abuse and runaway-cost
+  prevention, capacity planning. Narrow, operational, and it does not feed the product or the
+  taste profile. *(Balancing test: the data is not used to make any decision about the person; the
+  identifying columns are dropped at 90 days; the person can have them dropped immediately.)*
+- **Not** used for personalisation, learning, or ranking. If that ever changes, the basis changes
+  with it, and this row is wrong until someone updates it.
 | Consent records | `profiling_consent_at`, `profiling_consent_version`, `research_consent` | `users` | The record of an Art. 9 consent |
 
 ### 4.2 Auth and operational data
@@ -254,6 +267,7 @@ Numbers live in `config/privacy.php` and are enforced nightly by `EnforceRetenti
 | Calibration answers (`profile_signals`) | Until account deletion | Deleted | FK cascade |
 | Feedback ledger | Until account deletion | Deleted | FK cascade |
 | Account + identity | Until the user deletes it | Deleted | `DeleteAccount` |
+| **Spend records (`cost_events`)** | **90 days** identified; the de-identified row is kept **24 months** for accounting | `user_id`, the correlation ids and `h3_cell` are **nulled**; the money, the timestamp and the vendor stay. **The row is not deleted on erasure — it is de-identified**, immediately. | `DeidentifyCostEvents` (nightly, and on erasure) |
 | Google opening hours | **600 seconds**, in Redis | Evicted. **Never persisted** to any table — only the `place_id` string is stored. | `GoogleHoursVerifier` |
 | **Telemetry (`pulse_*`)** | **7 days** (`PULSE_STORAGE_KEEP`) | Trimmed by Pulse itself. **Not** touched by our retention job, and **not** deleted on erasure. | Pulse's own trim — see §7.2 |
 | **Admin audit (`activity_log`)** | **No limit. Not deleted on erasure** (it uses `causer_id` / `subject_id`, not `user_id`). | — | **Nothing. See §7.2.** |
@@ -270,6 +284,34 @@ transfer is intra-EEA so there is no Ch. V problem, but it contradicts the data
 minimisation claim in DPIA §4.1, and it is the direct cause of §7.2. The fix is one line —
 send the tile's centroid, which is what the cache key already implies and what a weather
 lookup actually needs.
+
+### 7.1b Erasure de-identifies the cost ledger; it does not delete it (E24)
+
+Every other user-scoped table in this schema cascades from `users`, and `DeleteAccount` is short
+*because* of it. `cost_events` deliberately has **no foreign key to `users`** — and that decision
+needs to be visible here, because a missing FK that is a decision looks exactly like a missing FK
+that is a bug (which is what finding B7 was).
+
+The reasoning: a cascade would let an erasure request delete the *accounting*. "Forget me" is not
+a negotiation, but neither is it a licence to rewrite a month of spend out of the books. So
+erasure **nulls** `user_id`, the correlation ids and `h3_cell`, and leaves the money. Afterwards
+the row still says *"$0.0006 of flash-lite was spent at 14:32 on the 3rd"*; it no longer says by
+whom, on which trip, or near where.
+
+Two things make this safe rather than a loophole:
+
+- The table **has** a `user_id` column, so the erasure test's `information_schema` enumeration
+  *does* see it — the blindness that caused B7 does not recur. The test asserts the column is
+  nulled and that the money survives.
+- The same de-identification runs on a **90-day schedule** for everyone, erasure request or not,
+  so the identified window is bounded by policy and not by whether anyone asks.
+
+One live bug this surfaced, worth recording because it is the kind that would never have been
+noticed: the request that *performs* an erasure is itself a metered request, and its cost row is
+written by a terminating middleware — i.e. **after** the account is gone. The first implementation
+therefore nulled every historical row and then wrote a fresh one carrying the deleted user's id.
+The ledger resurrected the person it had just erased, on every single deletion. `DeleteAccount`
+now clears the in-flight meter; `ExportAndErasureTest` asserts it.
 
 ### 7.2 The telemetry hole — **FIXED 2026-07-12**, and a correction to this record
 

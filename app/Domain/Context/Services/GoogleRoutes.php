@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Context\Services;
 
+use App\Cost\Services\CostMeter;
+use App\Cost\Services\SpendGuard;
 use App\Domain\Context\Contracts\Routing;
 use App\Domain\Sources\Services\CircuitBreaker;
 use App\Domain\Trips\Enums\TravelMode;
@@ -40,7 +42,11 @@ final class GoogleRoutes implements Routing
     /** The origin bucket for the cache key (PRD §10). */
     private const ORIGIN_RESOLUTION = 9;
 
-    public function __construct(private readonly CircuitBreaker $breaker) {}
+    public function __construct(
+        private readonly CircuitBreaker $breaker,
+        private readonly CostMeter $cost,
+        private readonly SpendGuard $guard,
+    ) {}
 
     public function minutes(float $fromLat, float $fromLng, float $toLat, float $toLng, TravelMode $mode): ?float
     {
@@ -53,7 +59,28 @@ final class GoogleRoutes implements Routing
         $cached = Cache::get($key);
 
         if ($cached !== null) {
+            // A hit costs nothing and would have cost $0.005 — which is 8× a whole
+            // uncached voice generation (COST.md §3). This cache is not an optimisation,
+            // it is the single biggest lever in the unit economics, and this line is the
+            // only place its value is observable.
+            $this->cost->recordApiCacheHit(
+                host: 'routes.googleapis.com',
+                vendor: 'google_maps',
+                resource: 'routes_essentials',
+            );
+
             return (float) $cached;
+        }
+
+        /*
+         * The cap (COST.md §8). Routing is the most expensive thing a user can trigger,
+         * so it is the first thing to go — and going costs almost nothing: the estimator
+         * already produced a number, it is the number we PERSIST on the trace anyway
+         * (this call is an overlay on the way out), and every downstream consumer already
+         * treats a null here as normal because the circuit breaker can return one.
+         */
+        if ($this->guard->blocked($this->cost->userId())) {
+            return null;
         }
 
         $minutes = $this->breaker->call(

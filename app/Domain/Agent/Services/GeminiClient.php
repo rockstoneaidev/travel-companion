@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Agent\Services;
 
+use App\Cost\Services\CostMeter;
+use App\Cost\Services\SpendGuard;
 use App\Domain\Agent\Contracts\LlmClient;
 use App\Domain\Agent\Data\GenerationResult;
 use App\Domain\Agent\Enums\LlmTier;
 use App\Domain\Agent\Exceptions\GenerationFailed;
-use App\Domain\Recommendations\Services\CostMeter;
 use Illuminate\Support\Facades\Http;
 use JsonException;
 use Throwable;
@@ -22,15 +23,19 @@ use Throwable;
  * a malformed response means the caller falls back to the template, which is
  * always true even when it is dull.
  *
- * Tokens are reported to the CostMeter, so a recommendation carries what it cost
- * to produce (PRD §11) — the number you need before anyone asks whether an
- * ignored recommendation was worth €0.40.
+ * Tokens are reported to the CostMeter with their SPLIT intact — input, output and
+ * cached input are three different prices, so a summed count cannot be turned back
+ * into money (docs/COST.md §9, bug 3: this file used to add them together one line
+ * after extracting them separately).
  */
 final class GeminiClient implements LlmClient
 {
     private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
 
-    public function __construct(private readonly CostMeter $cost) {}
+    public function __construct(
+        private readonly CostMeter $cost,
+        private readonly SpendGuard $guard,
+    ) {}
 
     public function generate(
         string $systemPrompt,
@@ -44,6 +49,19 @@ final class GeminiClient implements LlmClient
 
         if ($key === '') {
             throw GenerationFailed::transport($promptVersion, 'no GEMINI_API_KEY configured');
+        }
+
+        /*
+         * The spend cap, checked BEFORE the call — a cap enforced after the money is
+         * gone is a report, not a cap (COST.md §8).
+         *
+         * It throws the same GenerationFailed every other failure here throws, and that
+         * is the point: every caller already handles it by falling back to the template,
+         * which is always true, just duller. The degradation path is not a new code path
+         * written in a panic; it is the existing one, chosen early.
+         */
+        if ($this->guard->blocked($this->cost->userId())) {
+            throw GenerationFailed::transport($promptVersion, 'daily spend cap reached — falling back to the template');
         }
 
         try {
@@ -90,7 +108,25 @@ final class GeminiClient implements LlmClient
         $inputTokens = (int) ($usage['promptTokenCount'] ?? 0);
         $outputTokens = (int) ($usage['candidatesTokenCount'] ?? 0);
 
-        $this->cost->recordLlmTokens($inputTokens + $outputTokens);
+        // Cached input is billed at its own (lower) rate, and it is the rate that will
+        // matter most if the Phase 3 chat ever lands — a multi-turn conversation
+        // re-sends its context every turn, so cached input becomes the dominant term
+        // (COST.md §5.1). Read it now; a token class we never captured is a bill we
+        // cannot explain.
+        $cachedInputTokens = (int) ($usage['cachedContentTokenCount'] ?? 0);
+
+        // `promptTokenCount` INCLUDES the cached portion. Billing the whole thing at
+        // the uncached rate and then billing the cached part again would double-count
+        // exactly the tokens that are supposed to be cheap.
+        $freshInputTokens = max(0, $inputTokens - $cachedInputTokens);
+
+        $this->cost->recordLlm(
+            model: $model,
+            inputTokens: $freshInputTokens,
+            outputTokens: $outputTokens,
+            cachedInputTokens: $cachedInputTokens,
+            promptVersion: $promptVersion,
+        );
 
         return new GenerationResult(
             output: $output,

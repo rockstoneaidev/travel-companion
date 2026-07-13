@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\CostController;
 use App\Http\Controllers\Admin\CurationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EntityResolutionController;
@@ -34,6 +35,22 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     Route::get('activity', [ActivityController::class, 'index'])
         ->middleware('can:activity_view')
         ->name('activity.index');
+
+    /*
+    | Cost (docs/COST.md §7.3–§7.4). The explorer is read-only and gated by
+    | `costs_view`; the kill-switch is a lever that makes the product quieter for
+    | everyone, so it is superadmin-only (which `privacy_operate` already means in
+    | ADMIN §3.2 — superadmin passes every gate via Gate::before, and no role holds
+    | this permission directly).
+    */
+    Route::middleware('can:costs_view')->group(function () {
+        Route::get('costs', [CostController::class, 'index'])->name('costs.index');
+        Route::get('costs/export', [CostController::class, 'export'])->name('costs.export');
+    });
+
+    Route::post('costs/pause', [CostController::class, 'pause'])
+        ->middleware('can:cost_pause')
+        ->name('costs.pause');
 
     // Curation review (CURATION §3 step 4) — gated by admin_access for now;
     // a dedicated curation_review permission arrives with the roles pass.

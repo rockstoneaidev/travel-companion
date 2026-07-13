@@ -6,6 +6,7 @@ namespace App\Jobs\Privacy;
 
 use App\Domain\Privacy\Actions\CoarsenExpiredLocations;
 use App\Domain\Privacy\Actions\CoarsenExpiredTraces;
+use App\Domain\Privacy\Actions\DeidentifyCostEvents;
 use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,10 +32,18 @@ final class EnforceRetentionJob implements ShouldBeUnique, ShouldQueue
         $this->onConnection(QueueLane::Ingest->connection());
     }
 
-    public function handle(CoarsenExpiredLocations $locations, CoarsenExpiredTraces $traces): void
-    {
+    public function handle(
+        CoarsenExpiredLocations $locations,
+        CoarsenExpiredTraces $traces,
+        DeidentifyCostEvents $costEvents,
+    ): void {
         $raw = $locations();
         $trace = $traces();
+
+        // The cost ledger ages out its PERSON, not its money (COST.md §10). Same
+        // schedule discipline as everything else here: on a timer, whether or not
+        // anyone remembers this table holds personal data.
+        $cost = $costEvents();
 
         // Logged, always — including the nights it did nothing. A retention job that
         // is silent when it succeeds is indistinguishable from one that never ran,
@@ -44,6 +53,7 @@ final class EnforceRetentionJob implements ShouldBeUnique, ShouldQueue
             'retention_days' => config('privacy.raw_location_retention_days'),
             ...$raw->toArray(),
             'traces' => $trace->traces,
+            'cost_events_deidentified' => $cost,
         ]);
     }
 }

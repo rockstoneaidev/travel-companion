@@ -4,6 +4,7 @@ use App\Admin\Exceptions\OperatorCannotModifyOwnRoles;
 use App\Domain\Context\Exceptions\ExploreSessionNotAcceptingEvents;
 use App\Domain\Trips\Exceptions\ExploreSessionAlreadyEnded;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\MeterCost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +27,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            MeterCost::class,
+        ]);
+
+        // The JSON API spends the same money the web app does (conventions/04: both
+        // are thin wrappers over the same services), so it is metered the same way.
+        // The Phase-2 mobile client must not arrive as a hole in the books.
+        $middleware->api(append: [
+            MeterCost::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

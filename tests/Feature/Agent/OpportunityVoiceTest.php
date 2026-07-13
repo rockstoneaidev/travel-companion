@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Cost\Services\CostMeter;
 use App\Domain\Agent\Contracts\LlmClient;
 use App\Domain\Agent\Data\ContextData;
 use App\Domain\Agent\Services\AgentOrchestrator;
@@ -13,7 +14,6 @@ use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Opportunities\Models\OpportunityEvidence;
 use App\Domain\Places\Contracts\PlaceLookup;
 use App\Domain\Places\Models\Place;
-use App\Domain\Recommendations\Services\CostMeter;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -199,13 +199,27 @@ it('invalidates the generation when the evidence changes, without anyone busting
     expect($after)->not->toBe($before);
 });
 
-it('reports what a generation cost', function () {
+it('reports what a generation cost, with the token split intact', function () {
     app()->instance(LlmClient::class, new FakeLlmClient);
 
     $meter = app(CostMeter::class);
-    $meter->recordLlmTokens(120);
+    $meter->recordLlm(
+        model: 'gemini-3.1-flash-lite',
+        inputTokens: 100,
+        outputTokens: 20,
+        cachedInputTokens: 5,
+    );
 
-    expect($meter->llmTokens())->toBe(120);
+    $entries = $meter->drain();
+
+    // The split is the whole point (COST.md §9, bug 3). This used to be
+    // `recordLlmTokens($in + $out)`, and a summed count cannot be turned back into
+    // money: Gemini prices input, output and cached input at three different rates.
+    expect($entries)->toHaveCount(1)
+        ->and($entries[0]->inputTokens)->toBe(100)
+        ->and($entries[0]->outputTokens)->toBe(20)
+        ->and($entries[0]->cachedInputTokens)->toBe(5)
+        ->and($entries[0]->model)->toBe('gemini-3.1-flash-lite');
 });
 
 /** @return array<int, object> */
@@ -216,5 +230,6 @@ function voiceDeps(): array
         app(AgentOrchestrator::class),
         app(RecordOpportunityVoice::class),
         app(PlaceLookup::class),
+        app(CostMeter::class),
     ];
 }

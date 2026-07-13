@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Jobs\Enrichment;
 
+use App\Cost\Services\CostMeter;
 use App\Domain\Agent\Data\ContextData;
 use App\Domain\Agent\Services\AgentOrchestrator;
 use App\Domain\Agent\Services\EvidenceBundleBuilder;
 use App\Domain\Opportunities\Actions\RecordOpportunityVoice;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Places\Contracts\PlaceLookup;
+use App\Enums\CostActorKind;
 use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,11 +37,25 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
 
     public int $tries = 2;
 
+    /**
+     * The last three are the COST correlation (docs/COST.md §5, bug 3).
+     *
+     * This job is where the product's only real money is actually spent, and it runs
+     * minutes after — and in a different process from — the request that dispatched it.
+     * Without the ids travelling in the payload, the spend lands in the ledger with no
+     * user, no session and no trip attached to it, and "cost per active trip-hour" is
+     * unanswerable. They are nullable because a replay or a manual dispatch has no
+     * session, and a job that refused to run without one would be a job that stops
+     * working the first time you debug it.
+     */
     public function __construct(
         public readonly string $opportunityId,
         public readonly string $partOfDay,
         public readonly string $travelMode,
         public readonly ?int $walkMinutes,
+        public readonly ?int $forUserId = null,
+        public readonly ?string $forSessionId = null,
+        public readonly ?string $forTripId = null,
     ) {
         $this->onQueue(QueueLane::Voice->value);
     }
@@ -60,7 +76,18 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         AgentOrchestrator $agent,
         RecordOpportunityVoice $record,
         PlaceLookup $places,
+        CostMeter $cost,
     ): void {
+        // Re-establish the correlation the request could not carry across the queue.
+        // Causal attribution (COST.md §2.2): the user whose feed lit the fuse pays, and
+        // the fact that the next four travellers past this place will read the same
+        // cached line for free is not this row's problem — it is what the amortised view
+        // is for. One column never means two things.
+        $cost->actingAs(CostActorKind::User, $this->forUserId)
+            ->onTrip($this->forTripId)
+            ->onSession($this->forSessionId)
+            ->onOpportunity($this->opportunityId);
+
         $opportunity = Opportunity::query()->find($this->opportunityId);
 
         // Already speaking? Leave it. A reviewed curated claim outranks a model

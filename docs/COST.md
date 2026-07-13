@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Document status** | Design v1.0 — DRAFT, not yet implemented |
+| **Document status** | v1.2 — **implemented: E24 (ledger, caps, strip) + E25 (rollup, explorer, drift check)** |
 | **Date** | 2026-07-13 |
 | **Companion to** | [PRD.md](PRD.md) §14.3, §15 · [ADMIN.md](ADMIN.md) §2.4, §7.1 · [conventions/08](conventions/08-jobs-and-queues.md), [/10](conventions/10-llm-usage.md), [/12](conventions/12-caching-and-tiles.md) · [legal/ROPA.md](legal/ROPA.md) · [EPICS.md](EPICS.md) epic #10 |
 
@@ -189,9 +189,30 @@ preclude it, because it inverts today's LLM economics:
   request" needs a streaming answer for chat, not an exemption.
 
 **Write discipline (conventions/08):** never insert on the hot path per call. The in-process meter
-accumulates; a single batched multi-row insert flushes at the end of the unit of work — a
-terminating callback for requests, a `MetersCost` job middleware for queue jobs. One statement,
-N rows. The job middleware doubles as the currently missing job base-class seam.
+accumulates; a single batched multi-row insert flushes at the end of the unit of work. One
+statement, N rows.
+
+### 5.2 Two amendments the implementation forced (E24, 2026-07-13)
+
+Both are cases where building the thing falsified the design, and both are now the code:
+
+**a) The queue flush is a global listener, not a `MetersCost` job middleware.** A middleware is
+opt-in, so the first job whose author has not read this document spends money invisibly — and it
+*will* be a job, because everything expensive here (voice, pack drafting, ingest) is a job. The
+flush therefore listens on `JobProcessed`/`JobFailed`, mirroring the global outbound-HTTP hook and
+for the same stated reason: *coverage by default beats correctness by convention*. A job that
+knows whose behalf it acts still says so (`GenerateOpportunityVoiceJob` calls `actingAs()` with the
+user whose feed lit the fuse); a job that says nothing is booked as `system`, which is the honest
+answer for ingest.
+
+**b) A synchronous job is not a unit of work.** `dispatchSync` — and the sync connection the test
+suite runs on — executes a job *inside* the enclosing request, on the same scoped meter. The queue
+listeners must therefore ignore sync jobs entirely: otherwise they re-stamp the actor as `system`
+mid-request and drain the request's entries into a job-shaped row, so the feed's own weather call
+gets booked against nobody and the request's flush finds an empty meter. For a sync job the unit of
+work is the **request**, and the request's context (this user, this trip, this session) is better
+attribution than anything the job could reconstruct. The test suite caught this; it would have been
+a live mis-billing.
 
 ---
 
@@ -321,10 +342,11 @@ Deterministic policy, in the spirit of non-negotiable #4 — no model decides ab
 
 ---
 
-## 9. Known defects in the current skeleton (verified 2026-07-13)
+## 9. The three defects this replaced — **all fixed in E24**
 
-The existing `CostMeter` / `recommendations.cost` skeleton is the right instinct ("measured zero,
-not asserted zero") with three real bugs:
+The old `CostMeter` / `recommendations.cost` skeleton was the right instinct ("measured zero, not
+asserted zero") with three real bugs. Each now has a regression test that asserts the *property*,
+not the plumbing (`tests/Feature/Cost/CostLedgerTest.php`):
 
 1. **Worker-lifetime accumulation.** `CostMeter` is bound `singleton()`
    (`AppServiceProvider.php:58`) and `reset()` has zero callers in `app/`. In a Horizon worker the
@@ -365,23 +387,37 @@ rule ("if you add a table with personal data, ROPA.md is wrong until you update 
 
 ## 11. Sequencing
 
-**Now (belongs to epic #10, before Jul 27):**
+**E24 — done (2026-07-13).** The three §9 fixes; `cost_events` (partitioned, no user FK); the
+global HTTP + queue flush seams; `config/pricing.php` (2026-07 sheet, **prices still unverified —
+§12.1**); the §8 kill-switch with 50/80/100% alerts and a manual pause; the `/admin` overview strip
+(§7.2) behind a new `costs_view` permission; the §10 GDPR work (de-identification on a 90-day
+schedule and on erasure) with ROPA updated in the same change.
 
-1. The three §9 fixes (scoped meter + flush seam, ledger accretion by correlation id, token split).
-2. `cost_events` migration + `MetersCost` job middleware + request flush — with the §10 ROPA/
-   retention/erasure work in the same PR.
-3. `config/pricing.php` with the verified 2026-07 sheet.
-4. The §8 kill-switch.
-5. The `/admin` overview cost strip (§7.2) — a few aggregate queries and a widget; the pilot's
-   only cost visibility, and the human check on the kill-switch.
+**E25 — done (2026-07-13).** `cost_daily` + the nightly rollup (amortisation, region-capex spread,
+product denominators); the `/admin/costs` explorer (§7.3) with drill-down, top-N-by-share, and CSV
+export; the control panel (§7.4 — cap status, superadmin pause/resume, free-tier gauge, price-sheet
+status, per-user ceilings); the price-drift check (§6.1), which found the cached-input error in
+§12.0 on its first run.
 
-**Later (when there is spend to look at):** nightly rollup, amortized/capex allocation, the
-`/admin/costs` explorer (§7.3) and control panel (§7.4), storage size report, infra allocation
-rate.
+**Still deferred, deliberately:** the storage size report and the infra allocation rate (§2.1). Both
+need a real infra bill to divide, and inventing an allocation rate before there is one to allocate
+would be exactly the fake precision §2.1 exists to refuse.
 
 ## 12. Open questions
 
-1. Verify all §6 prices against the billing console; freeze `price_version: 2026-07`.
+0. **The drift check already found two (2026-07-13, first live run).** LiteLLM says cached input is
+   **10× cheaper** than the 2026-07 sheet assumes — `gemini-3.1-flash-lite` 25,000 µ/1M (we hold
+   250,000) and `gemini-3.5-flash` 150,000 µ/1M (we hold 1,500,000). That is the direction the
+   sheet's own warning predicted: cached input was set equal to input as a deliberate
+   over-estimate, so the error **fails safe** (we over-report spend and the cap trips early). It is
+   also *not yet acted on*, on purpose — a feed does not get to reprice the ledger (§6.1). **Action:
+   confirm against the billing console, then land a `2026-08` sheet.** Nothing else in the sheet
+   drifted.
+
+   Note this only starts to matter when something re-sends context every turn — which is the Phase 3
+   chat (§5.1). Today no call has cached input at all.
+
+1. Verify the remaining §6 prices against the billing console; freeze `price_version: 2026-07`.
 2. Route-cache design (origin tile × place × mode, TTL) — needed before edge routing lands; it is
    the single biggest lever in §4.
 3. Cap values for §8 (proposal: $10/day global, $1/day/user for the pilot).

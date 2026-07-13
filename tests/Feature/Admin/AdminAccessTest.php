@@ -49,7 +49,10 @@ it('shares the passing permissions with the frontend', function () {
     $this->actingAs(profilingAsked(User::factory()->admin()->create()))
         ->get('/dashboard')
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('auth.permissions', ['admin_access', 'ops_view', 'users_view', 'activity_view']));
+            // `costs_view` joins the admin role with E24: an operator who can see the
+            // console can see what it is spending. `users_manage_roles` still does not —
+            // privilege escalation stays superadmin-only (ADMIN §3.2).
+            ->where('auth.permissions', ['admin_access', 'ops_view', 'users_view', 'activity_view', 'costs_view']));
 });
 
 it('shares no permissions for a regular user', function () {
