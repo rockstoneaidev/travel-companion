@@ -184,11 +184,43 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
          *
          * CC BY-SA → evidence store only, never places_core (conventions/09).
          */
+        /*
+         * ===================================================================
+         *  A PHASE ADVANCES ON PROGRESS, NOT ON REMAINING CANDIDATES.
+         * ===================================================================
+         *
+         * Both of these phases used to re-dispatch themselves while `candidates > 0`,
+         * and that is an infinite loop wearing a plausible condition. `candidates` is
+         * "rows that still have no extract/image" — and a place whose Wikipedia article
+         * has no intro, or which simply has no Commons photo, can NEVER acquire one. It
+         * stays a candidate for ever, so the phase re-queues itself for ever.
+         *
+         * Lyon did exactly that: `world-model evidence lyon`, candidates 26, 126 times in
+         * ninety seconds, indefinitely — a hot loop that filled the queue with a job that
+         * could not finish and hammered Wikipedia while doing it.
+         *
+         * The honest question is not "is there anything left?" — there always is — but
+         * "did that batch actually achieve anything?". If a pass stores nothing, the
+         * remaining rows are the ones it cannot help, and the phase is done.
+         *
+         * THROTTLED IS DIFFERENT, and it is why this is not just `extracts > 0`. "We were
+         * told to slow down" is not "there is nothing here" (the fetcher is careful to
+         * distinguish them, and its docblock explains what conflating them cost). A
+         * throttled pass made no progress but WILL, so it comes back — after a delay,
+         * rather than immediately, because re-asking a rate limiter at once is not
+         * slowing down.
+         */
         if ($this->phase === 'evidence') {
             $result = $wikipedia->fetchBatch();
             Log::info("world-model evidence {$this->regionKey} batch", $result);
 
-            self::dispatch($this->regionKey, $result['candidates'] > 0 ? 'evidence' : 'photos');
+            [$next, $delayMinutes] = self::afterEvidence($result);
+
+            $job = self::dispatch($this->regionKey, $next);
+
+            if ($delayMinutes > 0) {
+                $job->delay(now()->addMinutes($delayMinutes));
+            }
 
             return;
         }
@@ -197,13 +229,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             $result = $photos->fetchBatch();
             Log::info("world-model photos {$this->regionKey} batch", $result);
 
-            if ($result['candidates'] > 0) {
-                self::dispatch($this->regionKey, 'photos');
-
-                return;
-            }
-
-            self::dispatch($this->regionKey, 'warm');
+            self::dispatch($this->regionKey, self::afterPhotos($result));
 
             return;
         }
@@ -299,6 +325,42 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
                     ->chainOnwardFromIngest(app(SourceRegistry::class), $source);
             })
             ->dispatch();
+    }
+
+    /**
+     * What comes after an `evidence` batch — the rule that stops the loop.
+     *
+     * Pure and public so it can be asserted directly. The old rule lived inline as
+     * `candidates > 0 ? 'evidence' : 'photos'`, which reads like a work queue and is in
+     * fact non-terminating, and no test could see it because the services it depends on
+     * are final and unmockable. A rule this consequential should be a thing you can
+     * point at.
+     *
+     * @param  array{candidates: int, extracts: int, throttled: bool}  $result
+     * @return array{0: string, 1: int} next phase, delay in minutes
+     */
+    public static function afterEvidence(array $result): array
+    {
+        // Told to slow down. That is not "nothing here" — it will succeed later, so come
+        // back later. Immediately re-asking a rate limiter is not slowing down.
+        if (($result['throttled'] ?? false) === true) {
+            return ['evidence', 2];
+        }
+
+        // Progress, not remaining work. There are ALWAYS candidates left — a place whose
+        // article has no intro can never acquire one — so "is there anything left?" never
+        // becomes false and the phase never ends. "Did that batch achieve anything?" does.
+        return [($result['extracts'] ?? 0) > 0 ? 'evidence' : 'photos', 0];
+    }
+
+    /**
+     * @param  array{candidates: int, images: int}  $result
+     */
+    public static function afterPhotos(array $result): string
+    {
+        // Same rule, same reason: 40 places with no Commons photo will still have no
+        // Commons photo next time round.
+        return ($result['images'] ?? 0) > 0 ? 'photos' : 'warm';
     }
 
     /** Next source in the registry, or on to `resolve` when this was the last one. */
