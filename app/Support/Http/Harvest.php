@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
 use Throwable;
 
@@ -78,6 +79,9 @@ final class Harvest
     /** A courtesy pause after every successful call, so we mostly never get throttled at all. */
     private const POLITENESS_MS = 200;
 
+    /** Shout when less than a tenth of the window's budget is left. */
+    private const BUDGET_WARN_FRACTION = 0.1;
+
     /** @param array<string, mixed> $query */
     public function get(string $url, array $query = [], array $headers = [], int $timeout = 60): HarvestResult
     {
@@ -132,6 +136,8 @@ final class Harvest
 
             $status = $response->status();
 
+            $this->observeBudget($response);
+
             if ($response->successful()) {
                 Sleep::for(self::POLITENESS_MS)->milliseconds();
 
@@ -144,7 +150,33 @@ final class Harvest
                 return new HarvestResult(Outcome::Absent, $response, $attempt);
             }
 
-            // Worth asking again: throttled, or the server is having a moment.
+            /*
+             * A WINDOW WE CANNOT WAIT OUT IS NOT WORTH FOUR MORE ATTEMPTS.
+             *
+             * DATAtourisme answers a 429 with `x-ratelimit-reset: 2997` — fifty minutes.
+             * We backed off and retried five times anyway, which is five more requests
+             * into a bucket that is already empty, several seconds apart, against a
+             * window measured in the hour. It cannot succeed, and asking again while
+             * being told to stop is precisely the behaviour that gets a key revoked.
+             *
+             * So when the server says WHEN, we believe it: if the reset is further away
+             * than our longest backoff, we stop immediately and hand the caller the
+             * number. The ingest degrades honestly (never as absence — see Outcome) and
+             * the region can be re-run after the window turns over.
+             */
+            $retryAfter = $this->retryAfterSeconds($response);
+
+            if ($status === 429 && $retryAfter !== null && $retryAfter * 1_000 > self::MAX_DELAY_MS) {
+                return new HarvestResult(
+                    Outcome::Unknown,
+                    $response,
+                    $attempt,
+                    "http 429, rate limited for {$retryAfter}s",
+                    $retryAfter,
+                );
+            }
+
+            // Worth asking again: throttled briefly, or the server is having a moment.
             if ($status === 429 || $status >= 500) {
                 $lastReason = "http {$status}";
                 $this->backOff($attempt, $response);
@@ -163,7 +195,7 @@ final class Harvest
     /** Exponential, capped, fully jittered — and overridden by Retry-After when offered. */
     private function backOff(int $attempt, ?Response $response): void
     {
-        $retryAfter = $response !== null ? (int) $response->header('Retry-After') : 0;
+        $retryAfter = $response !== null ? ($this->retryAfterSeconds($response) ?? 0) : 0;
 
         if ($retryAfter > 0) {
             Sleep::for(min($retryAfter * 1_000, self::MAX_DELAY_MS))->milliseconds();
@@ -174,5 +206,57 @@ final class Harvest
         $ceiling = min(self::MAX_DELAY_MS, self::BASE_DELAY_MS * (2 ** ($attempt - 1)));
 
         Sleep::for(random_int(0, $ceiling))->milliseconds();
+    }
+
+    /**
+     * When the server says to come back. `Retry-After` is the standard; DATAtourisme
+     * uses `x-ratelimit-reset` (seconds remaining in the window) and nothing else.
+     */
+    private function retryAfterSeconds(Response $response): ?int
+    {
+        foreach (['Retry-After', 'x-ratelimit-reset', 'ratelimit-reset'] as $header) {
+            $value = (int) $response->header($header);
+
+            if ($value > 0) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Say something BEFORE the bucket is empty.
+     *
+     * `x-ratelimit-remaining` is free information in every response, and nobody was
+     * reading it. A pagination bug walked DATAtourisme's cursor off the end of Paris and
+     * through the national catalogue, spending ~1,500 calls against a 1,000-call window;
+     * the first anyone knew of it was a 429 wall and a region with no tourism-board layer
+     * at all. The budget had been draining in plain sight, in a header, on every one of
+     * those requests.
+     *
+     * A warning at 10% is not a fix — the fix is not to make 1,500 calls — but it is the
+     * difference between noticing at the time and reconstructing it a day later from the
+     * wreckage.
+     */
+    private function observeBudget(Response $response): void
+    {
+        $limit = (int) $response->header('x-ratelimit-limit');
+        $remaining = (int) $response->header('x-ratelimit-remaining');
+
+        if ($limit <= 0 || $response->header('x-ratelimit-remaining') === '') {
+            return;   // the source does not publish a budget; nothing to watch
+        }
+
+        if ($remaining > $limit * self::BUDGET_WARN_FRACTION) {
+            return;
+        }
+
+        Log::warning('harvest: rate-limit budget nearly spent', [
+            'host' => $response->effectiveUri()?->getHost(),
+            'remaining' => $remaining,
+            'limit' => $limit,
+            'resets_in_seconds' => $this->retryAfterSeconds($response),
+        ]);
     }
 }

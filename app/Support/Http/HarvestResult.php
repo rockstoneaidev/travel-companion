@@ -23,6 +23,16 @@ final readonly class HarvestResult
         public int $attempts,
         /** Why we gave up, for the log. Null when we did not. */
         public ?string $reason = null,
+        /**
+         * When the server says to come back, in seconds — `Retry-After`, or the
+         * `x-ratelimit-reset` that DATAtourisme uses instead.
+         *
+         * Present only when we were rate-limited for longer than we were willing to
+         * wait. It is the difference between "try again in a moment" and "the bucket is
+         * empty for the next fifty minutes", and a caller that cannot tell those apart
+         * will keep asking while being told to stop.
+         */
+        public ?int $retryAfterSeconds = null,
     ) {}
 
     public function ok(): bool
