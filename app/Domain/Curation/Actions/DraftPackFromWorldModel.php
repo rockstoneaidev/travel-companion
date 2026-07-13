@@ -10,6 +10,7 @@ use App\Domain\Agent\Services\EvidenceBundleBuilder;
 use App\Domain\Curation\Enums\CurationStatus;
 use App\Domain\Curation\Models\CuratedItem;
 use App\Domain\Curation\Models\Pack;
+use App\Domain\Curation\Services\ClaimGuard;
 use App\Domain\Curation\Services\PackCandidateSelector;
 use App\Support\PlainText;
 
@@ -37,6 +38,7 @@ final class DraftPackFromWorldModel
         private readonly EvidenceBundleBuilder $bundles,
         private readonly AgentOrchestrator $agent,
         private readonly AutoReviewCuratedItem $autoReview,
+        private readonly ClaimGuard $guard,
     ) {}
 
     /**
@@ -78,12 +80,34 @@ final class DraftPackFromWorldModel
                 continue;
             }
 
+            /*
+             * Cut the perishable sentences BEFORE the draft exists.
+             *
+             * The prompt already forbids prices and opening hours, and the model writes
+             * them anyway — which is the whole reason ClaimGuard exists ("an instruction
+             * is not an enforcement"). But the guard could only ever say NO, and saying no
+             * threw the place away along with the sentence: the reviewer's queue filled
+             * with good claims about real places, each carrying one clause we were never
+             * allowed to say, and the only button offered was Reject.
+             *
+             * Deleting the clause is not rewriting the claim. No model is asked to try
+             * again — a rewrite is where it would start inventing — the offending sentence
+             * is simply removed and the rest stands.
+             */
+            $claim = $this->guard->trimPerishable(PlainText::clean((string) $result->output['claim']));
+
+            if ($claim === '') {
+                $skipped++;   // it was only ever a price; there is no claim underneath it
+
+                continue;
+            }
+
             $item = CuratedItem::query()->create([
                 'pack_id' => $pack->id,
                 'place_id' => $candidate->placeId,   // grounded by construction
                 'region_slug' => $regionKey,
                 'title' => PlainText::clean((string) $result->output['title']),
-                'claim' => PlainText::clean((string) $result->output['claim']),
+                'claim' => $claim,
                 'facets' => $result->output['facets'] ?? [],
                 'evidence' => $bundle->toArray(),    // what the model actually saw
                 'status' => CurationStatus::InReview,
