@@ -129,6 +129,26 @@ final class EvidenceBundleBuilder
             // The tourism board's own words about its own territory.
             'datatourisme' => $tags['description'] ?? null,
 
+            /*
+             * WIKIPEDIA — the narrative layer, and it was invisible here.
+             *
+             * PackCandidateSelector was taught to accept Wikipedia as evidence (its own
+             * comment explains why: DATAtourisme and Mérimée are both FRENCH, so without
+             * Wikipedia the home region could never produce a single candidate). This
+             * builder never was. So the selector counted 562 Stockholm candidates "with
+             * evidence", handed them to the drafter, and the drafter built an EMPTY bundle
+             * for every one of them and skipped it as "evidence too thin".
+             *
+             * Half a fix, and the worst half: the two halves disagreed in a way that
+             * reported success. 4,749 stored extracts — the entire narrative layer of every
+             * region — could not reach a single draft, and both components were behaving
+             * exactly as written.
+             *
+             * CC BY-SA: quotable WITH attribution, never merged into the core
+             * (conventions/09). The attribution rides on the row and into the EvidenceItem.
+             */
+            'wikipedia' => $tags['description'] ?? null,
+
             // Mérimée has no prose, but its structured record IS a claim: what the
             // building is, when it was built, when it was protected. Rendered as a
             // sentence so the model reads evidence rather than a database row.
