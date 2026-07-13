@@ -42,6 +42,8 @@ Sources divide into two classes, and confusing them creates legal debt that is e
 
 Every source adapter in `SourceRegistry` carries license metadata: *what may be stored, for how long, with what attribution.* This is enforced in code, not in a wiki page.
 
+**Archivability is a fourth dimension, distinct from TTL.** A source's terms can allow TTL'd storage yet forbid keeping the data forever (typical of commercial event APIs); open licenses generally allow both. Each `SourceDescriptor` therefore carries an explicit `archivable` flag — *may this data be kept indefinitely* — which the nightly opportunity reaper checks per evidence row before moving anything into the archive ([VISION.md](VISION.md) §2). `EdgeOnly` sources are never archivable; beyond that, only the source's actual terms decide, and the safe default is `false`. When adding a source, classify archivability at the same moment you classify `StoragePolicy`.
+
 **ODbL resolution:** the share-alike review has been done — see [ODBL-REVIEW.md](ODBL-REVIEW.md). Outcome: conflating OSM with other sources' POIs (our entity-resolution design) creates an ODbL Derivative Database, and publicly serving recommendations triggers the §4.6 obligation to offer that database. Adopted architecture ("open core, proprietary shell"): the conflated geo-core (names/geometry/categories from OSM + Overture + Wikidata + gov open data) is treated as ODbL and publishable; all proprietary value (curated layer, packs, user signals, scores) lives in independent data types linked by `place_id`, which the OSMF Collective Database Guideline keeps out of share-alike. Pending final counsel confirmation before public launch.
 
 ### 1.2 Source credibility tiers (feeds the confidence score)

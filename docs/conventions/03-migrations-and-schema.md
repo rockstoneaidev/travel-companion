@@ -101,7 +101,10 @@ $table->timestampTz('expires_at')->index();
 ```
 
 `places` are canonical and permanent; `opportunities` are ephemeral and TTL'd. Never blur the two
-(CLAUDE.md). A pruning job reads `expires_at`; nothing else decides expiry.
+(CLAUDE.md). A pruning job reads `expires_at`; nothing else decides expiry. The pruning job exists
+(`ReapExpiredOpportunitiesJob`, nightly) and it **archives before it deletes**: expired time-bound
+opportunities move their license-storable subset into `archived_opportunities` first
+(VISION.md §2). Never write a plain `DELETE` against expired opportunities.
 
 **Timezones.** Use `timestampTz` throughout. This is a travel product — a naive `timestamp` will be
 wrong for a user in a different timezone from the server, and the bug will be subtle and late.

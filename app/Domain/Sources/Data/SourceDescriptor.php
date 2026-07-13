@@ -26,5 +26,14 @@ final readonly class SourceDescriptor
         public RateLimit $rateLimit,
         public CredibilityTier $credibilityTier,
         public ScoutRange $scoutRange,
+        /**
+         * May this source's data be kept INDEFINITELY (the opportunity archive,
+         * VISION.md §2)? Orthogonal to `ttl`, which is about freshness, and to
+         * `storage`, which is about where a live row may land: a source can be
+         * storable-with-TTL because its terms allow caching but forbid retention
+         * (many event APIs). `EdgeOnly` sources are never archivable; beyond
+         * that, only the source's actual terms decide — when in doubt, false.
+         */
+        public bool $archivable = false,
     ) {}
 }

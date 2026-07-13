@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\Ingest\ReapExpiredOpportunitiesJob;
 use App\Jobs\Privacy\EnforceRetentionJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -19,5 +20,16 @@ Artisan::command('inspire', function () {
  */
 Schedule::job(new EnforceRetentionJob)
     ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+ * The opportunity reap: archive-on-expiry, never plain delete (VISION.md §2).
+ * Expired time-bound opportunities move their license-storable subset to the
+ * archive before the row is deleted — history that is not archived tonight
+ * cannot be recovered in three years. After the retention pass, same lane.
+ */
+Schedule::job(new ReapExpiredOpportunitiesJob)
+    ->dailyAt('04:10')
     ->withoutOverlapping()
     ->onOneServer();
