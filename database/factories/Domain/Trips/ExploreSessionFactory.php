@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories\Domain\Trips;
 
+use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Enums\TravelMode;
@@ -30,6 +31,11 @@ final class ExploreSessionFactory extends Factory
             'trip_id' => $trip,
             'user_id' => fn (array $attributes): int => Trip::query()->findOrFail($attributes['trip_id'])->user_id,
             'origin' => new Coordinates($lat, $lng),
+            // A session created by StartExploreSession always has its res-8 cell, so one
+            // created by the factory must too. The factory drifting from the action is how
+            // the missing-cell bug survived: every test built a session that looked exactly
+            // like the broken production rows, so nothing could tell them apart.
+            'origin_h3_index' => fn (array $attributes): string => self::cellFor($attributes['origin']),
             'time_budget_minutes' => $budget,
             'travel_mode' => TravelMode::Walk,
             'heading' => null,
@@ -50,6 +56,19 @@ final class ExploreSessionFactory extends Factory
 
     public function at(float $lat, float $lng): self
     {
-        return $this->state(fn (): array => ['origin' => new Coordinates($lat, $lng)]);
+        return $this->state(fn (): array => [
+            'origin' => new Coordinates($lat, $lng),
+            'origin_h3_index' => self::cellFor(new Coordinates($lat, $lng)),
+        ]);
+    }
+
+    /**
+     * The same res-8 cell Postgres would assign (conventions/12) — computed by Postgres,
+     * because a second implementation of H3 in PHP is a second implementation to disagree
+     * with the first.
+     */
+    private static function cellFor(Coordinates $origin): string
+    {
+        return app(TileIndexer::class)->cellFor($origin->lat, $origin->lng);
     }
 }
