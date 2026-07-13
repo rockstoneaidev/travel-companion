@@ -67,6 +67,22 @@ final class SourceRegistry
         return array_map(fn (SourceDescriptor $d): string => $d->attribution, array_values($this->descriptors()));
     }
 
+    /**
+     * Sources whose evidence may be kept indefinitely — what the opportunity
+     * archive is allowed to hold (VISION.md §2). Evidence from any source NOT
+     * on this list (including sources no longer registered) is dropped at
+     * archive time, not carried along "for now".
+     *
+     * @return list<string>
+     */
+    public function archivableSourceKeys(): array
+    {
+        return array_values(array_keys(array_filter(
+            $this->descriptors(),
+            fn (SourceDescriptor $d): bool => $d->archivable,
+        )));
+    }
+
     /** @return array<string, SourceDescriptor> */
     public function descriptors(): array
     {
@@ -84,6 +100,7 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 60),
                 credibilityTier: CredibilityTier::Open,
                 scoutRange: ScoutRange::Near,
+                archivable: true, // CDLA-Permissive: no retention limit
             ),
             OsmAdapter::KEY => new SourceDescriptor(
                 key: OsmAdapter::KEY,
@@ -95,6 +112,7 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 30),
                 credibilityTier: CredibilityTier::Open,
                 scoutRange: ScoutRange::Near,
+                archivable: true, // ODbL: share-alike, not time-limited
             ),
             WikidataAdapter::KEY => new SourceDescriptor(
                 key: WikidataAdapter::KEY,
@@ -106,6 +124,7 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 30),
                 credibilityTier: CredibilityTier::Reference,
                 scoutRange: ScoutRange::Full, // heritage/history is worth the drive (conventions/09)
+                archivable: true, // CC0: no retention limit
             ),
 
             // France corridor (E13, DATA-SOURCES §7). Mérimée is a national
@@ -121,6 +140,7 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 60),
                 credibilityTier: CredibilityTier::Official,
                 scoutRange: ScoutRange::Full, // a protected monument is worth the detour
+                archivable: true, // Licence Ouverte: no retention limit
             ),
             DatatourismeAdapter::KEY => new SourceDescriptor(
                 key: DatatourismeAdapter::KEY,
@@ -132,6 +152,7 @@ final class SourceRegistry
                 rateLimit: new RateLimit(perMinute: 60),
                 credibilityTier: CredibilityTier::Official, // a tourism board on its own territory
                 scoutRange: ScoutRange::Near,
+                archivable: true, // Licence Ouverte: no retention limit
             ),
         ];
     }

@@ -48,8 +48,15 @@ new SourceDescriptor(
     rateLimit:           new RateLimit(perMinute: 60),
     credibilityTier:     CredibilityTier::Open,        // DATA-SOURCES §1.2
     scoutRange:          ScoutRange::Full,             // payoff gradient — see below
+    archivable:          true,                         // may be kept indefinitely — see below
 );
 ```
+
+`archivable` answers a different question than `ttl` or `storage`: *may this source's data be kept
+forever?* The nightly reaper archives expired time-bound opportunities (VISION.md §2) and takes
+evidence rows only from sources that grant this. Many terms allow caching but forbid retention —
+classify it from the source's actual terms when you add the adapter, and default to `false` when
+in doubt. `EdgeOnly` sources are never archivable.
 
 ### Mode-aware scout ranges (the payoff gradient)
 
