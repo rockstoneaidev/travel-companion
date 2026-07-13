@@ -6,6 +6,7 @@ namespace App\Domain\Sources\Adapters;
 
 use App\Domain\Places\Taxonomy\WikidataClassMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
+use App\Domain\Sources\Contracts\PagedScoutSource;
 use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
 use App\Support\Http\Harvest;
@@ -15,6 +16,27 @@ use Illuminate\Support\Facades\Http;
 /**
  * Wikidata adapter (DATA-SOURCES §2): structured knowledge — heritage and
  * nature where OSM is thin, plus the sitelink graph entity resolution joins on.
+ *
+ * ===========================================================================
+ *  This source is chunked SPATIALLY (boxed), not by offset. That is deliberate.
+ * ===========================================================================
+ *
+ * `normalize()` below returns ONE BINDING ROW PER (item, class) and groups them by
+ * item to recover each place's P31 class list — and that class list is what decides
+ * the place's TYPE. Page this by LIMIT/OFFSET and an item whose rows straddle a page
+ * boundary is normalized twice, with half its classes each time. The upsert is keyed
+ * on (source, external_id), so the second write wins and the place ends up typed from
+ * a partial class list. That is a place that is silently the WRONG type, which is far
+ * worse than a place that is missing — nobody goes looking for it.
+ *
+ * So Wikidata is listed in BuildRegionWorldModelJob::BOXED_SOURCES alongside OSM: each
+ * box is a bbox, `wikibase:box` answers it completely, and a box is therefore a
+ * semantically whole page. Memory is bounded by the box, not by the city, and no item
+ * is ever split.
+ *
+ * (The general rule lives in {@see PagedScoutSource}:
+ * page a source only where a page is semantically whole. DATAtourisme and Mérimée
+ * normalize per row, so they page. This one does not.)
  */
 final class WikidataAdapter implements ScoutSource
 {
@@ -131,8 +153,22 @@ final class WikidataAdapter implements ScoutSource
           OPTIONAL { ?item rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
           OPTIONAL { ?localArticle schema:about ?item ; schema:isPartOf <https://{$locale}.wikipedia.org/> }
         }
-        LIMIT 25000
+        LIMIT {$this->rowLimit()}
         SPARQL;
+    }
+
+    /**
+     * 25,000 binding rows was a whole-region number, and it is what a whole-region JSON
+     * response decoded into: tens of megabytes of PHP arrays in one `->json()` call, on
+     * a box with 600 MB free.
+     *
+     * A BOX is a few square kilometres. 5,000 rows is already generous for one — and
+     * the limit is a backstop against a pathological cell, not the plan. If a box ever
+     * hits it we would rather lose the tail of one cell than the container.
+     */
+    private function rowLimit(): int
+    {
+        return 5_000;
     }
 
     private function qid(string $uri): ?string

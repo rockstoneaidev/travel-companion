@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Sources\Services;
 
 use App\Domain\Places\Contracts\TileIndexer;
+use App\Domain\Sources\Contracts\PagedScoutSource;
+use App\Domain\Sources\Contracts\ScoutSource;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Data\ScoutRequest;
 use App\Domain\Sources\Data\SourceDescriptor;
@@ -17,6 +19,11 @@ use Illuminate\Support\Facades\DB;
  * source adapter over a bounded region, buckets candidates into res-8 tiles,
  * and upserts them as source items. Idempotent: re-running a region refreshes
  * rows in place (keyed on source + external_id), it never duplicates.
+ *
+ * MEMORY IS THE CONSTRAINT HERE, and it is the one that actually bit: this used to
+ * buffer an entire region — raw response, candidates, lat/lng pairs, cells, and a
+ * zipped copy — and killed the app container on a 3.7 GB box mid-Paris. It now
+ * streams: one page in, written, freed. See {@see PagedScoutSource}.
  */
 final class RegionIngest
 {
@@ -25,13 +32,16 @@ final class RegionIngest
         private readonly TileIndexer $tiles,
     ) {}
 
+    /** Rows per INSERT, and therefore the ceiling on how many candidates are resident. */
+    private const UPSERT_CHUNK = 500;
+
     /**
      * @param  ?ScoutRequest  $box  One grid cell of the region, or null for the whole thing.
      *                              A box is the unit of WORK and the unit of PERSISTENCE
      *                              (IngestRegion::boxes()): what this call fetches, it writes
      *                              before returning, so a job that dies costs one box rather
      *                              than an hour of unwritten elements.
-     * @return array{fetched: int, candidates: int, tiles: int}
+     * @return array{fetched: int, candidates: int, tiles: int, peak_mb: float}
      */
     public function ingest(IngestRegion $region, string $sourceKey, ?ScoutRequest $box = null): array
     {
@@ -47,44 +57,124 @@ final class RegionIngest
         $request = $box ?? $region->toScoutRequest();
 
         if (! $adapter->supports($request)) {
-            return ['fetched' => 0, 'candidates' => 0, 'tiles' => 0];
+            return $this->result(0, 0, 0);
         }
 
-        $raw = $adapter->search($request);
-        $candidates = $adapter->normalize($raw, $request->locale);
-
-        if ($candidates === []) {
-            return ['fetched' => count($raw), 'candidates' => 0, 'tiles' => 0];
-        }
-
-        $cells = $this->tiles->cellsFor(array_map(
-            static fn (array $c): array => [$c['lat'], $c['lng']],
-            $candidates,
-        ));
-
-        $now = now()->toIso8601String();
+        /*
+         * ===================================================================
+         *  STREAMED, not buffered. This loop is the fix.
+         * ===================================================================
+         *
+         * It used to be five arrays deep, all alive at once: the raw response, the
+         * normalized candidates, a lat/lng pair per candidate, a cell per candidate,
+         * and then `array_map(null, $candidates, $cells)` — a full zipped COPY of the
+         * lot — before array_chunk made a sixth. For a Paris-sized region that is
+         * hundreds of megabytes of PHP arrays to write a few thousand rows, and on a
+         * box with 600 MB free it killed the container (and, since Horizon lives in
+         * that container, the site with it).
+         *
+         * Now: one page in, normalized, written in chunks, freed. Peak memory is a
+         * page — not a region — so a city twice the size costs the same peak. That is
+         * the property worth having; a bigger box would only move the wall.
+         */
+        $fetched = 0;
+        $candidateCount = 0;
         $tileCounts = [];
+        $now = now()->toIso8601String();
 
-        foreach (array_chunk(array_map(null, $candidates, $cells), 500) as $chunk) {
-            $this->upsertChunk($chunk, $descriptor->key, $descriptor, $now);
+        foreach ($this->pagesOf($adapter, $request) as $page) {
+            $fetched += count($page);
 
-            foreach ($chunk as [$candidate, $cell]) {
-                $tileCounts[$cell] = ($tileCounts[$cell] ?? 0) + 1;
+            $candidates = $adapter->normalize($page, $request->locale);
+
+            // The raw page is dead the moment it is normalized, and holding it while we
+            // write is how the peak doubles for no reason.
+            unset($page);
+
+            if ($candidates === []) {
+                continue;
             }
+
+            $candidateCount += count($candidates);
+
+            foreach (array_chunk($candidates, self::UPSERT_CHUNK) as $chunk) {
+                // Cells for THIS chunk only. Computing them for the whole region up front
+                // meant a full second array of the same length, for no gain — the H3
+                // lookup is a batched Postgres call either way.
+                $cells = $this->tiles->cellsFor(array_map(
+                    static fn (array $c): array => [$c['lat'], $c['lng']],
+                    $chunk,
+                ));
+
+                $this->upsertChunk($chunk, $cells, $descriptor, $now);
+
+                foreach ($cells as $cell) {
+                    $tileCounts[$cell] = ($tileCounts[$cell] ?? 0) + 1;
+                }
+            }
+
+            unset($candidates);
         }
 
-        $this->recordTileState($tileCounts, $descriptor->key, $descriptor->adapterVersion);
+        if ($tileCounts !== []) {
+            $this->recordTileState($tileCounts, $descriptor->key, $descriptor->adapterVersion);
+        }
 
-        return ['fetched' => count($raw), 'candidates' => count($candidates), 'tiles' => count($tileCounts)];
+        return $this->result($fetched, $candidateCount, count($tileCounts));
     }
 
-    /** @param list<array{0: array<string, mixed>, 1: string}> $chunk */
-    private function upsertChunk(array $chunk, string $sourceKey, SourceDescriptor $descriptor, string $now): void
+    /**
+     * One page, or many.
+     *
+     * A source that cannot page (OSM — already chunked spatially into boxes, so its
+     * search IS a page) yields exactly one. Wrapping it in an array rather than
+     * special-casing the caller keeps the loop above honest about what it is: a stream
+     * that happens to be one element long.
+     *
+     * @return iterable<int, list<array<string, mixed>>>
+     */
+    private function pagesOf(ScoutSource $adapter, ScoutRequest $request): iterable
     {
+        if ($adapter instanceof PagedScoutSource) {
+            return $adapter->pages($request);
+        }
+
+        return [$adapter->search($request)];
+    }
+
+    /**
+     * Peak RSS is reported with every ingest, on purpose.
+     *
+     * The memory profile is the thing that broke, and a number nobody prints is a
+     * number nobody watches. It goes into the job's log line and the command's output,
+     * so the day someone re-introduces a buffered adapter, the regression is visible in
+     * the ingest log rather than three weeks later in a dead container.
+     *
+     * @return array{fetched: int, candidates: int, tiles: int, peak_mb: float}
+     */
+    private function result(int $fetched, int $candidates, int $tiles): array
+    {
+        return [
+            'fetched' => $fetched,
+            'candidates' => $candidates,
+            'tiles' => $tiles,
+            'peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $chunk
+     * @param  list<string>  $cells  parallel to $chunk
+     */
+    private function upsertChunk(array $chunk, array $cells, SourceDescriptor $descriptor, string $now): void
+    {
+        $sourceKey = $descriptor->key;
         $rows = [];
         $bindings = [];
 
-        foreach ($chunk as [$candidate, $cell]) {
+        foreach ($chunk as $i => $candidate) {
+            $cell = $cells[$i];
+
             $rows[] = '(gen_random_uuid(), ?, ?, ?, ?, ?, ?::jsonb, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?, ?, ?, now(), now())';
             array_push(
                 $bindings,

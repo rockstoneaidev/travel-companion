@@ -50,12 +50,29 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
     /**
      * BOXED SOURCES — the ones we cut the region up for.
      *
-     * Overpass is the only one, and for a reason: it answers a bbox, and its cost is
-     * a function of how much is inside it. The others (Wikidata SPARQL, Mérimée,
-     * DATAtourisme) are paginated APIs where 45 small queries would be slower AND
-     * ruder than one, so they still take the region whole.
+     * Overpass answers a bbox and its cost is a function of how much is inside it, so
+     * it was boxed from the start.
+     *
+     * WIKIDATA JOINED IT, and the reason is memory, not time. The unboxed sources ran
+     * the whole region in one process: Wikidata decoded a 25,000-row SPARQL response
+     * into PHP arrays in a single `->json()` call, and RegionIngest then built four more
+     * arrays on top. On a 3.7 GB box with ~600 MB free that killed the app container
+     * mid-Paris — and since Horizon runs *inside* that container, it took the serving
+     * site down with it. The `MaxAttemptsExceeded` failures that had been piling up for
+     * a day were the same event seen from the queue's side: the worker was killed, the
+     * job was re-reserved, `tries = 1` wrote it off.
+     *
+     * It could NOT be fixed by offset-paging, which is the obvious move: Wikidata's
+     * normalize groups binding rows per item to recover the P31 class list, so an item
+     * split across two pages gets typed from half its classes. Boxing gives a page that
+     * is semantically whole — a bbox answer is complete for its bbox — which is the
+     * property that makes chunking safe here.
+     *
+     * DATAtourisme and Mérimée stay UNBOXED, and stream instead ({@see PagedScoutSource}):
+     * they are cursor/offset APIs where 45 small bbox queries would be slower and ruder
+     * than one paged walk, and their normalize is per-row, so a page is already whole.
      */
-    private const BOXED_SOURCES = ['osm'];
+    private const BOXED_SOURCES = ['osm', 'wikidata'];
 
     public function __construct(
         public readonly string $regionKey,

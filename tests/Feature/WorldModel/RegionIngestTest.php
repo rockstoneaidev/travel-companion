@@ -76,5 +76,11 @@ it('reports overture as unsupported (degraded, not failed) when no extract exist
 
     $result = app(RegionIngest::class)->ingest(IngestRegion::named('stockholm'), 'overture');
 
-    expect($result)->toBe(['fetched' => 0, 'candidates' => 0, 'tiles' => 0]);
+    // Counts asserted individually rather than as a whole-array match: every ingest now
+    // also reports `peak_mb`, because the memory profile is the thing that broke, and a
+    // number nobody prints is a number nobody watches (RegionIngest::result()).
+    expect($result['fetched'])->toBe(0)
+        ->and($result['candidates'])->toBe(0)
+        ->and($result['tiles'])->toBe(0)
+        ->and($result)->toHaveKey('peak_mb');
 });

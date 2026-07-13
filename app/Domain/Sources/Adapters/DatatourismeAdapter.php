@@ -6,7 +6,7 @@ namespace App\Domain\Sources\Adapters;
 
 use App\Domain\Places\Taxonomy\DatatourismeTypeMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
-use App\Domain\Sources\Contracts\ScoutSource;
+use App\Domain\Sources\Contracts\PagedScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
 use App\Support\Http\Harvest;
 use DateInterval;
@@ -30,7 +30,7 @@ use RuntimeException;
  * "unsupported" rather than failing the region — the same coverage-honesty rule
  * the Overture extract follows.
  */
-final class DatatourismeAdapter implements ScoutSource
+final class DatatourismeAdapter implements PagedScoutSource
 {
     use BuildsCandidates;
 
@@ -54,10 +54,23 @@ final class DatatourismeAdapter implements ScoutSource
         return $request->locale === 'fr' && $this->key() !== null;
     }
 
-    public function search(ScoutRequest $request): array
+    /**
+     * The region, one API page at a time — never the whole thing at once.
+     *
+     * `search()` below still exists (the ScoutSource contract, and the normalize
+     * fixtures depend on it), but RegionIngest calls THIS: each page is normalized,
+     * written and freed before the next is fetched, so peak memory is a page rather
+     * than a city (PagedScoutSource).
+     *
+     * The old loop was worse than merely buffering. `$objects = [...$objects, ...$page]`
+     * REALLOCATES the whole accumulated array on every one of up to 500 iterations —
+     * quadratic copying to build a 10,000-POI array we then handed on to be copied four
+     * more times. Paris is 4,285 POIs, and this is a large part of why the container died.
+     *
+     * @return iterable<int, list<array<string, mixed>>>
+     */
+    public function pages(ScoutRequest $request): iterable
     {
-        $objects = [];
-
         // geo_bounding is top-left then bottom-right: (north,west),(south,east).
         $url = self::BASE.'?'.http_build_query([
             'geo_bounding' => sprintf(
@@ -78,20 +91,39 @@ final class DatatourismeAdapter implements ScoutSource
                 timeout: 60,
             )->throwIfUnknown('datatourisme search');
 
-            $objects = [...$objects, ...($response->json('objects') ?? [])];
+            yield $response->json('objects') ?? [];
 
             // The API paginates with an opaque cursor, not an offset.
             $url = $response->json('meta.next');
         }
 
-        // A region that still has pages left is a region we ingested PARTIALLY,
-        // and a partial ingest that reports success is a lie the whole pipeline
-        // then builds on. Fail loudly instead (conventions/09).
+        // A region that still has pages left is a region we ingested PARTIALLY, and a
+        // partial ingest that reports success is a lie the whole pipeline then builds
+        // on. Fail loudly instead (conventions/09) — after the pages already yielded
+        // have been written, which is strictly better than losing them too.
         if ($url !== null) {
             throw new RuntimeException(sprintf(
                 'DATAtourisme region "%s" exceeds %d pages — raise MAX_PAGES rather than ship a truncated region.',
-                $request->regionKey, self::MAX_PAGES,
+                $request->regionKey,
+                self::MAX_PAGES,
             ));
+        }
+    }
+
+    /**
+     * The whole region in one array (ScoutSource).
+     *
+     * Kept for the contract and for the normalize fixtures, and deliberately NOT used
+     * by RegionIngest — it is the buffered path, and buffering a region is what this
+     * change exists to stop.
+     */
+    public function search(ScoutRequest $request): array
+    {
+        $objects = [];
+
+        // The page-overflow guard lives in pages(); it throws there, so it throws here too.
+        foreach ($this->pages($request) as $page) {
+            $objects = [...$objects, ...$page];
         }
 
         return $objects;

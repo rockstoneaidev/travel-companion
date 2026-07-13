@@ -6,7 +6,7 @@ namespace App\Domain\Sources\Adapters;
 
 use App\Domain\Places\Taxonomy\MerimeeDenominationMap;
 use App\Domain\Sources\Adapters\Concerns\BuildsCandidates;
-use App\Domain\Sources\Contracts\ScoutSource;
+use App\Domain\Sources\Contracts\PagedScoutSource;
 use App\Domain\Sources\Data\ScoutRequest;
 use App\Support\Http\Harvest;
 use DateInterval;
@@ -26,7 +26,7 @@ use DateInterval;
  * Tier A: a national registry is as authoritative as evidence of existence gets
  * (DATA-SOURCES §1.2), so it can establish a place on its own.
  */
-final class MerimeeAdapter implements ScoutSource
+final class MerimeeAdapter implements PagedScoutSource
 {
     use BuildsCandidates;
 
@@ -52,10 +52,18 @@ final class MerimeeAdapter implements ScoutSource
         return $request->locale === 'fr';
     }
 
-    public function search(ScoutRequest $request): array
+    /**
+     * The region, one Opendatasoft page at a time (PagedScoutSource).
+     *
+     * Each page is normalized, written and freed before the next is asked for, so peak
+     * memory is a page rather than a département. `normalize()` here is strictly
+     * per-record, which is what makes offset-paging SAFE — see PagedScoutSource's note
+     * on Wikidata, where it is not.
+     *
+     * @return iterable<int, list<array<string, mixed>>>
+     */
+    public function pages(ScoutRequest $request): iterable
     {
-        $records = [];
-
         for ($page = 0; $page < self::MAX_PAGES; $page++) {
             // Was retry(3, 5000) — fixed delay, no jitter, no Retry-After. See Harvest.
             $response = $this->harvest->get(
@@ -73,11 +81,27 @@ final class MerimeeAdapter implements ScoutSource
             )->throwIfUnknown('merimee search');
 
             $batch = $response->json('results') ?? [];
-            $records = [...$records, ...$batch];
 
+            yield $batch;
+
+            // A short page is the last page.
             if (count($batch) < self::PAGE) {
-                break;
+                return;
             }
+        }
+    }
+
+    /**
+     * The whole region in one array (ScoutSource).
+     *
+     * Kept for the contract and the normalize fixtures; RegionIngest uses pages().
+     */
+    public function search(ScoutRequest $request): array
+    {
+        $records = [];
+
+        foreach ($this->pages($request) as $batch) {
+            $records = [...$records, ...$batch];
         }
 
         return $records;
