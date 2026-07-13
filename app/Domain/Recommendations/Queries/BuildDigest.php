@@ -181,7 +181,18 @@ final class BuildDigest
             return 'Good morning.';
         }
 
-        $rainAt = $this->weather->rainStartsAt((string) $session->origin_h3_index, $at);
+        // A session with no cell is a real state, not a bug to assume away: erasure nulls
+        // it (EraseTripLocations), and it was NULL on every session ever created until the
+        // indexer was wired into StartExploreSession. `(string) null` is `''`, and an empty
+        // string handed to `h3_cell_to_geometry` is a Postgres error, not a null — so this
+        // guard is the difference between a dashboard that degrades and one that 500s.
+        $cell = (string) ($session->origin_h3_index ?? '');
+
+        if ($cell === '') {
+            return 'Good morning.';
+        }
+
+        $rainAt = $this->weather->rainStartsAt($cell, $at);
 
         if ($rainAt === null) {
             return 'Good morning — it stays dry today.';
