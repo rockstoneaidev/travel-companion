@@ -44,6 +44,10 @@ final class ExploreSession extends Model
             'started_at' => 'immutable_datetime',
             'expires_at' => 'immutable_datetime',
             'ended_at' => 'immutable_datetime',
+            // The sky this session was ranked under, kept for good. NOT coarsened by the
+            // retention pass: the coordinate is the sensitive part, and the sky is not.
+            'weather' => 'array',
+            'weather_observed_at' => 'immutable_datetime',
         ];
     }
 

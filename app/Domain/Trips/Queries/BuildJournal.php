@@ -76,14 +76,67 @@ final class BuildJournal
             ];
         }
 
+        $weather = $this->weatherByTrip($trips->pluck('id')->all());
+
         return $trips->map(fn (object $trip): array => [
             'id' => $trip->id,
             'name' => $trip->name,
             'started_at' => $trip->created_at,
+            'weather' => $weather[$trip->id] ?? null,
             'entries' => array_values(array_filter(
                 $byTrip,
                 static fn (array $e): bool => $e['trip_id'] === $trip->id,
             )),
         ])->all();
+    }
+
+    /**
+     * What the sky was doing while you were there.
+     *
+     * The observations are the ones we actually SAW — snapshotted on each session at the
+     * moment we ranked under them — not a lookup after the fact. Open-Meteo's forecast
+     * endpoint cannot tell you about last August, and the LLM is never a source of facts
+     * (non-negotiable #3), so an observation not written down at the time is gone for good.
+     *
+     * Reported as a range plus a wet-day count rather than an average, because an average
+     * is the one summary that can be true of a week nobody experienced: 18°C every day and
+     * "8°C then 28°C" have the same mean and nothing else in common. A range is a memory;
+     * a mean is a statistic.
+     *
+     * `null` when we never knew — which is NOT the same as "it was dry", and is exactly
+     * the distinction `weather_c: 0` on the decision trace was unable to make.
+     *
+     * @param  list<string>  $tripIds
+     * @return array<string, array<string, mixed>>
+     */
+    private function weatherByTrip(array $tripIds): array
+    {
+        if ($tripIds === []) {
+            return [];
+        }
+
+        $rows = DB::table('explore_sessions')
+            ->whereIn('trip_id', $tripIds)
+            ->whereNotNull('weather')
+            ->groupBy('trip_id')
+            ->selectRaw('trip_id')
+            ->selectRaw("MIN((weather->>'temp_c')::float) AS min_c")
+            ->selectRaw("MAX((weather->>'temp_c')::float) AS max_c")
+            ->selectRaw("COUNT(*) FILTER (WHERE (weather->>'precip_mm')::float >= 0.2) AS wet")
+            ->selectRaw('COUNT(*) AS observations')
+            ->get();
+
+        $byTrip = [];
+
+        foreach ($rows as $row) {
+            $byTrip[$row->trip_id] = [
+                'min_c' => $row->min_c === null ? null : round((float) $row->min_c),
+                'max_c' => $row->max_c === null ? null : round((float) $row->max_c),
+                'wet_observations' => (int) $row->wet,
+                'observations' => (int) $row->observations,
+            ];
+        }
+
+        return $byTrip;
     }
 }

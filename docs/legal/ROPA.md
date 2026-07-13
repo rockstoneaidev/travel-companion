@@ -117,8 +117,24 @@ Enumerated from the schema, not from memory. Citations are to `database/migratio
 | **Calibration answers** | `chosen_side`, `chosen_facets`, `rejected_facets` | `profile_signals` | **Potentially Art. 9 — see §5** |
 | Behavioural | `event` (accepted / kept / dismissed / **visited**), `metadata` | `recommendation_feedback` | No — but it is what the profile is inferred *from* |
 | Decision traces | `scores`, `score_inputs` (jsonb — **contains candidate lat/lng**), `coverage_flags` | `recommendations` | No |
+| Observed weather | `weather` (jsonb — temp, precipitation, WMO code, cloud), `weather_observed_at` | `explore_sessions` | No — environmental, not personal. See the note below. |
 | **Spend records** | `user_id`, `occurred_at`, `trip_id` / `session_id` / `recommendation_id` / `opportunity_id`, `h3_cell` (res-8), token counts, money | `cost_events` | No — but see the note below |
 | Free text | `name` (user-chosen trip name) | `trips` | No |
+
+**On the weather snapshot, which is kept indefinitely and deliberately not coarsened.**
+`explore_sessions.weather` records what the sky was doing over the session's tile at the moment we
+ranked under it. It is retained for good, because it is the journal's memory of a trip — and
+because it cannot be recovered later: Open-Meteo's forecast endpoint answers "what is the sky doing
+now", not "what was last August like", and the LLM is never a source of facts.
+
+Keeping it is not a retention regression, and the reason is worth stating precisely rather than
+asserting. The row it hangs on already carries the user, the timestamp and (after coarsening) the
+H3 cell, indefinitely and by design. Adding *"14°C, raining"* to a row that already says *"this
+person was in this hex at this hour"* discloses nothing a reader could not derive from a public
+weather archive given the cell and the time. It is **environmental context, not an additional fact
+about the person** — so the retention pass hard-deletes the coordinate (which is sensitive) and
+leaves the sky (which is not), and account deletion takes it via the existing `explore_sessions`
+cascade.
 
 **`cost_events` is personal data, and it was tempting to pretend otherwise** (E24, docs/COST.md §10).
 It looks like an accounting table. It is also a timestamped log of *when* a named person used the

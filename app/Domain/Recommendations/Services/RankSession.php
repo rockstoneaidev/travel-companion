@@ -21,6 +21,7 @@ use App\Domain\Profiles\Services\TasteProfiles;
 use App\Domain\Recommendations\Data\ScoringModel;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Trips\Data\ExploreSessionData;
+use App\Domain\Trips\Services\SessionWeatherLog;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,7 @@ final class RankSession
         private readonly LightContextResolver $light,
         private readonly WeatherClient $weather,
         private readonly GoogleHoursVerifier $hours,
+        private readonly SessionWeatherLog $sessionWeather,
     ) {}
 
     /**
@@ -183,6 +185,13 @@ final class RankSession
         // everyone standing in this hex is standing under the same sky. The hex is all
         // Open-Meteo gets — we used to hand it the session origin, which is a person.
         $weather = $this->weather->forTile($coverage->originCell);
+
+        // Write down the sky we ranked under. Free, in the only sense that matters: the
+        // weather is already fetched (it feeds `weather_c`), so this is a write, not a
+        // call. It is the difference between a journal that can say "it rained the
+        // afternoon you were in Dijon" and one that can only offer `weather_c: 0` — a
+        // coefficient that means "dry" and "we never knew" with equal confidence.
+        $this->sessionWeather->record($session->id, $weather);
 
         $scored = [];
 

@@ -22,11 +22,43 @@ interface JournalEntry {
     occurred_at: string;
 }
 
+/**
+ * The sky while you were there — what we actually observed, not a lookup after the fact
+ * (an observation not written down at the time is gone for good).
+ *
+ * `null` means we never knew, which is NOT the same as "it was dry" — so it renders as
+ * nothing at all rather than as a cheerful claim about a day nobody recorded.
+ */
+interface TripWeather {
+    min_c: number | null;
+    max_c: number | null;
+    wet_observations: number;
+    observations: number;
+}
+
 interface JournalTrip {
     id: string;
     name: string | null;
     started_at: string;
+    weather: TripWeather | null;
     entries: JournalEntry[];
+}
+
+/** "14–19°, some rain" — a range, because a mean is true of a week nobody experienced. */
+function weatherLine(weather: TripWeather): string | null {
+    const parts: string[] = [];
+
+    if (weather.min_c !== null && weather.max_c !== null) {
+        parts.push(weather.min_c === weather.max_c ? `${weather.max_c}°` : `${weather.min_c}–${weather.max_c}°`);
+    }
+
+    if (weather.wet_observations > 0) {
+        parts.push(weather.wet_observations === weather.observations ? 'wet throughout' : 'some rain');
+    } else if (weather.observations > 0) {
+        parts.push('dry');
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 export default function Journal({ trips }: { trips: JournalTrip[] }) {
@@ -86,6 +118,8 @@ function TripSection({ trip }: { trip: JournalTrip }) {
 
                 <span className="text-meta-row text-meta shrink-0">
                     {new Date(trip.started_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                    {/* Silent when we never knew. An absent observation must not become a claim. */}
+                    {trip.weather && weatherLine(trip.weather) && <> · {weatherLine(trip.weather)}</>}
                 </span>
             </div>
 

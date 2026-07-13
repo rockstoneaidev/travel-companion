@@ -50,7 +50,7 @@ final readonly class WeatherContext
         return ! $this->isWet() && ($this->cloudCoverPercent ?? 0) < 70;
     }
 
-    /** @return array<string, mixed> The decision trace (PRD §15). */
+    /** @return array<string, mixed> The decision trace (PRD §15), and the stored snapshot. */
     public function toTrace(): array
     {
         return [
@@ -59,5 +59,28 @@ final readonly class WeatherContext
             'code' => $this->weatherCode,
             'cloud_pct' => $this->cloudCoverPercent,
         ];
+    }
+
+    /**
+     * Read a stored snapshot back (`explore_sessions.weather`).
+     *
+     * Deliberately the inverse of `toTrace()` and nothing else: one shape on the wire,
+     * in the trace, and in the journal. A second serialisation format is a second thing
+     * to drift.
+     *
+     * @param  array<string, mixed>|null  $stored
+     */
+    public static function fromTrace(?array $stored): self
+    {
+        if ($stored === null) {
+            return new self;   // "we never knew" — a valid answer, and not the same as "dry"
+        }
+
+        return new self(
+            temperatureC: isset($stored['temp_c']) ? (float) $stored['temp_c'] : null,
+            precipitationMm: isset($stored['precip_mm']) ? (float) $stored['precip_mm'] : null,
+            weatherCode: isset($stored['code']) ? (int) $stored['code'] : null,
+            cloudCoverPercent: isset($stored['cloud_pct']) ? (int) $stored['cloud_pct'] : null,
+        );
     }
 }

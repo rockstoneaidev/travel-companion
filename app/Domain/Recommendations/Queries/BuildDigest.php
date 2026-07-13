@@ -166,10 +166,24 @@ final class BuildDigest
      */
     private function lede(int $userId, CarbonImmutable $at, bool $evening): string
     {
+        /*
+         * Selected on the CELL, not on the coordinate — and the difference is the whole
+         * point of the cell existing.
+         *
+         * This used to require `origin IS NOT NULL`. The retention pass nulls `origin` at
+         * 30 days and *deliberately keeps* `origin_h3_index` (PRD §16: the coordinate is
+         * the sensitive part, the ~460m hex is not), so the greeting quietly stopped
+         * working for anyone whose last session was over a month old — the one field the
+         * forecast actually needs was sitting right there, and the query was throwing the
+         * row away because a field it does NOT need had been erased.
+         *
+         * Asking for the cell instead is also strictly better privacy: the digest no longer
+         * touches the precise coordinate at all.
+         */
         $session = DB::table('explore_sessions')
-            ->selectRaw('origin_h3_index, ST_Y(origin::geometry) AS lat, ST_X(origin::geometry) AS lng')
+            ->select('origin_h3_index')
             ->where('user_id', $userId)
-            ->whereNotNull('origin')
+            ->whereNotNull('origin_h3_index')
             ->orderByDesc('started_at')
             ->first();
 
