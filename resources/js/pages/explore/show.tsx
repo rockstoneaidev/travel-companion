@@ -97,12 +97,7 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
      * into the simulation. It did: a walk across Vasastaden re-anchored onto Liljeholmen,
      * because that is where the founder's body was (E47, 2026-07-14).
      */
-    const { refresh } = useLivingFeed(
-        exploreSession.id,
-        exploreSession.status === 'active',
-        exploreSession.context_source,
-        coverage.learning,
-    );
+    const { refresh } = useLivingFeed(exploreSession.id, exploreSession.status === 'active', exploreSession.context_source, coverage.learning);
 
     /*
      * "You've moved" — shown only when the server actually replaced the menu.
@@ -302,10 +297,7 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                                 }
                             />
                         ) : (
-                            <EmptyFeed
-                                headline="I don't know this area yet."
-                                body="I'd rather say so than pretend I'm watching."
-                            />
+                            <EmptyFeed headline="I don't know this area yet." body="I'd rather say so than pretend I'm watching." />
                         )
                     ) : (
                         <>
