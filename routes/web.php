@@ -126,6 +126,11 @@ Route::middleware(['auth'])->group(function () {
     // S8 — the digest release valve (PRD §12.4). A screen you find; no push in Phase 1.
     Route::get('digest/today', [DigestController::class, 'today'])->name('digest.today');
 
+    // The digest, drawn as geography. NOT the session map: the digest is a screen you read
+    // over breakfast, and `/map` resolves an active session you do not have — so "Open map"
+    // used to drop you on the session START FORM, which reads as "it started a session".
+    Route::get('digest/today/map', [DigestController::class, 'map'])->name('digest.map');
+
     // S7 — JOURNAL. The seed of "your travel memory belongs to you".
     Route::get('journal', [JournalController::class, 'index'])->name('journal.index');
 

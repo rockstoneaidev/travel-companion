@@ -14,6 +14,8 @@ import { Head, Link, router } from '@inertiajs/react';
  */
 
 interface DigestItem {
+    lat: number | null;
+    lng: number | null;
     image: ThumbImage | null;
     opportunity_id: string;
     title: string;
@@ -96,7 +98,7 @@ export default function Digest({ digest }: DigestProps) {
 
                             <div className="flex items-center justify-between">
                                 <span className="text-quiet text-xs">Save any to today's map</span>
-                                <Link href="/map">
+                                <Link href="/digest/today/map">
                                     <TextAction>Open map</TextAction>
                                 </Link>
                             </div>
