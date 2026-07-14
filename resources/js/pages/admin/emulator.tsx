@@ -148,7 +148,18 @@ export default function Emulator({ emulation, coverage, served, log, controls, s
         if (sessionId === null) return;
 
         const timer = window.setInterval(() => {
-            router.reload({ only: ['coverage', 'served', 'log'] });
+            /*
+             * `spend` MUST be in this list, and leaving it out is a mistake I had already
+             * made once with `coverage`: a partial reload that omits a prop the screen is
+             * about does not merely fail to update it — it freezes it at its first-render
+             * value and keeps showing that, confidently, forever.
+             *
+             * The result was a cost panel whose per-item column filled in with real money
+             * while the TOTAL sat at $0.0000, because `served` was refreshed and `spend`
+             * never was. A number that contradicts the numbers beneath it is worse than no
+             * number at all.
+             */
+            router.reload({ only: ['coverage', 'served', 'log', 'spend'] });
         }, 2_500);
 
         return () => window.clearInterval(timer);

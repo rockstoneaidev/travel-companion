@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { PrimaryPill } from './buttons';
 import { SectionLabel } from './section-label';
+import { Thumb, type ThumbImage } from './thumb';
 
 export interface PeekSheetProps {
     label: string;
@@ -10,6 +11,15 @@ export interface PeekSheetProps {
     /** One line. If it wraps, it is not a peek any more. */
     note: string;
     urgent?: boolean;
+    /**
+     * The photo, or the paper stripe when there is none.
+     *
+     * A pin tells you a place exists; a picture tells you whether you want to go. The feed
+     * has carried images since the photos phase and the map — the screen where you are
+     * deciding *between* places — showed none of them. `Thumb` already draws the stripe
+     * fallback, so a place with no photo degrades into the design rather than a hole.
+     */
+    image?: ThumbImage | null;
     onTakeMe?: () => void;
     /** Tap-through to S4. The sheet body is the target; the pill is not. */
     onOpen?: () => void;
@@ -24,7 +34,7 @@ export interface PeekSheetProps {
  * Everything else is behind the tap-through, which is why the body is the target and
  * only *Take me* stops the bubble.
  */
-export function PeekSheet({ label, meta, title, note, urgent = false, onTakeMe, onOpen, onDismiss, className }: PeekSheetProps) {
+export function PeekSheet({ label, meta, title, note, urgent = false, image = null, onTakeMe, onOpen, onDismiss, className }: PeekSheetProps) {
     return (
         <div
             className={cn(
@@ -49,8 +59,14 @@ export function PeekSheet({ label, meta, title, note, urgent = false, onTakeMe, 
                 <span className="text-meta-row text-meta font-medium">{meta}</span>
             </div>
 
-            <h3 className="text-ink mt-2 font-serif text-lg font-medium">{title}</h3>
-            <p className="text-body-card text-body mt-1 truncate">{note}</p>
+            <div className="mt-2 flex items-start gap-3">
+                <Thumb image={image} />
+
+                <div className="min-w-0 flex-1">
+                    <h3 className="text-ink font-serif text-lg font-medium">{title}</h3>
+                    <p className="text-body-card text-body mt-1 truncate">{note}</p>
+                </div>
+            </div>
 
             <div className="mt-3 flex justify-end">
                 <PrimaryPill onClick={(event) => (event.stopPropagation(), onTakeMe?.())}>Take me</PrimaryPill>

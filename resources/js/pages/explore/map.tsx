@@ -149,6 +149,7 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
                         title={selected.title ?? selected.place.name}
                         note={selected.summary ?? `${selected.place.name} is a short walk from here.`}
                         urgent={selected.urgent}
+                        image={selected.image}
                         onTakeMe={() => takeMe(selected)}
                         onOpen={() => router.visit(`/opportunities/${selected.id}`)}
                         onDismiss={() => setSelectedId(null)}

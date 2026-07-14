@@ -7,6 +7,7 @@ use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Privacy\Actions\DeleteTripLocationHistory;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Recommendations\Queries\BuildDigest;
+use App\Domain\Trips\Models\ExploreSession;
 use App\Domain\Trips\Models\Trip;
 use App\Domain\Trips\Queries\BuildJournal;
 use App\Models\User;
@@ -172,4 +173,28 @@ it('renders the journal screen', function () {
     $this->get('/journal')
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page->component('journal')->has('trips'));
+});
+
+it('opens the digest’s own map, without demanding a session first', function () {
+    $this->actingAs(profilingAsked(User::factory()->create()));
+
+    /*
+     * "Open map" on the digest used to point at `/map`, which resolves the ACTIVE SESSION's
+     * map — and over breakfast there is no active session, so it fell through to the session
+     * start form. The founder reasonably read that as "clicking the map started a new
+     * session".
+     *
+     * The digest is a screen you READ. Asking somebody to declare "I have three hours"
+     * before they may look at a map is the app demanding a commitment in exchange for
+     * information.
+     */
+    $this->get('/digest/today/map')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('digest-map')
+            ->has('items')
+            ->has('lede'));
+
+    // ...and it is emphatically NOT the session start form.
+    expect(ExploreSession::query()->count())->toBe(0);
 });
