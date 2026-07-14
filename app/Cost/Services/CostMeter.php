@@ -133,7 +133,18 @@ final class CostMeter
 
     public function record(CostEntry $entry): void
     {
-        $this->entries[] = $entry;
+        /*
+         * Stamp WHO THIS WAS FOR now, not at flush.
+         *
+         * The context used to be read once, at flush, and applied to every entry alike —
+         * so a request that names a different card partway through (the Stage-B route
+         * lookup for item 3, say) mis-attributed everything before it, and the last id set
+         * won. In practice the ledger could not answer "what did this card cost?" at all:
+         * the emulator asked, and every item came back zero.
+         *
+         * Cost is caused at the moment it is recorded. This is that moment.
+         */
+        $this->entries[] = $entry->correlatedWith($this->context());
     }
 
     /**

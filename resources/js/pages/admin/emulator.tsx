@@ -58,6 +58,7 @@ interface EmulatorProps {
     coverage: { cells: CoverageCell[]; origin_cell: string | null; mode: string } | null;
     served: ServedPin[];
     log: LogLine[];
+    spend: { billed_micros: number; uncached_micros: number };
     controls: {
         travel_modes: Array<{ value: string; label: string }>;
         speeds_kmh: Record<string, number>;
@@ -99,7 +100,18 @@ function csrf(): string {
     return match ? decodeURIComponent(match[1]) : '';
 }
 
-export default function Emulator({ emulation, coverage, served, log, controls }: EmulatorProps) {
+/**
+ * USD, from integer micros (COST.md — money is never a float).
+ *
+ * Shown to 4 decimals because that is the scale the answer actually lives at: a served
+ * feed costs fractions of a cent, and rounding it to "$0.00" would hide the very number
+ * an operator opened this screen to see.
+ */
+function usd(micros: number): string {
+    return `$${(micros / 1_000_000).toFixed(4)}`;
+}
+
+export default function Emulator({ emulation, coverage, served, log, controls, spend }: EmulatorProps) {
     const [pin, setPin] = useState<{ lat: number; lng: number } | null>(emulation?.origin ?? { lat: 59.3103, lng: 18.0227 });
     const [path, setPath] = useState<Array<{ lat: number; lng: number }>>([]);
     const [drawing, setDrawing] = useState(false);
@@ -335,7 +347,8 @@ export default function Emulator({ emulation, coverage, served, log, controls }:
                         {coverage !== null && (
                             <p className="text-muted-foreground text-xs">
                                 Coverage: {coverage.cells.length} res-8 cells ({coverage.mode}) · origin {coverage.origin_cell} · re-anchors past{' '}
-                                {controls.min_drift_meters} m, at most once per {controls.min_interval_seconds}s
+                                {controls.min_drift_meters} m, at most once per {controls.min_interval_seconds}s (emulated sessions re-anchor faster
+                                than a real feed — playback compresses time)
                             </p>
                         )}
                     </div>
@@ -355,6 +368,46 @@ export default function Emulator({ emulation, coverage, served, log, controls }:
                                     src={`/explore/${emulation.id}`}
                                     className="h-[560px] w-full rounded-[24px] border-4 border-neutral-800 bg-white"
                                 />
+                            </div>
+                        )}
+
+                        {emulation !== null && served.length > 0 && (
+                            <div className="rounded-md border p-3 text-xs">
+                                <h2 className="mb-2 flex items-baseline justify-between text-sm font-semibold">
+                                    <span>What it cost</span>
+                                    <span className="text-muted-foreground font-normal">
+                                        {usd(spend.billed_micros)} billed · {usd(spend.uncached_micros)} uncached
+                                    </span>
+                                </h2>
+
+                                <ul className="space-y-1">
+                                    {served.map((item) => (
+                                        <li key={item.id} className="flex justify-between gap-2">
+                                            <span className="truncate">
+                                                {item.position}. {item.name}
+                                            </span>
+                                            <span className="text-muted-foreground shrink-0 tabular-nums">
+                                                {usd(item.billed_micros)} / {usd(item.uncached_micros)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                {/*
+                                 * Two numbers, because one would mislead either way. `billed` is what
+                                 * we actually paid — zero on a cache hit, so on its own the second walk
+                                 * through a warm neighbourhood looks free. `uncached` is what it would
+                                 * have cost cold (COST.md §2.2's counterfactual): the honest "what does
+                                 * serving one of these actually cost" figure. The gap between them is
+                                 * the shared tile cache doing its job.
+                                 *
+                                 * Session-level spend — scouting, weather, the rank itself — is in the
+                                 * TOTAL but hangs on no single card, so it is not apportioned across
+                                 * them. Splitting it would be inventing a number.
+                                 */}
+                                <p className="text-muted-foreground mt-2">
+                                    per item: billed / uncached. The session total includes scouting and ranking, which belong to no single card.
+                                </p>
                             </div>
                         )}
 

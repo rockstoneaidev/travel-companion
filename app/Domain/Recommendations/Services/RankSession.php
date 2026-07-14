@@ -25,6 +25,7 @@ use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Services\SessionWeatherLog;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -153,10 +154,27 @@ final class RankSession
         );
 
         if ($moved !== null) {
-            $fresh = $this->serve($session->reAnchoredAt($moved), ServeReason::MoveReanchor, $at);
+            // `$opening->serve_group` is the state our decision to re-anchor was based on.
+            // If it has changed by the time we hold the lock, the decision is stale.
+            $fresh = $this->serve($session->reAnchoredAt($moved), ServeReason::MoveReanchor, $at, $opening->serve_group);
 
             if ($fresh !== []) {
                 return $fresh;
+            }
+
+            /*
+             * Empty can mean two very different things, and telling them apart is what
+             * stops a race from looking like an outage.
+             *
+             * Another request may have been serving this session while we waited on the
+             * lock — in which case there IS a fresh batch, it simply is not ours. Show
+             * theirs. Only if the group has not moved are we genuinely somewhere with
+             * nothing to say.
+             */
+            $current = $this->latestBatch($session->id);
+
+            if ($current !== [] && $current[0]->serve_group > $opening->serve_group) {
+                return $this->withoutDismissed($current);
             }
 
             /*
@@ -208,15 +226,111 @@ final class RankSession
      *
      * @return list<Recommendation>
      */
-    public function serve(ExploreSessionData $session, ServeReason $reason, ?CarbonImmutable $at = null): array
-    {
+    public function serve(
+        ExploreSessionData $session,
+        ServeReason $reason,
+        ?CarbonImmutable $at = null,
+        ?int $seenGroup = null,
+    ): array {
         if ($session->origin === null) {
             return [];
         }
 
         $at ??= now()->toImmutable()->startOfSecond();
 
+        /*
+         * ONE SERVE AT A TIME, PER SESSION.
+         *
+         * Found by driving the emulator: a five-item feed came back with ten rows, every
+         * position duplicated — Centralbadsparken above Centralbadsparken. Two requests
+         * had raced in here, both read `max(serve_group)` as 1, both concluded they were
+         * group 2, both planned, both persisted.
+         *
+         * The window is not a hair's breadth: `plan()` warms scouts, verifies hours and
+         * scores hundreds of candidates — it takes SECONDS. Any two overlapping pulls
+         * (the map view and the feed view; a page and its poll; a client that retries)
+         * could do this, and in the emulator, where the phone pane and the console poll
+         * the same session, it happened on the first walk anyone took.
+         *
+         * So the read and the write happen inside one lock, and everything decided from
+         * the read — the group number, the backfill's size, the exclusion set — is
+         * computed here, after we hold it. `block()` rather than `get()`: the second
+         * caller should WAIT and then discover there is nothing left to do, not silently
+         * skip a serve the user is waiting for.
+         */
+        $lock = Cache::lock("serve:lock:{$session->id}", 60);
+
+        try {
+            $lock->block(15);
+        } catch (LockTimeoutException) {
+            // Fifteen seconds and still someone else's turn. Whatever they are writing is
+            // the batch the caller wants anyway; let it show what exists rather than
+            // queueing a second rank behind a first that has evidently gone slowly.
+            return [];
+        }
+
+        try {
+            return $this->servedUnderLock($session, $reason, $at, $seenGroup);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /** @return list<Recommendation> */
+    private function servedUnderLock(
+        ExploreSessionData $session,
+        ServeReason $reason,
+        CarbonImmutable $at,
+        ?int $seenGroup,
+    ): array {
         $group = $this->latestGroup($session->id);
+
+        /*
+         * THE WORLD MOVED WHILE WE WAITED. Our decision is stale; drop it.
+         *
+         * This is the check that actually holds, and the interval one below is not a
+         * substitute for it. Observed while driving the emulator: two pulls arrive
+         * together, the first takes the lock and spends TEN SECONDS ranking, the second
+         * wakes up and asks "has anyone served within the last 8 seconds?" — and the
+         * answer is no, because `served_at` is the clock from the START of that rank.
+         * So it served again: two batches, two bills, one walk.
+         *
+         * Comparing the group instead compares what we DECIDED ON against what is now
+         * true, which is the actual question, and it does not care how long the other
+         * rank took.
+         */
+        if ($seenGroup !== null && $group !== $seenGroup) {
+            return [];
+        }
+
+        /*
+         * Re-check the guard now that we hold the lock — this is the half that actually
+         * kills the duplicate.
+         *
+         * We may have queued behind the very request whose work makes ours redundant: it
+         * decided to re-anchor at the same moment, from the same fix, and has just
+         * written the batch. Serving again would produce a second, identical group.
+         * `driftedFrom()` already refuses to re-serve inside the interval; the only
+         * reason it said yes to us is that when we asked, the other serve had not landed.
+         *
+         * ONLY for the automatic path. A manual refresh is a person pressing a button,
+         * and the interval is a courtesy to a reader, not a rule about the world — so it
+         * may not overrule someone who explicitly asked for a fresh menu. They may not
+         * have moved a metre; they may simply have eaten. (RefreshSessionFeed has its own
+         * ceiling, `max_serves_per_session`, which is the guard that belongs on it.)
+         */
+        if ($reason === ServeReason::MoveReanchor && $group > 0) {
+            $last = Recommendation::query()
+                ->where('explore_session_id', $session->id)
+                ->where('serve_group', $group)
+                ->max('served_at');
+
+            $interval = $this->anchor->minIntervalSeconds($session);
+
+            if ($last !== null && CarbonImmutable::parse($last)->diffInSeconds($at, absolute: true) < $interval) {
+                return [];
+            }
+        }
         $feedSize = (int) config('trips.session.feed_size');
 
         /*
@@ -611,6 +725,16 @@ final class RankSession
             // would land with no user, no trip and no session on it — which is precisely
             // how the old serve-path cost blob came to be structurally zero. Cost accretes
             // to ids; the ids have to be carried to where the money is actually spent.
+            /*
+             * AFTER COMMIT, and it matters more than it looks.
+             *
+             * `requestVoiceFor()` runs inside persist()'s transaction, before the
+             * recommendation rows are committed. Dispatched immediately, the job can start
+             * on another worker before that commit lands — and it now looks its
+             * recommendation up by (session, opportunity) to bill the LLM spend to the
+             * right card. It would find nothing, and the single largest real cost in the
+             * product would go back to being unattributable.
+             */
             GenerateOpportunityVoiceJob::dispatch(
                 $opportunities[$candidate['place_id']],
                 $partOfDay,
@@ -620,7 +744,7 @@ final class RankSession
                 $session->id,
                 $session->tripId,
                 $session->contextSource,
-            );
+            )->afterCommit();
         }
     }
 

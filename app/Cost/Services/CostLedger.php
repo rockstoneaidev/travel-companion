@@ -70,7 +70,10 @@ final class CostLedger
                 $this->warnOnUnpricedSpend($entry, $price);
 
                 $rows[] = [
-                    ...$context,
+                    // The entry's own correlation, stamped when the money was actually
+                    // spent. `$context` remains the fallback for entries built outside the
+                    // meter (fixtures, tests) — and for those, nothing changes.
+                    ...($entry->correlation ?? $context),
                     'occurred_at' => $entry->occurredAt ?? now(),
                     'category' => $entry->category->value,
                     'vendor' => $entry->vendor,
