@@ -815,6 +815,7 @@ POST /api/v1/explore-sessions                       ("I have 3 hours from here, 
 GET  /api/v1/explore-sessions/{session}             (session state + current feed)
 GET  /api/v1/explore-sessions/{session}/opportunities
 POST /api/v1/explore-sessions/{session}/context-events
+POST /api/v1/explore-sessions/{session}/refresh     ("fresh picks from here" — re-serve on demand)
 POST /api/v1/explore-sessions/{session}/end
 
 # Recommendations

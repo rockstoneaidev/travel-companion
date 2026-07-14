@@ -109,8 +109,9 @@ Enumerated from the schema, not from memory. Citations are to `database/migratio
 | **Precise location** | `location` (geography Point 4326), `accuracy_meters` | `context_events` | No — **but see §5** |
 | **Precise location** | `origin`, `destination_point` | `explore_sessions` | No — **but see §5** |
 | **Precise location** | `anchor_point` | `trips` | No — **but see §5** |
+| **Precise location** | `anchor` (geography Point 4326 — where the user stood when a feed batch was ranked; **one row per serve, so a session holds a trail of these, not one point**) | `recommendations` | No — **but see §5** |
 | **Declared home** | `home_zone_center`, `home_zone_radius_meters` | `users` | No — **but it is the user's home address** |
-| Coarse location | `h3_index`, `origin_h3_index` (res-8, ~0.7 km²) | `context_events`, `explore_sessions` | No |
+| Coarse location | `h3_index`, `origin_h3_index`, `anchor_h3_index` (res-8, ~0.7 km²) | `context_events`, `explore_sessions`, `recommendations` | No |
 | Device / situational | `battery_level`, `is_low_power_mode`, `app_state`, `movement_mode`, `speed_mps`, `heading` | `context_events` | No |
 | **Companions** | `companions` (jsonb — who the user is travelling with) | `context_events` | No, but personal data *about third parties* — see §4.4 |
 | **Inferred preferences** | `facet_weights` (jsonb), `walk_tolerance_minutes`, `price_band`, `event_counts` | `user_taste_profiles` | **Potentially Art. 9 — see §5** |
@@ -277,7 +278,7 @@ Numbers live in `config/privacy.php` and are enforced nightly by `EnforceRetenti
 | Data | Retention | Then what | Enforced by |
 |---|---|---|---|
 | Raw precise location (`context_events.location`, session `origin` / `destination_point`, `trips.anchor_point`) | **30 days** | Coarsened to H3 res-8; **the coordinate is hard-deleted** | `CoarsenExpiredLocations` |
-| Decision traces (`recommendations`) | Indefinite | Lat/lng stripped out of `score_inputs` at 30 days; the H3 cell and the scores remain | `CoarsenExpiredTraces` |
+| Decision traces (`recommendations`) | Indefinite | At 30 days: lat/lng stripped out of `score_inputs` **and `anchor` nulled**; the H3 cells (`candidate.h3_index`, `anchor_h3_index`) and the scores remain | `CoarsenExpiredTraces` |
 | Traces — **research-consent accounts only** | Indefinite, **full precision** | Nothing. That is what the consent buys. | The `NOT users.research_consent` predicate |
 | Taste profile | Until reset, consent withdrawal, or account deletion | Deleted | `ResetTasteProfile`, `SetProfilingConsent::withdraw` |
 | Calibration answers (`profile_signals`) | Until account deletion | Deleted | FK cascade |

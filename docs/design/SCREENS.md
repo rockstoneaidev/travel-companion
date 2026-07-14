@@ -70,6 +70,32 @@ tab bar.
   if a new one supersedes it, the old card demotes to standard styling in place.
 - Swipe/long-press affordance on cards may expose *Not for me* (also on detail); don't bury it.
 
+### The feed is alive (E46)
+
+The menu is not fixed for the life of the session. PRD §8.1's own loop — *"re-opening the app yields
+a fresh menu, scored against the remaining budget"* — happens **at pull time**, and the client's whole
+part in it is two steps: report where you are, then ask again.
+
+- **On open and on focus**, the client POSTs the current position to
+  `POST /explore-sessions/{s}/context-events`, then re-pulls the feed. Never on a timer: a re-pull
+  while someone is reading moves cards out from under their thumb. Never a permission prompt either —
+  it reports only if geolocation is *already* granted (PRD §16, "honest permission UX").
+- **The server decides whether you moved**, not the client. Past a drift threshold (`config
+  trips.reanchor`, 400 m, discounted by the device's own claimed accuracy) it ranks a **new serve
+  batch** from where you now are. The feed payload carries `serve.{group, reason, anchor}`; when
+  `group` climbs and `reason` is `move_reanchor`, S1 shows one quiet line — *"You've moved — these are
+  picks for where you are now."* It is a note, not an offer, and never a modal: the new cards are
+  already below it.
+- **"Fresh picks from here"** (`POST /explore-sessions/{s}/refresh`), a quiet action beside *End
+  session*. No drift test — the user may not have moved a metre, they may simply have eaten.
+- **Dismiss backfills.** Once the deferred `dismissed` POST lands, the feed reloads and the server
+  tops the batch back up to `feed_size` — a card slides into the gap rather than the menu simply
+  getting shorter. The replacement excludes everything already served in the batch, and a dismissed
+  **place** is excluded from every later batch of the session (not just the row that carried it).
+
+Superseded batches are never rewritten: they stay as decision traces (PRD §15.1), and the replayer
+replays each serve on its own clock and its own anchor.
+
 ## S2 · Session start — "I'm exploring"
 
 **Route** `/` (no active session) · **Action** `POST /api/v1/explore-sessions`

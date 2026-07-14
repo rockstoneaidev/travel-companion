@@ -50,6 +50,44 @@ return [
         'max_reach_meters' => 120_000,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | The living feed (E46, PRD §8.1 "re-opening yields a fresh menu", §9.2)
+    |--------------------------------------------------------------------------
+    |
+    | A session's feed is re-served when the user has actually MOVED, when they
+    | ask for fresh picks, or when dismissals have thinned the menu. These are the
+    | numbers that decide "actually moved" — in config, not at the call site,
+    | because they are a product decision about how twitchy the feed feels.
+    |
+    */
+
+    'reanchor' => [
+        // How far from the batch's anchor before the feed is ranked from somewhere
+        // else. A res-8 cell is ~875 m across, so 400 m is "you are meaningfully
+        // elsewhere in this neighbourhood" — Liljeholmen → Hornstull is ~1.5 km and
+        // fires comfortably. Deliberately a DISTANCE and not "the H3 cell changed":
+        // a cell test flaps for anyone standing on a tile boundary, re-serving the
+        // feed every time they cross the street.
+        'min_drift_meters' => 400,
+
+        // Never two automatic re-serves closer together than this. A re-serve is a
+        // rank (cheap: tiles are cached) but it also churns the user's menu, and a
+        // menu that reshuffles while you read it is worse than a stale one.
+        'min_interval_seconds' => 120,
+
+        // Safety net on cost and churn: a pathological client posting positions in a
+        // loop must not be able to rank a session an unbounded number of times.
+        // Explicit refreshes and backfills count too — this is a ceiling on serves,
+        // not on movement.
+        'max_serves_per_session' => 20,
+
+        // How stale a context event may be and still be treated as "where the user
+        // is now". Beyond this we fall back to the last anchor rather than
+        // re-ranking from a position that may be an hour old.
+        'position_max_age_seconds' => 900,
+    ],
+
     'feed' => [
         // An opportunity wins the GO NOW slot only if its window closes within
         // this horizon (SCREENS S1). Wider, and "go now" stops meaning now.

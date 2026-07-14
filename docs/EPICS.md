@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Live — the work plan is on GitHub; this file is the map. Phase 1: M1–M3 · Phase 2: M4–M6 (entry gate **lifted** 2026-07-14 — see the Phase 2 entry note; #46 first) |
+| **Status** | Live — the work plan is on GitHub; this file is the map. Phase 1: M1–M3 · Phase 2: M4–M6 (entry gate **lifted** 2026-07-14 — see the Phase 2 entry note; #46 **done**) |
 | **Created** | Phase 1: 2026-07-12 · Phase 2: 2026-07-14 · issue numbers match epic codes (E1 = #1 … E47 = #47; #20/21/23/26/27 are PRs, not epics) |
 | **Milestones** | [M1 — Stockholm walking skeleton](https://github.com/rockstoneaidev/travel-companion/milestone/1) (due Jul 18) · [M2 — France-ready](https://github.com/rockstoneaidev/travel-companion/milestone/2) (freeze Jul 25; trip Jul 27–Aug 7) · [M3 — Phase 1 complete](https://github.com/rockstoneaidev/travel-companion/milestone/3) · [M4 — Proactive skeleton](https://github.com/rockstoneaidev/travel-companion/milestone/4) · [M5 — Road-trip grade](https://github.com/rockstoneaidev/travel-companion/milestone/5) · [M6 — Phase 2 complete](https://github.com/rockstoneaidev/travel-companion/milestone/6) |
 
@@ -49,8 +49,8 @@ authoritative — epics carry scope, not design.
 | # | Epic | Track | Depends on |
 |---|---|---|---|
 | [#25](https://github.com/rockstoneaidev/travel-companion/issues/25) | Cost explorer, rollup & allocation | platform | 24 |
-| [#47](https://github.com/rockstoneaidev/travel-companion/issues/47) | Position emulator: map, mode-timed playback, device preview & pipeline log (ADMIN §6+) | platform | — (**build first** — the dev harness for 46) |
-| [#46](https://github.com/rockstoneaidev/travel-companion/issues/46) | The living feed: move re-anchor, fresh picks & dismiss backfill | backend | 47 (dev harness) — the §8.1 loop, found missing in Stockholm field testing |
+| [#47](https://github.com/rockstoneaidev/travel-companion/issues/47) | Position emulator: map, mode-timed playback, device preview & pipeline log (ADMIN §6+) | platform | — (the dev harness for 46) |
+| [#46](https://github.com/rockstoneaidev/travel-companion/issues/46) | The living feed: move re-anchor, fresh picks & dismiss backfill | backend | **DONE 2026-07-14** — serve batches (`recommendations.serve_group` / `serve_reason` / `anchor`); the client finally calls `context-events`; dismissals exclude by *place*, session-wide; replayer replays each serve on its own clock and anchor |
 
 *#19 (pilot expansion & exit-criteria instrumentation) moved to M6 — founder decision 2026-07-14;
 see the Phase 2 entry note below.*
@@ -88,8 +88,8 @@ the #19 exit-criteria read after the France pilot. The founder deems Stockholm l
 sufficient to proceed: Phase 2 epics may start now, and #19 moves to M6 — the pilot metrics
 (acceptance rate, confirmed "would have missed this", blind test vs. Google Maps) are deferred,
 not dropped, and the France trip (Jul 27–Aug 7) remains the natural data-collection window.
-Sequencing note that survives the gate: **#46 (the living feed) comes first** — it is the Phase 1
-loop working as §8.1 intended, and everything proactive builds on it. The notification-quality
+Sequencing note that survived the gate: **#46 (the living feed) came first — DONE 2026-07-14.** It
+is the Phase 1 loop working as §8.1 intended, and everything proactive builds on it. The notification-quality
 assumption (§8.2: "on top of proven recommendation quality") now rests on founder field judgment
 until #19's numbers exist; revisit before the first push reaches a non-founder (#44 measures it).
 
@@ -153,8 +153,9 @@ and the whole trip replays in the replayer.
 ### Critical path & parallel tracks (Phase 2)
 
 ```text
-First:     #47 → #46 (emulator, then the living feed developed against it;
-                       gate lifted 2026-07-14)
+Done:      #46 (living feed — the §8.1 loop, 2026-07-14). #47 (the emulator, its dev
+                 harness) landed as a plan first and is still the way to drive the loop
+                 without walking around Stockholm.
 Mobile:    #28 → #33 → #34 ─┬→ #36 · #37         (the new track; battery + permission UX
                             │                     are make-or-break, PRD risk 4)
 Backend:   #29 → #30 → #31 ─┘                     (the interruption spine, PRD risk 5)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Opportunities\Queries\ListOpportunitiesForSession;
+use App\Domain\Recommendations\Queries\CurrentServe;
 use App\Domain\Recommendations\Queries\PendingVisitPrompts;
 use App\Domain\Trips\Actions\StartExploreSession;
 use App\Domain\Trips\Data\ExploreSessionData;
@@ -85,12 +86,17 @@ final class ExploreSessionController extends Controller
         ExploreSession $exploreSession,
         ListOpportunitiesForSession $listOpportunities,
         PendingVisitPrompts $pendingVisitPrompts,
+        CurrentServe $currentServe,
     ): Response {
         $opportunities = $listOpportunities(ExploreSessionData::fromModel($exploreSession));
 
         return Inertia::render('explore/show', [
             'session' => new ExploreSessionResource($exploreSession->load('trip')),
             'opportunities' => SessionOpportunityResource::collection($opportunities),
+            // Which batch this is (E46). Read AFTER the feed, because the feed is what
+            // decides whether this pull re-anchored; asking first would describe the
+            // menu the user is being moved away from.
+            'serve' => $currentServe->for($exploreSession->id)?->toArray(),
             // "Were you there?" — the time half of the rule is settled here; the
             // client applies the proximity half (SCREENS S4).
             'visitPrompts' => VisitPromptResource::collection(

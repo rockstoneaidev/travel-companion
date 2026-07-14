@@ -19,11 +19,13 @@ use App\Domain\Places\Services\TileUniquenessSignals;
 use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Profiles\Services\TasteProfiles;
 use App\Domain\Recommendations\Data\ScoringModel;
+use App\Domain\Recommendations\Enums\ServeReason;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Services\SessionWeatherLog;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -70,11 +72,27 @@ final class RankSession
         private readonly WeatherClient $weather,
         private readonly GoogleHoursVerifier $hours,
         private readonly SessionWeatherLog $sessionWeather,
+        private readonly SessionAnchor $anchor,
     ) {}
 
     /**
-     * The ranked feed for a session — served once, then replayed from the
-     * stored recommendations (server order is the order, SCREENS S1).
+     * The ranked feed for a session — the LATEST serve batch, re-serving first if
+     * the user has moved or dismissed their way below a full menu (E46).
+     *
+     * This used to serve once and replay the same rows forever, which is the bug the
+     * founder walked into in Stockholm: the feed you got in Liljeholmen was still the
+     * feed you had in Hornstull, and a dismissed card left a hole that never filled.
+     * PRD §8.1 always said the menu refreshes ("re-opening the app yields a fresh
+     * menu, scored against the remaining budget") — it simply was not wired.
+     *
+     * So a pull is now allowed to *do* something. Three things, in priority order:
+     *
+     *   1. MOVED  → rank a new batch from where they now are (§9.2).
+     *   2. THINNED → top the current batch back up to feed_size.
+     *   3. neither → replay, exactly as before.
+     *
+     * Only one of those can fire per pull, and (1) subsumes (2): a re-anchored batch
+     * is a full menu by construction, so there is nothing to backfill.
      *
      * @return list<Recommendation>
      */
@@ -86,27 +104,160 @@ final class RankSession
         // question the whole thing exists for — cost per active trip-hour (PRD §14.3).
         $this->cost->onTrip($session->tripId)->onSession($session->id);
 
-        $existing = Recommendation::query()
-            ->where('explore_session_id', $session->id)
-            ->orderBy('position')
-            ->get()
-            ->all();
+        $batch = $this->latestBatch($session->id);
 
-        if ($existing !== [] || $session->origin === null) {
-            // "Not for me" has to survive a reload, and the replay is where it was
-            // being lost: the feed is served ONCE and thereafter replayed from these
-            // stored rows, so a dismissal that only hid the card client-side came
-            // straight back on the next GET. The ledger already knew; nothing asked it.
-            //
-            // Filtered on the way out rather than deleted or flagged on the row: the
-            // recommendation is the decision trace (PRD §15.1) and must keep saying
-            // what we served, even after the user tells us they didn't want it.
-            return $this->withoutDismissed($existing);
+        if ($batch === []) {
+            return $session->origin === null
+                ? []
+                : $this->serve($session, ServeReason::Initial);
         }
 
-        $plan = $this->plan($session);
+        /*
+         * An ended or expired session is a record, not a feed. It must still REPLAY —
+         * the KEPT screen and the trip journal read these rows, and "why did I get
+         * this?" has to keep answering — but nothing may re-rank it. A session whose
+         * budget ran out an hour ago has no "remaining budget" to score against, and
+         * re-serving one would quietly resurrect a dead session as a live one.
+         */
+        if (! $session->isLive()) {
+            return $this->withoutDismissed($batch);
+        }
 
-        return DB::transaction(fn (): array => $this->persist($session, $plan));
+        $at = now()->toImmutable()->startOfSecond();
+        $opening = $batch[0];
+
+        /*
+         * No budget left, no re-rank.
+         *
+         * PRD §8.1 re-serves "against the REMAINING budget", and when that is zero there
+         * is nothing to rank: every candidate fails the reachability gate by definition,
+         * so the pipeline would run in full and return an empty feed. Which is precisely
+         * what it did — a session whose three hours had quietly run out re-anchored on
+         * the next pull, found nothing reachable, and BLANKED a feed that was showing
+         * five cards.
+         *
+         * (Such a session is usually `expired` too; this does not depend on the reaper
+         * having got to it. A budget that ran out is a budget that ran out.)
+         */
+        if (ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at) <= 0) {
+            return $this->withoutDismissed($batch);
+        }
+
+        $moved = $this->anchor->driftedFrom(
+            $session,
+            $opening->anchor,
+            $opening->served_at,
+            $this->serveCount($session->id),
+            $at,
+            $this->dryUntil($session->id),
+        );
+
+        if ($moved !== null) {
+            $fresh = $this->serve($session->reAnchoredAt($moved), ServeReason::MoveReanchor, $at);
+
+            if ($fresh !== []) {
+                return $fresh;
+            }
+
+            /*
+             * We moved somewhere we have nothing to say about — the launch region has an
+             * edge, and the user just walked over it (PRD §8.1, "graceful degradation
+             * elsewhere"). Two things must NOT happen here, and both did:
+             *
+             *  1. The feed must not go empty. Degrading gracefully means keeping the last
+             *     menu we could actually stand behind, not deleting it. Blanking the
+             *     screen is not honesty about coverage, it is a regression.
+             *  2. We must not re-rank on the next pull, and the one after that. A serve
+             *     that picks nothing writes no rows, so `served_at` never advances and
+             *     the min-interval guard never trips — every pull would run the whole
+             *     pipeline again, forever, for a user standing still outside the region.
+             *     So we remember the dry run and hold off, exactly as if we had served.
+             */
+            $this->markDry($session->id);
+        }
+
+        // "Not for me" has to survive a reload, and the replay is where it was being
+        // lost: a dismissal that only hid the card client-side came straight back on
+        // the next GET. Filtered on the way out rather than deleted or flagged on the
+        // row: the recommendation is the decision trace (PRD §15.1) and must keep
+        // saying what we served, even after the user tells us they didn't want it.
+        $alive = $this->withoutDismissed($batch);
+
+        if (count($alive) < (int) config('trips.session.feed_size') && $session->origin !== null) {
+            $anchor = $opening->anchor ?? $session->origin;
+
+            // Backfill ranks from where the batch was anchored, NOT from wherever the
+            // user is now. If they had moved, we would have taken the re-anchor branch
+            // above; since they haven't, the menu they are looking at is still the menu
+            // for here, and the card sliding into the gap belongs to it.
+            $topUp = $this->serve($session->reAnchoredAt($anchor), ServeReason::DismissBackfill, $at);
+
+            return [...$alive, ...$topUp];
+        }
+
+        return $alive;
+    }
+
+    /**
+     * Rank and persist one batch — the single write path for every serve reason.
+     *
+     * `$session` arrives already re-anchored: its `origin` IS the anchor to rank
+     * from, so nothing below this line has any concept of the user having moved.
+     * That is the whole trick of E46 — movement is expressed as a different origin,
+     * and the pipeline that was written for one origin needed no notion of a second.
+     *
+     * @return list<Recommendation>
+     */
+    public function serve(ExploreSessionData $session, ServeReason $reason, ?CarbonImmutable $at = null): array
+    {
+        if ($session->origin === null) {
+            return [];
+        }
+
+        $at ??= now()->toImmutable()->startOfSecond();
+
+        $group = $this->latestGroup($session->id);
+        $feedSize = (int) config('trips.session.feed_size');
+
+        /*
+         * A dismissal is forever, for this session, and it is keyed on the PLACE.
+         *
+         * `withoutDismissed()` filters recommendation ROWS, which was sufficient when a
+         * session had exactly one batch. It is not sufficient now: the next batch ranks
+         * the same candidate pool afresh, so the café you just said "not for me" to
+         * would be re-picked as a brand-new row that carries no dismissal — and come
+         * straight back, one card lower. The exclusion has to follow the place, not the
+         * row that happened to carry it.
+         */
+        $exclude = $this->dismissedPlaceIds($session->id);
+
+        if ($reason->opensNewGroup()) {
+            $group += 1;
+            $offset = 0;
+            $limit = $feedSize;
+        } else {
+            // A backfill joins the batch on screen. It may only add what is missing,
+            // and it must not add a second copy of a card already sitting there.
+            $inGroup = $this->batchFor($session->id, $group);
+            $offset = $this->highestPosition($session->id, $group);
+            $limit = $feedSize - count($this->withoutDismissed($inGroup));
+            $exclude = array_values(array_unique([...$exclude, ...$this->placeIdsOf($inGroup)]));
+
+            if ($limit <= 0) {
+                return [];
+            }
+        }
+
+        $plan = $this->plan($session, $at, null, $exclude, $limit);
+
+        if ($plan['picked'] === []) {
+            // Nothing left to say. Honest silence beats an empty batch row, and the
+            // group counter must not advance on a serve that served nothing —
+            // otherwise `max_serves_per_session` burns down on failures.
+            return [];
+        }
+
+        return DB::transaction(fn (): array => $this->persist($session, $plan, $reason, $group, $offset));
     }
 
     /**
@@ -114,10 +265,17 @@ final class RankSession
      * an injectable clock and scoring model — the replayer's entry point.
      * Warms the shared tile cache but never writes recommendations.
      *
+     * @param  list<string>  $excludePlaceIds  places this session may not offer again (E46: dismissed, or already in the batch being topped up)
+     * @param  int|null  $feedSize  how many to pick; null = the configured menu size. A backfill asks for fewer.
      * @return array{picked: list<array<string, mixed>>, held: list<array<string, mixed>>, model: ScoringModel, alpha: float, context: string, scout_summary: array, rank_ms: int}
      */
-    public function plan(ExploreSessionData $session, ?CarbonImmutable $at = null, ?ScoringModel $modelOverride = null): array
-    {
+    public function plan(
+        ExploreSessionData $session,
+        ?CarbonImmutable $at = null,
+        ?ScoringModel $modelOverride = null,
+        array $excludePlaceIds = [],
+        ?int $feedSize = null,
+    ): array {
         // Second precision, deliberately.
         //
         // `served_at` is a timestamp(0) — the database truncates it. So a serve
@@ -153,6 +311,27 @@ final class RankSession
 
         $scoutSummary = $this->runner->warm($coverage);
         $candidates = $this->dedupe($this->runner->candidates($coverage->allTiles()));
+
+        /*
+         * Excluded before scoring, for the same reason the home zone is (below): a
+         * place the user has dismissed must never be scored, never be learned from,
+         * and never re-enter the funnel as a near-miss the digest could resurface.
+         * "Not for me" is not "rank this lower" — it is "stop showing me this".
+         *
+         * The count is kept for the trace: PRD §15.3 says a bounded pipeline must say
+         * so out loud, and "we had 40 candidates, you had already refused 6 of them"
+         * is exactly the kind of silent narrowing that section exists to prevent.
+         */
+        $excluded = 0;
+
+        if ($excludePlaceIds !== []) {
+            $before = count($candidates);
+            $candidates = array_values(array_filter(
+                $candidates,
+                static fn (array $c): bool => ! in_array($c['place_id'], $excludePlaceIds, true),
+            ));
+            $excluded = $before - count($candidates);
+        }
 
         $remaining = ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at);
         $gated = $this->gate->filter(
@@ -203,7 +382,7 @@ final class RankSession
         // selection ever sees a candidate — a held item must not merely rank low.
         $decided = $evidence->partition($scored);
 
-        $feedSize = (int) config('trips.session.feed_size');
+        $feedSize ??= (int) config('trips.session.feed_size');
 
         /*
          * VERIFY, THEN RE-SELECT (conventions/09, conventions/12).
@@ -273,6 +452,12 @@ final class RankSession
             // could never answer "why was this not offered to me" — which is the
             // only question a decision trace exists to answer (PRD §15.1).
             'unreachable' => $this->unreachableTrace($gated['excluded']),
+            // Coverage honesty (PRD §15.3): how many candidates this session is no
+            // longer allowed to offer, because the user already said no to them.
+            'excluded_count' => $excluded,
+            // The res-8 cell we ranked from — the coarse survivor of the anchor once
+            // PRD §16's 30-day retention has hard-deleted the coordinate itself.
+            'origin_cell' => $coverage->originCell,
             'model' => $model,
             'alpha' => $alpha,
             'context' => $context,
@@ -287,10 +472,17 @@ final class RankSession
 
     /**
      * @param  array{picked: list<array<string, mixed>>, held: list<array<string, mixed>>, model: ScoringModel, scout_summary: array, rank_ms: int}  $plan
+     * @param  int  $group  the batch these rows belong to
+     * @param  int  $positionOffset  a backfill appends after the positions already in the batch
      * @return list<Recommendation>
      */
-    private function persist(ExploreSessionData $session, array $plan): array
-    {
+    private function persist(
+        ExploreSessionData $session,
+        array $plan,
+        ServeReason $reason,
+        int $group,
+        int $positionOffset,
+    ): array {
         $picked = $plan['picked'];
         $model = $plan['model'];
 
@@ -311,7 +503,16 @@ final class RankSession
                 'explore_session_id' => $session->id,
                 'trip_id' => $session->tripId,
                 'user_id' => $session->userId,
-                'position' => $position + 1,
+                'position' => $positionOffset + $position + 1,
+                // The batch this row belongs to, why it was served, and where it was
+                // ranked FROM (E46). The anchor is `$session->origin` because a
+                // re-anchored serve is literally the same session with a different
+                // origin — see serve(). It is NOT `explore_sessions.origin`, which
+                // means "where the session started" and never moves.
+                'serve_group' => $group,
+                'serve_reason' => $reason,
+                'anchor' => $session->origin,
+                'anchor_h3_index' => $plan['origin_cell'],
                 'scores' => [...$candidate['sub_scores'], 'friction_raw' => $candidate['friction_raw'], 'composite' => $candidate['composite']],
                 'score_inputs' => [
                     'candidate' => $this->snapshot($candidate),
@@ -322,6 +523,10 @@ final class RankSession
                     // got the chance to compete (PRD §15.1 — the full decision
                     // trace, not just the winner's half of it).
                     'funnel' => [
+                        // Candidates this session may no longer offer because they were
+                        // dismissed (or are already on screen, for a backfill). Recorded
+                        // so the trace cannot silently narrow (PRD §15.3).
+                        'excluded' => $plan['excluded_count'],
                         'unreachable' => $plan['unreachable'],
                         'held' => array_map(static fn (array $c): array => [
                             'place_id' => $c['place_id'], 'name' => $c['name'], 'hold' => $c['hold'],
@@ -665,6 +870,137 @@ final class RankSession
         }
 
         return array_values($byPlace);
+    }
+
+    /**
+     * "We just tried to re-serve this session and had nothing to offer."
+     *
+     * The cost brake on the edge of the launch region. A fruitless rank writes no rows,
+     * so it leaves no `served_at` behind and the min-interval guard has nothing to bite
+     * on — without this marker, a user standing outside our coverage would re-run the
+     * entire pipeline on every single pull.
+     *
+     * In the cache rather than a column: it is a rate limiter, not a fact about the
+     * session, and losing it to a Redis flush costs one extra rank.
+     */
+    private function markDry(string $sessionId): void
+    {
+        $seconds = (int) config('trips.reanchor.min_interval_seconds');
+
+        Cache::put("serve:dry:{$sessionId}", true, $seconds);
+    }
+
+    private function dryUntil(string $sessionId): bool
+    {
+        return Cache::get("serve:dry:{$sessionId}", false) === true;
+    }
+
+    /**
+     * The batch currently on screen: the highest serve group, in order (E46).
+     *
+     * Superseded groups are not deleted and not returned. They stay exactly as they
+     * were written, because they are the record of what we served at the time — and
+     * PRD §15.1 does not let us rewrite that just because the user has since walked
+     * somewhere else.
+     *
+     * @return list<Recommendation>
+     */
+    private function latestBatch(string $sessionId): array
+    {
+        $group = $this->latestGroup($sessionId);
+
+        return $group === 0 ? [] : $this->batchFor($sessionId, $group);
+    }
+
+    /** @return list<Recommendation> */
+    private function batchFor(string $sessionId, int $group): array
+    {
+        return Recommendation::query()
+            ->where('explore_session_id', $sessionId)
+            ->where('serve_group', $group)
+            ->orderBy('position')
+            ->get()
+            ->all();
+    }
+
+    /** 0 when the session has never been served. */
+    private function latestGroup(string $sessionId): int
+    {
+        return (int) Recommendation::query()
+            ->where('explore_session_id', $sessionId)
+            ->max('serve_group');
+    }
+
+    private function highestPosition(string $sessionId, int $group): int
+    {
+        return (int) Recommendation::query()
+            ->where('explore_session_id', $sessionId)
+            ->where('serve_group', $group)
+            ->max('position');
+    }
+
+    /**
+     * How many times this session has been ranked — the ceiling behind
+     * `max_serves_per_session`. Counts RANK PASSES, not batches: a backfill is a
+     * rank, it costs what a rank costs, and it must count against the budget even
+     * though it joins an existing group.
+     */
+    private function serveCount(string $sessionId): int
+    {
+        return (int) Recommendation::query()
+            ->where('explore_session_id', $sessionId)
+            ->distinct()
+            ->count('served_at');
+    }
+
+    /**
+     * The places this session has already been told "no" to.
+     *
+     * Keyed on the place, not the recommendation: the next batch re-ranks the same
+     * candidate pool from scratch, so a row-level dismissal would be invisible to it
+     * and the refused café would walk straight back into the feed as a fresh row.
+     *
+     * @return list<string>
+     */
+    private function dismissedPlaceIds(string $sessionId): array
+    {
+        $all = Recommendation::query()
+            ->where('explore_session_id', $sessionId)
+            ->get()
+            ->all();
+
+        if ($all === []) {
+            return [];
+        }
+
+        $aliveIds = array_map(
+            static fn (Recommendation $r): string => $r->id,
+            $this->withoutDismissed($all),
+        );
+
+        return $this->placeIdsOf(array_values(array_filter(
+            $all,
+            static fn (Recommendation $r): bool => ! in_array($r->id, $aliveIds, true),
+        )));
+    }
+
+    /**
+     * @param  list<Recommendation>  $recommendations
+     * @return list<string>
+     */
+    private function placeIdsOf(array $recommendations): array
+    {
+        $ids = [];
+
+        foreach ($recommendations as $recommendation) {
+            $placeId = $recommendation->score_inputs['candidate']['place_id'] ?? null;
+
+            if (is_string($placeId)) {
+                $ids[] = $placeId;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Recommendations\Models;
 
+use App\Domain\Places\Casts\AsCoordinates;
+use App\Domain\Recommendations\Enums\ServeReason;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,6 +33,12 @@ final class Recommendation extends Model
             'cost' => 'array',
             'taxonomy_version' => 'integer',
             'served_at' => 'immutable_datetime',
+            // Which batch, why, and where we ranked from (E46). The anchor is
+            // per-serve: a session's origin is where it STARTED, not where the
+            // feed in front of you was ranked.
+            'serve_group' => 'integer',
+            'serve_reason' => ServeReason::class,
+            'anchor' => AsCoordinates::class,
         ];
     }
 }

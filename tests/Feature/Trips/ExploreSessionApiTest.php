@@ -66,9 +66,12 @@ it('runs the whole session round-trip: start → feed → context event → end'
 
     $this->getJson("/api/v1/explore-sessions/{$sessionId}/opportunities")
         ->assertOk()
-        ->assertJsonPath('data', [])                                   // nothing scouted yet — E5
-        ->assertJsonPath('meta.ordering', 'distance')                  // and nothing ranked yet — E7
-        ->assertJsonPath('meta.scoring_model_version', null);
+        ->assertJsonPath('data', [])                                   // nothing scouted in this fixture
+        // `serve` is null because nothing was served, not because the feed is unranked:
+        // the old `ordering: distance` / `scoring_model_version: null` meta outlived E7
+        // by months and told every API client the feed was a distance sort (E46).
+        ->assertJsonPath('meta.serve', null)
+        ->assertJsonPath('meta.explore_session_id', $sessionId);
 
     $this->postJson("/api/v1/explore-sessions/{$sessionId}/context-events", [
         'timestamp' => '2026-07-13T15:22:00+02:00',

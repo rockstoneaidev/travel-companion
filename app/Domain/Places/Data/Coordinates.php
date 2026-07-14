@@ -43,6 +43,28 @@ final readonly class Coordinates
     }
 
     /**
+     * Great-circle distance in metres.
+     *
+     * In PHP rather than PostGIS on purpose: the callers that need it (the home-zone
+     * test, the E46 drift test) are deciding whether to do work at all, and asking
+     * the database how far the user has walked before deciding whether to query the
+     * database is a round-trip to save nothing.
+     */
+    public function distanceTo(self $other): float
+    {
+        $earthRadiusMeters = 6_371_008.8;
+
+        $lat1 = deg2rad($this->lat);
+        $lat2 = deg2rad($other->lat);
+        $deltaLat = $lat2 - $lat1;
+        $deltaLng = deg2rad($other->lng - $this->lng);
+
+        $a = sin($deltaLat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($deltaLng / 2) ** 2;
+
+        return 2 * $earthRadiusMeters * asin(min(1.0, sqrt($a)));
+    }
+
+    /**
      * Parse the hex EWKB PostGIS returns for a geography point.
      *
      * Layout: 1 byte endianness · 4 bytes type (0x20000000 = has SRID) ·

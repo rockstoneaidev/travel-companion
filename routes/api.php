@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\ExploreSessionContextEventController;
 use App\Http\Controllers\Api\V1\ExploreSessionController;
 use App\Http\Controllers\Api\V1\ExploreSessionEndController;
 use App\Http\Controllers\Api\V1\ExploreSessionOpportunityController;
+use App\Http\Controllers\Api\V1\ExploreSessionRefreshController;
 use App\Http\Controllers\Api\V1\PlaceSearchController;
 use App\Http\Controllers\Api\V1\RecommendationFeedbackController;
 use App\Http\Controllers\Api\V1\TripController;
@@ -50,6 +51,13 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     Route::post('explore-sessions/{exploreSession}/context-events', [ExploreSessionContextEventController::class, 'store'])
         ->middleware('throttle:context-events')
         ->name('explore-sessions.context-events.store');
+
+    // "Fresh picks from here" (E46). Throttled like the feed, because that is exactly
+    // what it is: a re-rank, with the same fan-out to paid APIs behind it.
+    Route::post('explore-sessions/{exploreSession}/refresh', [ExploreSessionRefreshController::class, 'store'])
+        ->middleware('throttle:explore-feed')
+        ->can('update', 'exploreSession')
+        ->name('explore-sessions.refresh.store');
 
     Route::post('explore-sessions/{exploreSession}/end', [ExploreSessionEndController::class, 'store'])
         ->can('update', 'exploreSession')

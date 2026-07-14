@@ -14,6 +14,9 @@ final readonly class LocationErasureReport
         public string $tripId,
         public int $tripRowsErased,
         public int $contextEventsErased,
+        // Recommendation traces whose serve anchor was erased (E46). Traces survive;
+        // their geography does not.
+        public int $tracesErased = 0,
     ) {}
 
     /** @return array<string, mixed> */
@@ -23,6 +26,7 @@ final readonly class LocationErasureReport
             'trip_id' => $this->tripId,
             'trip_rows_erased' => $this->tripRowsErased,
             'context_events_erased' => $this->contextEventsErased,
+            'traces_erased' => $this->tracesErased,
         ];
     }
 }
