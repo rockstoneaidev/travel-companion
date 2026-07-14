@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Jobs\Ingest;
 
-use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Exceptions\OverpassRateLimited;
 use App\Domain\Sources\Services\RegionBuildStatus;
+use App\Domain\Sources\Services\RegionCatalog;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Enums\QueueLane;
 use Illuminate\Bus\Batchable;
@@ -94,9 +94,49 @@ final class IngestRegionBoxJob implements ShouldQueue
         public readonly string $regionKey,
         public readonly string $source,
         public readonly int $box,
+        /*
+         * The pin, carried so this job resolves the SAME box list the batch was built
+         * from (E48).
+         *
+         * `$box` is an INDEX, and an index means nothing without the ordering it indexes
+         * into. The batch is built nearest-first when a region is being learned on
+         * demand; if this job re-derived the plain grid order, index 0 would be the
+         * south-west corner instead of the ground under the user's feet — and every box
+         * would silently fetch the wrong bbox. The ordering must travel with the index or
+         * the index is a lie.
+         */
+        public readonly ?float $nearLat = null,
+        public readonly ?float $nearLng = null,
     ) {
         $this->onQueue(QueueLane::Ingest->value);
         $this->onConnection(QueueLane::Ingest->connection());
+    }
+
+    /**
+     * The pin, or null — SAFE ACROSS A DEPLOY.
+     *
+     * `isset()`, not a direct read, and the difference is a production outage. A queued
+     * job is unserialized WITHOUT its constructor running, so a job that was already on
+     * the queue when this property was added has no value for it — not null, *uninitialized*
+     * — and touching a typed property in that state is a fatal Error, not a null.
+     *
+     * It happened here, immediately: fifty-one Overpass boxes queued by the previous
+     * build died on "must not be accessed before initialization" the moment the new code
+     * shipped. In production that is a rolling deploy quietly killing every in-flight job.
+     *
+     * `isset()` on an uninitialized typed property is false, and never throws. An old job
+     * therefore falls back to plain grid order — which is exactly what it was dispatched
+     * expecting.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function pin(): ?array
+    {
+        if (! isset($this->nearLat, $this->nearLng)) {
+            return null;
+        }
+
+        return [$this->nearLat, $this->nearLng];
     }
 
     public function handle(RegionIngest $ingest, RegionBuildStatus $status): void
@@ -115,8 +155,9 @@ final class IngestRegionBoxJob implements ShouldQueue
          */
         $status->heartbeat($this->regionKey);
 
-        $region = IngestRegion::named($this->regionKey);
-        $boxes = $region->boxes();
+        $region = app(RegionCatalog::class)->named($this->regionKey);
+        $pin = $this->pin();
+        $boxes = $pin !== null ? $region->boxesNearest($pin[0], $pin[1]) : $region->boxes();
 
         if (! isset($boxes[$this->box])) {
             return;   // the region's grid changed between dispatch and run
@@ -147,6 +188,17 @@ final class IngestRegionBoxJob implements ShouldQueue
             'box' => $this->box + 1,
             'of' => count($boxes),
         ]);
+
+        /*
+         * Turn what we just fetched into PLACES, now, rather than in two hours (E48).
+         *
+         * A box writes source items; only `resolve` makes them servable. Waiting for the
+         * whole batch means the person who walked into this region — and whose feet these
+         * first, nearest boxes were chosen for — sees nothing at all until the entire city
+         * is finished. Unique per region, so the other fifty-four boxes do not each queue
+         * their own.
+         */
+        BuildRegionWorldModelJob::dispatch($this->regionKey, 'resolve-progressive');
     }
 
     /**

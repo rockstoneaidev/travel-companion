@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Places\Queries;
+namespace App\Domain\Places\Services;
 
 use Illuminate\Support\Facades\DB;
 
@@ -25,8 +25,12 @@ use Illuminate\Support\Facades\DB;
  * deeply yet*", and §15.3 says a bounded coverage must never be silently false.
  *
  * One indexed count against our own table answers it. No scouts, no APIs, no cost.
+ *
+ * A SERVICE, not a Query, because Sources asks it too (E48: "do we already know here, or
+ * should I go and learn it?") and a module's `Queries` are its own (conventions/01 —
+ * the arch test caught this the moment the region-learner reached for it).
  */
-final class CountPlacesAround
+final class PlaceDensity
 {
     public function within(float $lat, float $lng, int $meters): int
     {

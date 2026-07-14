@@ -25,8 +25,17 @@ interface ExploreShowProps {
     opportunities: { data: SessionOpportunity[] };
     visitPrompts: { data: VisitPrompt[] };
     serve: ServeMeta | null;
-    /** Whether the world model knows this area at all — an empty feed means two things. */
-    coverage: { known: boolean };
+    /**
+     * An empty feed means three different things (E48), and we used to tell one story:
+     * we looked and it's quiet · we've never heard of here and are learning it now ·
+     * we've never heard of here and nothing is coming.
+     */
+    coverage: {
+        known: boolean;
+        learning: boolean;
+        region?: string | null;
+        progress: { done: number; total: number; failed: number } | null;
+    };
 }
 
 const TABS = (sessionId: string, tripId: string) => [
@@ -88,7 +97,12 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
      * into the simulation. It did: a walk across Vasastaden re-anchored onto Liljeholmen,
      * because that is where the founder's body was (E47, 2026-07-14).
      */
-    const { refresh } = useLivingFeed(exploreSession.id, exploreSession.status === 'active', exploreSession.context_source);
+    const { refresh } = useLivingFeed(
+        exploreSession.id,
+        exploreSession.status === 'active',
+        exploreSession.context_source,
+        coverage.learning,
+    );
 
     /*
      * "You've moved" — shown only when the server actually replaced the menu.
@@ -265,10 +279,32 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                                 headline="Nothing worth interrupting you for."
                                 body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
                             />
+                        ) : coverage.learning ? (
+                            <EmptyFeed
+                                headline={`I'm learning ${coverage.region ?? 'this area'}.`}
+                                body={
+                                    /*
+                                     * HONEST about the clock, because it is not fast.
+                                     *
+                                     * The first draft promised "a minute or two". Driving it
+                                     * for real: public Overpass rate-limits us to 45-second
+                                     * waits, and a region is ~55 boxes on one worker — the
+                                     * better part of two hours. Places do appear from the
+                                     * nearest boxes first (that is what the ordering and the
+                                     * progressive resolve are for), so the feed fills in as
+                                     * it goes rather than staying dark until the end. But a
+                                     * screen that says "a minute or two" and then sits there
+                                     * for forty is a screen that lied.
+                                     */
+                                    coverage.progress !== null
+                                        ? `Nobody has been here before, so I'm mapping it — ${coverage.progress.done} of ${coverage.progress.total} areas, starting with the ground you're standing on. Places will appear here as they land. It takes a while; you don't have to wait for it.`
+                                        : "Nobody has been here before, so I'm mapping it now, starting with the ground you're standing on. Places will appear here as they land."
+                                }
+                            />
                         ) : (
                             <EmptyFeed
                                 headline="I don't know this area yet."
-                                body="We've only learned Stockholm and a handful of French cities so far. I'd rather say so than pretend I'm watching."
+                                body="I'd rather say so than pretend I'm watching."
                             />
                         )
                     ) : (

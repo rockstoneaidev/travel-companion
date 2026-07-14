@@ -40,7 +40,17 @@ import { useCallback, useEffect, useRef } from 'react';
  * context events the emulator has been posting. Same code path, same server decision;
  * the client simply stops volunteering a position nobody asked it for.
  */
-export function useLivingFeed(sessionId: string, active: boolean, source: ContextSource = 'device'): { refresh: () => void } {
+export function useLivingFeed(
+    sessionId: string,
+    active: boolean,
+    source: ContextSource = 'device',
+    /**
+     * We are ingesting this area right now (E48). Poll, because the feed is about to
+     * become non-empty on its own — the boxes nearest the user land first, so the wait
+     * is a minute or two, not the forty-five the whole region takes.
+     */
+    learning = false,
+): { refresh: () => void } {
     const emulated = source === 'emulated';
 
     // A pull is: report position → re-pull the feed. Guarded, because 'focus' fires
@@ -91,14 +101,14 @@ export function useLivingFeed(sessionId: string, active: boolean, source: Contex
          * look broken — the pin crossed the city and the scouts never fired, because
          * nothing ever pulled (E47).
          */
-        const timer = emulated ? window.setInterval(() => void pull(), 3_000) : null;
+        const timer = emulated || learning ? window.setInterval(() => void pull(), emulated ? 3_000 : 10_000) : null;
 
         return () => {
             window.removeEventListener('focus', onFocus);
 
             if (timer !== null) window.clearInterval(timer);
         };
-    }, [pull, emulated]);
+    }, [pull, emulated, learning]);
 
     /**
      * "Fresh picks from here" — the explicit version, which takes the server's
