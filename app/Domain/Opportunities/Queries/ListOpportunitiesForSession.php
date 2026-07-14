@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Opportunities\Queries;
 
+use App\Cost\Services\CostMeter;
 use App\Domain\Context\Contracts\Routing;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
@@ -56,6 +57,7 @@ final class ListOpportunitiesForSession
     public function __construct(
         private readonly RankSession $rank,
         private readonly Routing $routing,
+        private readonly CostMeter $cost,
         private readonly PlaceImageLookup $images,
         private readonly FeedbackLedger $ledger,
     ) {}
@@ -165,6 +167,18 @@ final class ListOpportunitiesForSession
              * The persisted trace keeps the estimator's number — ours — and this is
              * an overlay on the way out.
              */
+            /*
+             * Name the card before spending on it (COST.md §2.2).
+             *
+             * RankSession's cost comment already promises that the money "ACCRETES to
+             * this recommendation's id from whichever process spends it" — and it did
+             * not: every route lookup landed in the ledger with a session and no
+             * recommendation, so "what did this card cost?" had no answer and the
+             * emulator's per-item column was structurally zero. The id was right here,
+             * in scope, and nobody had ever told the meter about it.
+             */
+            $this->cost->onRecommendation($recommendation->id);
+
             $walkMinutes = $this->routing->minutes(
                 $session->origin->lat,
                 $session->origin->lng,
@@ -192,6 +206,18 @@ final class ListOpportunitiesForSession
                 kept: isset($kept[$recommendation->id]),
             );
         }
+
+        /*
+         * Stop naming a card once we have stopped spending on one.
+         *
+         * The correlation is sticky — it stays on the meter until something changes it —
+         * so leaving the last recommendation set would quietly bill the rest of the
+         * request (the compute row the middleware writes on the way out, anything a later
+         * caller spends) to whichever card happened to be fifth. One column never means
+         * two things (COST.md §2.2), and "this card cost X" must not silently become
+         * "this card was in scope when we stopped counting".
+         */
+        $this->cost->onRecommendation(null);
 
         // Server order is the order — except for the one exception the spec
         // allows: the GO NOW slot is promoted to the top (SCREENS S1).

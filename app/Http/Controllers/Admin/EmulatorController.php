@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Cost\Queries\SessionSpend;
 use App\Domain\Context\Actions\RecordContextEvent;
 use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Data\Coordinates;
@@ -50,8 +51,16 @@ final class EmulatorController extends Controller
         CoverageGeometry $geometry,
         TileBoundaries $boundaries,
         SessionPipelineLog $log,
+        SessionSpend $spend,
     ): Response {
         $session = $this->activeEmulation((int) $request->user()->id);
+
+        // What this walk actually cost, and what it would have cost cold. The money has
+        // been in the ledger all along, correlated to the exact recommendation it bought
+        // (COST.md §2.2) — it has simply never been shown next to the thing it bought.
+        $money = $session === null
+            ? ['total_billed_micros' => 0, 'total_uncached_micros' => 0, 'by_recommendation' => []]
+            : $spend->forSession($session->id);
 
         return Inertia::render('admin/emulator', [
             'emulation' => $session === null ? null : [
@@ -72,7 +81,12 @@ final class EmulatorController extends Controller
             // What the pipeline ACTUALLY served here — read from the stored trace, never
             // re-ranked. A cockpit that re-ran the engine every time you looked at the
             // dials would be a cockpit that flies the plane.
-            'served' => $session === null ? [] : $this->served($session->id),
+            'served' => $session === null ? [] : $this->served($session->id, $money['by_recommendation']),
+
+            'spend' => [
+                'billed_micros' => $money['total_billed_micros'],
+                'uncached_micros' => $money['total_uncached_micros'],
+            ],
 
             'log' => $session === null ? [] : $log->forSession($session->id),
 
@@ -84,7 +98,10 @@ final class EmulatorController extends Controller
                 ),
                 'feed_size' => (int) config('trips.session.feed_size'),
                 'min_drift_meters' => (int) config('trips.reanchor.min_drift_meters'),
-                'min_interval_seconds' => (int) config('trips.reanchor.min_interval_seconds'),
+                // The EMULATED interval, because that is the one this screen actually
+                // obeys. Printing the human feed's 120s here would be a caption that
+                // contradicts the thing it captions.
+                'min_interval_seconds' => (int) config('trips.reanchor.min_interval_seconds_emulated'),
             ],
         ]);
     }
@@ -262,8 +279,11 @@ final class EmulatorController extends Controller
         ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function served(string $sessionId): array
+    /**
+     * @param  array<string, array{billed_micros: int, uncached_micros: int}>  $money
+     * @return list<array<string, mixed>>
+     */
+    private function served(string $sessionId, array $money = []): array
     {
         $group = (int) Recommendation::query()->where('explore_session_id', $sessionId)->max('serve_group');
 
@@ -284,6 +304,8 @@ final class EmulatorController extends Controller
                 'lng' => $r->score_inputs['candidate']['lng'] ?? null,
                 'composite' => $r->scores['composite'] ?? null,
                 'serve_reason' => $r->serve_reason->value,
+                'billed_micros' => $money[$r->id]['billed_micros'] ?? 0,
+                'uncached_micros' => $money[$r->id]['uncached_micros'] ?? 0,
             ])
             ->all();
     }

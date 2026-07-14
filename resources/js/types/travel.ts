@@ -4,6 +4,7 @@
 
 import {
     type AppealFacet,
+    type ContextSource,
     type ExploreSessionStatus,
     type OpportunityKind,
     type PlaceType,
@@ -41,6 +42,8 @@ export interface ExploreSession {
     destination_point: Coordinates | null;
     time_budget_minutes: number;
     travel_mode: TravelMode;
+    /** `emulated` sessions are driven by a pin in /admin/emulator — never by this browser. */
+    context_source: ContextSource;
     heading: number | null;
     reach_meters: number;
     started_at: string;

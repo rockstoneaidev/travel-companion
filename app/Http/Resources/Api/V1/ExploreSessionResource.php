@@ -29,6 +29,9 @@ final class ExploreSessionResource extends JsonResource
             'destination_point' => $this->destination_point?->toArray(),
             'time_budget_minutes' => $this->time_budget_minutes,
             'travel_mode' => $this->travel_mode->value,
+            // Real phone, or a pin on an operator's map (ADMIN §6)? The client needs to
+            // know, because an emulated session must never be told where the BROWSER is.
+            'context_source' => $this->context_source->value,
             'heading' => $this->heading,
             'reach_meters' => ExploreSessionData::fromModel($this->resource)->reachMeters(),
             'started_at' => $this->started_at->toIso8601String(),

@@ -75,9 +75,17 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
         return () => timers.forEach(clearTimeout);
     }, []);
 
-    // Report where we are, and re-pull if the server re-anchored (E46). Only while the
-    // session is live: an ended session is a record, and the server will not re-serve it.
-    const { refresh } = useLivingFeed(exploreSession.id, exploreSession.status === 'active');
+    /*
+     * Report where we are, and re-pull if the server re-anchored (E46). Only while the
+     * session is live: an ended session is a record, and the server will not re-serve it.
+     *
+     * `context_source` is load-bearing, not decoration. An EMULATED session is driven by
+     * a pin in /admin/emulator, and this screen renders inside that console's iframe — so
+     * without this argument the hook reads the OPERATOR'S REAL GEOLOCATION and posts it
+     * into the simulation. It did: a walk across Vasastaden re-anchored onto Liljeholmen,
+     * because that is where the founder's body was (E47, 2026-07-14).
+     */
+    const { refresh } = useLivingFeed(exploreSession.id, exploreSession.status === 'active', exploreSession.context_source);
 
     /*
      * "You've moved" — shown only when the server actually replaced the menu.

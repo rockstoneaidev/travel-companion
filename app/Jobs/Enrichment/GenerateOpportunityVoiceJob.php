@@ -12,6 +12,7 @@ use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Opportunities\Actions\RecordOpportunityVoice;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Places\Contracts\PlaceLookup;
+use App\Domain\Recommendations\Models\Recommendation;
 use App\Enums\CostActorKind;
 use App\Enums\QueueLane;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -73,6 +74,26 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         $this->onQueue(QueueLane::Voice->value);
     }
 
+    /**
+     * The recommendation this generation was caused by, if we can still name it.
+     *
+     * Nullable on purpose: a replay or a manual dispatch has no session, and a job that
+     * refused to run without one would be a job that stops working the first time you
+     * debug it — the same reasoning that made the correlation ids nullable above.
+     */
+    private function recommendationId(): ?string
+    {
+        if ($this->forSessionId === null) {
+            return null;
+        }
+
+        return Recommendation::query()
+            ->where('explore_session_id', $this->forSessionId)
+            ->where('opportunity_id', $this->opportunityId)
+            ->orderByDesc('served_at')
+            ->value('id');
+    }
+
     /** A five-item feed re-read on every poll must not queue the same generation five times. */
     public function uniqueId(): string
     {
@@ -99,7 +120,22 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         $cost->actingAs($this->contextSource->isReal() ? CostActorKind::User : CostActorKind::AdminEmulated, $this->forUserId)
             ->onTrip($this->forTripId)
             ->onSession($this->forSessionId)
-            ->onOpportunity($this->opportunityId);
+            ->onOpportunity($this->opportunityId)
+            /*
+             * ...and the CARD, which is where the bill actually belongs.
+             *
+             * RankSession's cost comment has always promised that the money "ACCRETES to
+             * this recommendation's id from whichever process spends it". It did not: the
+             * LLM row — the single largest real cost in the product — landed with an
+             * opportunity and no recommendation, so "what did this card cost me?" had no
+             * answer at all. The emulator asked the question out loud and the column came
+             * back zero for every item.
+             *
+             * The opportunity is shared across users; the recommendation is the one that
+             * was served to THIS person in THIS session, which is the thing the spend was
+             * caused by (COST.md §2.2, causal truth).
+             */
+            ->onRecommendation($this->recommendationId());
 
         $opportunity = Opportunity::query()->find($this->opportunityId);
 

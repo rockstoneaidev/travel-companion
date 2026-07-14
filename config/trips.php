@@ -76,6 +76,13 @@ return [
         // menu that reshuffles while you read it is worse than a stale one.
         'min_interval_seconds' => 120,
 
+        // ...but the emulator compresses time. A 60× walk crosses Stockholm in a minute,
+        // and a two-minute hold would let the pipeline react once and then watch the rest
+        // of the journey go by. The interval is a courtesy to a human reading a screen
+        // (ADMIN §6); in a simulation there is nobody reading. The drift threshold above
+        // is NOT relaxed — "did they actually move" is a question about the world.
+        'min_interval_seconds_emulated' => 8,
+
         // Safety net on cost and churn: a pathological client posting positions in a
         // loop must not be able to rank a session an unbounded number of times.
         // Explicit refreshes and backfills count too — this is a ceiling on serves,

@@ -35,6 +35,9 @@ export interface ServedPin {
     lat: number | null;
     lng: number | null;
     position: number;
+    /** What this card actually cost, and what it would have cost cold (COST.md §2.2). */
+    billed_micros: number;
+    uncached_micros: number;
 }
 
 export interface EmulatorMapProps {

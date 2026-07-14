@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Places\Data\Coordinates;
 use App\Domain\Places\Models\Place;
 use App\Domain\Recommendations\Enums\ServeReason;
 use App\Domain\Recommendations\Models\Recommendation;
@@ -395,4 +396,127 @@ it('stops re-serving once the session is over', function () {
     // "remaining budget" to score against, and re-serving one would quietly
     // resurrect a dead session as a live one.
     expect(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(1);
+});
+
+it('serves one batch per walk, not two — the serve is serialised', function () {
+    feedPlace('Vinterviken', LILJEHOLMEN);
+    feedPlace('Tantolunden', HORNSTULL);
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+    $session = livingSession($user);
+
+    $this->travelTo(now()->addMinutes(5));
+    reportPosition($session, HORNSTULL);
+
+    /*
+     * Two pulls arriving together — the map view and the feed view, a page and its poll,
+     * a client that retries. Found by driving the emulator: BOTH read `max(serve_group)`
+     * as 1, both decided they were group 2, both planned, both persisted. The feed came
+     * back with ten rows for a five-item menu and showed Centralbadsparken above
+     * Centralbadsparken.
+     *
+     * `plan()` takes seconds, so the window between the read and the write is enormous.
+     */
+    $data = ExploreSessionData::fromModel($session->fresh());
+
+    app(RankSession::class)->feedFor($data);
+    app(RankSession::class)->feedFor($data);
+
+    $rows = Recommendation::query()->where('explore_session_id', $session->id)->get();
+
+    // One row per (group, position) — now enforced by the database too, so it cannot
+    // come back even if the lock is refactored away.
+    $slots = $rows->map(fn (Recommendation $r): string => "{$r->serve_group}:{$r->position}");
+
+    expect($slots->count())->toBe($slots->unique()->count())
+        ->and(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(2);
+});
+
+it('lets an emulated walk re-anchor faster than a human feed would', function () {
+    feedPlace('Vinterviken', LILJEHOLMEN);
+    feedPlace('Tantolunden', HORNSTULL);
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->emulated()->at(LILJEHOLMEN['lat'], LILJEHOLMEN['lng'])->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 45,
+    ]);
+
+    app(RankSession::class)->feedFor(ExploreSessionData::fromModel($session));
+
+    /*
+     * Twelve seconds later. A real feed would refuse — 120 s, so cards do not move out
+     * from under a reader's thumb. But playback compresses a two-hour walk into two
+     * minutes, and at 60× that courtesy means the pipeline reacts once and then watches
+     * the pin cross the city in silence. Which is exactly what it did on the first walk
+     * anyone drove, and it made the tool look broken when it was merely being polite.
+     *
+     * The DRIFT threshold is not relaxed with it: "did they actually move" is a question
+     * about the world, and the emulator is supposed to be asking the real one.
+     */
+    $this->travelTo(now()->addSeconds(12));
+    reportPosition($session, HORNSTULL);
+
+    $this->get("/explore/{$session->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('serve.group', 2)
+            ->where('serve.reason', 'move_reanchor'));
+});
+
+it('tells the client whether a session is real, so the browser never reports into a simulation', function () {
+    feedPlace('Vinterviken', LILJEHOLMEN);
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->emulated()->at(LILJEHOLMEN['lat'], LILJEHOLMEN['lng'])->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id,
+    ]);
+
+    /*
+     * The emulator renders this very screen in an iframe. Without `context_source` on the
+     * payload, `useLivingFeed` reads the OPERATOR'S REAL GEOLOCATION and posts it into the
+     * emulated session — and a walk across Vasastaden re-anchors onto Liljeholmen, because
+     * that is where the founder's body was. The simulation quietly became a report of the
+     * operator's own position (E47, 2026-07-14).
+     */
+    $this->get("/explore/{$session->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('session.data.context_source', 'emulated'));
+});
+
+it('drops a serve decision that went stale while it waited for the lock', function () {
+    feedPlace('Vinterviken', LILJEHOLMEN);
+    feedPlace('Tantolunden', HORNSTULL);
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+    $session = livingSession($user);
+
+    $this->travelTo(now()->addMinutes(5));
+    reportPosition($session, HORNSTULL);
+
+    $data = ExploreSessionData::fromModel($session->fresh());
+    $rank = app(RankSession::class);
+
+    // First pull re-anchors: group 1 → group 2.
+    $rank->feedFor($data);
+
+    /*
+     * Now a serve whose decision was made against group 1 — a pull that read the state,
+     * queued on the lock while the first rank ran, and has only just woken up.
+     *
+     * Caught driving the emulator: the interval check alone does NOT stop this. It asks
+     * "has anyone served in the last N seconds?" against `served_at`, which is the clock
+     * from the START of the other rank — and that rank took ten seconds. So the answer
+     * came back "no", and it served again: two batches, two bills, one walk.
+     *
+     * Comparing the GROUP compares what we decided on against what is now true, which is
+     * the actual question, and it does not care how long the other rank took.
+     */
+    $stale = $rank->serve($data->reAnchoredAt(new Coordinates(HORNSTULL['lat'], HORNSTULL['lng'])), ServeReason::MoveReanchor, null, seenGroup: 1);
+
+    expect($stale)->toBe([])
+        ->and(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(2);
 });

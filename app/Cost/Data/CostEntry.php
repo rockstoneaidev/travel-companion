@@ -17,9 +17,18 @@ use Illuminate\Support\Carbon;
  * from anywhere — a scout does not need to know what a token is worth, and a class
  * that carries a price is a class that will eventually carry a stale one.
  *
- * The correlation ids (user, trip, session…) are NOT here either: they come from the
- * meter's context at flush (COST.md §5). The Gemini client genuinely does not know
- * which user it is generating for, and it should not have to.
+ * The correlation ids (user, trip, session…) are not passed IN either: the caller never
+ * supplies them (COST.md §5). The Gemini client genuinely does not know which user it is
+ * generating for, and it should not have to.
+ *
+ * But the METER knows, and it stamps them on the way in — see `$correlation` below.
+ * They used to be applied at FLUSH instead, once, to every entry alike, and that quietly
+ * could not answer the question the ledger exists to answer. RankSession's own comment
+ * promises the money "accretes to this recommendation's id from whichever process spends
+ * it"; with one context per flush it accreted to whichever id happened to be set LAST,
+ * so "what did this card cost?" came back zero for every card in the feed. Cost is
+ * caused at the moment it is recorded, and that is the moment to write down what caused
+ * it.
  */
 final readonly class CostEntry
 {
@@ -47,5 +56,37 @@ final readonly class CostEntry
          */
         public bool $cached = false,
         public ?Carbon $occurredAt = null,
+        /**
+         * Who/what this spend was FOR, snapshotted by the meter at record time.
+         *
+         * Never set by callers — `CostMeter::record()` stamps it. Null only for entries
+         * built outside the meter (tests, pricing fixtures), in which case the ledger
+         * falls back to the flush-time context and behaves exactly as it used to.
+         *
+         * @var array<string, mixed>|null
+         */
+        public ?array $correlation = null,
     ) {}
+
+    /** The meter stamping causal truth on the way in. @param array<string, mixed> $correlation */
+    public function correlatedWith(array $correlation): self
+    {
+        return new self(
+            category: $this->category,
+            vendor: $this->vendor,
+            resource: $this->resource,
+            host: $this->host,
+            model: $this->model,
+            promptVersion: $this->promptVersion,
+            inputTokens: $this->inputTokens,
+            outputTokens: $this->outputTokens,
+            cachedInputTokens: $this->cachedInputTokens,
+            calls: $this->calls,
+            cpuMs: $this->cpuMs,
+            peakMemKb: $this->peakMemKb,
+            cached: $this->cached,
+            occurredAt: $this->occurredAt,
+            correlation: $correlation,
+        );
+    }
 }

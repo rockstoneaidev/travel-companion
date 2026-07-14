@@ -42,6 +42,30 @@ final class SessionAnchor
     }
 
     /**
+     * How long the feed must stand still before it may be re-served.
+     *
+     * This guard is about a HUMAN READING A SCREEN — cards must not move out from under
+     * a thumb — and not about correctness. So an emulated session gets a much shorter
+     * one, because there is no thumb: playback compresses a two-hour walk into two
+     * minutes, and at 60× a 120-second hold means the pipeline reacts once and then
+     * watches the pin cross the city in silence. That is exactly what it did on the
+     * first walk anyone drove (2026-07-14), and it made the tool look broken when it was
+     * merely being polite.
+     *
+     * The DRIFT threshold is not relaxed the same way, and must not be: "has this person
+     * actually moved" is a question about the world, and the emulator is supposed to be
+     * asking the real one.
+     */
+    public function minIntervalSeconds(ExploreSessionData $session): int
+    {
+        return (int) config(
+            $session->contextSource->isReal()
+                ? 'trips.reanchor.min_interval_seconds'
+                : 'trips.reanchor.min_interval_seconds_emulated',
+        );
+    }
+
+    /**
      * The new anchor if the user has moved far enough to deserve a fresh menu,
      * or null to leave the feed exactly where it is.
      *
@@ -69,7 +93,7 @@ final class SessionAnchor
         }
 
         // Don't re-serve on top of a menu the user has barely had time to read.
-        $minInterval = (int) config('trips.reanchor.min_interval_seconds');
+        $minInterval = $this->minIntervalSeconds($session);
 
         if ($lastServedAt !== null && $lastServedAt->diffInSeconds($at, absolute: true) < $minInterval) {
             return null;
