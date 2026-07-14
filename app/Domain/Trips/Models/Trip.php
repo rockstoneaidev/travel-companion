@@ -40,6 +40,9 @@ final class Trip extends Model
             // WHEN they agreed to be followed, and when they stopped (E29, PRD §16).
             'trip_mode_started_at' => 'immutable_datetime',
             'trip_mode_ended_at' => 'immutable_datetime',
+            // WHEN THEY LEAVE (E38). The stay-aware urgency horizon hangs entirely off this
+            // column, and `null` means "we do not know" — never "today". See StayHorizon.
+            'departs_at' => 'immutable_datetime',
             'context_source' => ContextSource::class,
             'source' => TripSource::class,
             'anchor_point' => AsCoordinates::class,

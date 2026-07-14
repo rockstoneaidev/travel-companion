@@ -22,10 +22,18 @@ final readonly class FeedSelector
      * @param  list<array<string, mixed>>  $candidates  each: sub_scores, friction_raw, type_domain, facets, total_minutes
      * @return list<array<string, mixed>> picked candidates with their final composite + selection trace
      */
-    public function select(array $candidates, string $context, float $alpha, int $feedSize): array
+    /**
+     * @param  array<string, int>  $seenToday  domains already served today on this trip (E38,
+     *                                         SCORING §5.2 "day-scoped later"). The greedy loop
+     *                                         starts with these already on the board, so the
+     *                                         third church of the DAY is penalised like the third
+     *                                         church of a FEED — which is what it is, from the
+     *                                         only side of the screen that matters.
+     */
+    public function select(array $candidates, string $context, float $alpha, int $feedSize, array $seenToday = []): array
     {
         $picked = [];
-        $pickedDomains = [];
+        $pickedDomains = $seenToday;
         $pickedFacets = [];
         $pickedBuckets = [];
         $cold = $alpha < $this->model->feed['cold_alpha_threshold'];

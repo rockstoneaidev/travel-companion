@@ -136,4 +136,31 @@ return [
         'within_meters' => 150,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trip segments — tempo inference (E38, PRD §6.6)
+    |--------------------------------------------------------------------------
+    |
+    | Three numbers decide what kind of day it was. These are the thresholds, and they
+    | are product opinions, not physics — which is exactly why they live here and why
+    | InferTripSegments stamps a version on every row it writes.
+    |
+    */
+    'segments' => [
+        // You ended the day 40 km from where you woke up. Wherever you were going, you
+        // went there: that is a travel day, and also the trip's route-leg.
+        'travel_min_net_displacement_m' => 40_000,
+
+        // You came back to where you started, but you covered ground doing it. Either
+        // measure is enough on its own — a long thin day along a coast road and a dense
+        // day criss-crossing an old town are both sightseeing, and only one of them has
+        // a big span.
+        'sightseeing_min_span_m' => 2_500,
+        'sightseeing_min_cells' => 6,      // res-8 cells ≈ 0.75 km² each: six means you were IN places
+
+        // Trip Mode's floor fires at 250 m or 10 minutes, so a watched day produces dozens
+        // of events. Twelve is where we stop hedging about what we saw.
+        'confident_at_events' => 12,
+    ],
+
 ];
