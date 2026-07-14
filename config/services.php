@@ -80,4 +80,19 @@ return [
         ],
     ],
 
+    /*
+    | Firebase Cloud Messaging (E31; PRD Appendix A).
+    |
+    | UNSET BY DEFAULT, and the default is the safe one: with no project id the sender
+    | reaches nobody. A misconfigured environment that silently pushes to real phones is a
+    | far worse failure than one that silently pushes to none.
+    |
+    | FCM is a PROCESSOR — it receives a push token and a message body — so it needs a DPA
+    | before the first real send (ROPA §6, PROCESSORS.md, and E32 owns it).
+    */
+    'fcm' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'access_token' => env('FCM_ACCESS_TOKEN'),
+    ],
+
 ];
