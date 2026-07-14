@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CurationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmulatorController;
 use App\Http\Controllers\Admin\EntityResolutionController;
+use App\Http\Controllers\Admin\InterruptionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\WorldModelController;
@@ -37,6 +38,12 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     Route::get('activity', [ActivityController::class, 'index'])
         ->middleware('can:activity_view')
         ->name('activity.index');
+
+    // Interruption quality — the Phase 2 exit read (E44; PRD §7.2). Read-only, and gated
+    // like the other operational dashboards.
+    Route::get('interruption', [InterruptionController::class, 'index'])
+        ->middleware('can:activity_view')
+        ->name('interruption.index');
 
     /*
     | Cost (docs/COST.md §7.3–§7.4). The explorer is read-only and gated by

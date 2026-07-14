@@ -1,5 +1,19 @@
 import { type NavItem, type SharedData } from '@/types';
-import { Activity, Bookmark, BookOpen, Compass, Gauge, LayoutGrid, Map, Navigation, NotebookPen, ScrollText, Shield, Users } from 'lucide-react';
+import {
+    Activity,
+    BellRing,
+    Bookmark,
+    BookOpen,
+    Compass,
+    Gauge,
+    LayoutGrid,
+    Map,
+    Navigation,
+    NotebookPen,
+    ScrollText,
+    Shield,
+    Users,
+} from 'lucide-react';
 
 /**
  * The app navigation, shared by the sidebar (app chrome) and the menu sheet on the
@@ -51,6 +65,7 @@ export function adminNavItems(permissions: SharedData['auth']['permissions']): N
     }
     if (permissions.includes('activity_view')) {
         items.push({ title: 'Activity', url: '/admin/activity', icon: ScrollText });
+        items.push({ title: 'Interruption', url: '/admin/interruption', icon: BellRing });
     }
     if (permissions.includes('ops_view')) {
         items.push({ title: 'Horizon', url: '/horizon', icon: Gauge, external: true });
