@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthTokenController;
+use App\Http\Controllers\Api\V1\CorridorPayloadController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\ExploreSessionBrowseController;
 use App\Http\Controllers\Api\V1\ExploreSessionContextEventController;
 use App\Http\Controllers\Api\V1\ExploreSessionController;
 use App\Http\Controllers\Api\V1\ExploreSessionEndController;
@@ -31,6 +34,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+/*
+ * The one unauthenticated endpoint (E33): mobile trades credentials for a bearer token.
+ * Throttled hard — a token mint with no rate limit is an open door to credential stuffing.
+ */
+Route::post('v1/auth/token', [AuthTokenController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('api.v1.auth.token');
+
 Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/user', fn (Request $request) => $request->user())->name('user');
 
@@ -51,6 +62,11 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
         ->middleware('throttle:explore-feed')
         ->can('view', 'exploreSession')
         ->name('explore-sessions.opportunities.index');
+
+    // "Show me everything around me" (E51/E33) — the same data the web browse screen reads.
+    Route::get('explore-sessions/{exploreSession}/browse', [ExploreSessionBrowseController::class, 'index'])
+        ->can('view', 'exploreSession')
+        ->name('explore-sessions.browse');
 
     Route::post('explore-sessions/{exploreSession}/context-events', [ExploreSessionContextEventController::class, 'store'])
         ->middleware('throttle:context-events')
@@ -129,6 +145,14 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     // The push-token registry — the address of somebody's pocket.
     Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
     Route::delete('devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy');
+
+    // Sign this device out — revoke the presented token (E33).
+    Route::post('auth/revoke', [AuthTokenController::class, 'destroy'])->name('auth.revoke');
+
+    // The offline geofence bundle (E36): the phone grabs it before it loses signal.
+    Route::get('trips/{trip}/corridor-payload', [CorridorPayloadController::class, 'show'])
+        ->can('view', 'trip')
+        ->name('trips.corridor-payload');
 
     Route::delete('trips/{trip}/location-history', [TripLocationHistoryController::class, 'destroy'])
         ->can('eraseLocationHistory', 'trip')

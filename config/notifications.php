@@ -94,4 +94,26 @@ return [
         'recent_window_hours' => 4,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Geofence corridor payloads (E36)
+    |--------------------------------------------------------------------------
+    |
+    | The offline bundle the phone downloads to fire geofence moments with no signal. The
+    | server pre-authorises what goes in; the device only checks arithmetic (BuildCorridorPayload).
+    |
+    */
+    'geofence' => [
+        // How far from the trip anchor we gather geofence-eligible opportunities into the
+        // downloadable bundle. A corridor's worth, not a continent's.
+        'corridor_radius_meters' => 30_000,
+
+        // The circle the device actually watches. Small on purpose: a geofence moment
+        // should fire when you are AT the place, not vaguely near its neighbourhood.
+        'trigger_radius_meters' => 250,
+
+        // A cap on the bundle so an offline download stays small on a phone on cellular.
+        'max_payloads' => 100,
+    ],
+
 ];
