@@ -88,6 +88,37 @@ final class SessionPipelineLog
                     (int) ($cost['scout_tiles_filled'] ?? 0),
                 ),
             ];
+
+            /*
+             * WHAT THIS RANK COST, next to what it did.
+             *
+             * The trace has counted paid calls per serve since the cost epic (`api_calls`,
+             * `api_calls_by_host`) and the cockpit never showed them — so a walk cost $0.31
+             * and the pipeline pane said nothing about why. The founder had to ask.
+             *
+             * A log that shows the machine thinking but not the machine SPENDING is a log
+             * that hides the only number with a dollar sign on it.
+             */
+            $apiCalls = (int) ($cost['api_calls'] ?? 0);
+
+            if ($apiCalls > 0) {
+                $byHost = [];
+
+                foreach ((array) ($cost['api_calls_by_host'] ?? []) as $host => $calls) {
+                    $byHost[] = sprintf('%s ×%d', $host, (int) $calls);
+                }
+
+                $lines[] = [
+                    'at' => $at ?: null,
+                    'stage' => 'spend',
+                    'line' => sprintf(
+                        '%d paid call%s — %s',
+                        $apiCalls,
+                        $apiCalls === 1 ? '' : 's',
+                        $byHost === [] ? 'unattributed' : implode(', ', $byHost),
+                    ),
+                ];
+            }
         }
 
         /*

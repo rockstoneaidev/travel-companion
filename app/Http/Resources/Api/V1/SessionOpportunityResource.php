@@ -36,7 +36,11 @@ final class SessionOpportunityResource extends JsonResource
             'urgent' => $this->urgent,
             'expires_at' => $this->expiresAt->toIso8601String(),
             'recommendation_id' => $this->recommendationId,
-            'walk_minutes' => $this->walkMinutes,
+            // Named for what it is. `walk_minutes` was a lie in a driving session — the
+            // number was right, the noun was not — and the mode rides along so no consumer
+            // has to guess the unit.
+            'travel_minutes' => $this->travelMinutes,
+            'travel_mode' => $this->travelMode->value,
             'image' => $this->image,
             'kept' => $this->kept,
             'place' => new PlaceResource($this->place),

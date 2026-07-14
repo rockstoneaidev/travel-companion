@@ -24,7 +24,7 @@ it('reproduces the PRD jazz-courtyard validation vector at ≈0.77 (SCORING §8)
         'route_fit' => 0.70, 'novelty' => 0.80, 'confidence' => 0.82,
     ];
 
-    // Its friction block: walk_minutes 7 vs default tolerance 15, queue low.
+    // Its friction block: travel_minutes 7 vs default tolerance 15, queue low.
     $friction = $subScores->frictionRaw(7.0, 15.0, 0, 'low', 0.0, 0.0);
     expect($friction['value'])->toEqualWithDelta(0.155, 0.005);
 

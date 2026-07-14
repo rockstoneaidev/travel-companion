@@ -449,6 +449,8 @@ export default function Emulator({ emulation, coverage, served, log, controls, s
                                 </li>
                             ))}
                         </ul>
+
+                        <PipelineLegend />
                     </div>
                 )}
             </div>
@@ -483,4 +485,102 @@ function pointAlong(path: Array<{ lat: number; lng: number }>, distance: number)
     }
 
     return null;
+}
+
+/**
+ * What the log is actually saying (ADMIN §6/§8).
+ *
+ * The pipeline pane prints exactly what the machine wrote down, which is honest and
+ * completely opaque unless you already know the vocabulary — the founder had to ask what
+ * "unusualness vv2" and "near-missed 126" meant, which is a fair question and a sign the
+ * screen was half-finished. A cockpit that shows you the instruments and not their units
+ * is a cockpit you have to be told how to read.
+ *
+ * Collapsed by default: it is a reference, not a thing you re-read on every walk.
+ */
+function PipelineLegend() {
+    return (
+        <details className="border-t px-3 py-2 text-xs">
+            <summary className="text-muted-foreground cursor-pointer select-none">What am I looking at?</summary>
+
+            <div className="mt-3 space-y-4">
+                <section>
+                    <h3 className="mb-1 font-semibold">The scouts</h3>
+                    <p className="text-muted-foreground mb-2">
+                        Each sweeps the coverage tiles for a different kind of candidate. They all read our own <code>places</code> table — they are
+                        not API calls, and they cost nothing.
+                    </p>
+                    <dl className="space-y-1">
+                        {[
+                            [
+                                'curated',
+                                'The reviewed, hand-written layer — the moat (PRD §9.4). Only approved items; an unreviewed draft cannot reach a feed by any path.',
+                            ],
+                            [
+                                'unusualness',
+                                'Locally RARE places — a type that is scarce in this neighbourhood (k-ring 1 at res 8). A sauna is unremarkable in Sweden and extraordinary in Provence.',
+                            ],
+                            ['nature', 'Viewpoints, waterfalls, parks — "the things Google does not have".'],
+                            ['history', 'The historical and heritage layer.'],
+                            [
+                                'nearby',
+                                'The generic sweep: food, shops, everything. NEAR RING ONLY — "a café 30 km ahead is noise", so it sees far fewer tiles than the others.',
+                            ],
+                        ].map(([name, what]) => (
+                            <div key={name} className="flex gap-2">
+                                <dt className="w-24 shrink-0 font-mono">{name}</dt>
+                                <dd className="text-muted-foreground">{what}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                    <p className="text-muted-foreground mt-2">
+                        <code>v1</code>/<code>v2</code> is the scout&apos;s own version — part of its cache key, so bumping it invalidates cached
+                        tiles for free. <code>(315 hit, 19 filled)</code> is the shared tile cache: <em>hit</em> = already cached, <em>filled</em> =
+                        we had to go and compute it. Watch <em>filled</em> drop to zero as the pin re-crosses ground it has already covered — that is
+                        the cache earning its keep.
+                    </p>
+                </section>
+
+                <section>
+                    <h3 className="mb-1 font-semibold">The lines</h3>
+                    <dl className="space-y-1">
+                        {[
+                            [
+                                'batch N',
+                                'The Nth time this session has been ranked — a serve group, NOT a count of items. A move re-anchor opens a new batch; a dismiss backfill joins the current one.',
+                            ],
+                            ['served', 'Cards actually put in front of you. 3–5 (PRD §12.1) — scarcity is the product.'],
+                            [
+                                'held',
+                                'Blocked at the evidence gates: we do not trust what we know about it well enough to serve it. Held ≠ ranked low.',
+                            ],
+                            [
+                                'near-missed',
+                                'Scored, servable, and BEATEN. Not rejects — runners-up, and the raw material of the digest (PRD §12.4).',
+                            ],
+                            ['excluded', 'Places you already dismissed in this session. Excluded from every later batch, permanently.'],
+                            [
+                                'reachability dropped',
+                                'Failed the gate: you could not get there and back inside the REMAINING budget (PRD §10 step 8). "of N considered" = served + held + near-missed + unreachable.',
+                            ],
+                            [
+                                'paid call',
+                                'Real money. Google hours verification and route lookups — the only lines here with a price on them. Cross-check them against "What it cost".',
+                            ],
+                        ].map(([name, what]) => (
+                            <div key={name} className="flex gap-2">
+                                <dt className="w-36 shrink-0 font-mono">{name}</dt>
+                                <dd className="text-muted-foreground">{what}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                </section>
+
+                <p className="text-muted-foreground">
+                    Scout runs are <strong>not</strong> session-scoped: the tile cache is shared across all users by design (PRD §9.3), so a line here
+                    may be work someone else&apos;s pull caused.
+                </p>
+            </div>
+        </details>
+    );
 }

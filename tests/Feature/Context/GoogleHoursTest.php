@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Context\Services\GoogleHoursVerifier;
 use App\Domain\Places\Models\Place;
 use App\Domain\Places\Models\PlaceSourceId;
+use App\Domain\Places\Services\CacheKeys;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -164,4 +165,56 @@ it('will not let one bad Google match take down the feed', function () {
     expect($hours->known)->toBeFalse()
         ->and($hours->definitelyClosed())->toBeFalse()
         ->and(PlaceSourceId::query()->where('source', 'google')->count())->toBe(1);
+});
+
+it('caches "this place has no hours" — the answer that used to be re-bought forever', function () {
+    /*
+     * The single most expensive line in the product, and it looked like nothing.
+     *
+     * Google returns no `currentOpeningHours` for most of the long tail — parks,
+     * churches, viewpoints, the whole layer this product exists to surface. That came
+     * back as `null`; `null` was indistinguishable from "the call failed"; nothing was
+     * cached. So every rank re-asked Google about the same park and paid $0.005 to be
+     * told, again, that it still has no opening hours.
+     *
+     * The founder drove ONE emulated walk and it cost $0.31 — sixty-eight `place_details`
+     * calls, not one of them a cache hit, almost all about a handful of parks in Kista.
+     */
+    Http::fake([
+        'places.googleapis.com/v1/places:searchText' => Http::response(['places' => [['id' => 'ChIJpark']]]),
+        // A park. Google knows it exists and knows of no hours for it.
+        'places.googleapis.com/v1/places/*' => Http::response(['id' => 'ChIJpark']),
+    ]);
+
+    $place = Place::factory()->create(['name' => 'Bagarbyparken']);
+    $verifier = app(GoogleHoursVerifier::class);
+
+    $first = $verifier->forPlace($place->id, 'Bagarbyparken', 59.31, 18.02);
+    $second = $verifier->forPlace($place->id, 'Bagarbyparken', 59.31, 18.02);
+    $third = $verifier->forPlace($place->id, 'Bagarbyparken', 59.31, 18.02);
+
+    // "Unknown" is not "closed" — a park with no hours must still be servable.
+    expect($first->known)->toBeFalse()
+        ->and($second->known)->toBeFalse()
+        ->and($third->known)->toBeFalse();
+
+    // ONE details call, not three. The re-anchoring feed asks this question dozens of
+    // times a minute about the same handful of places.
+    Http::assertSentCount(2);   // one searchText (the place_id lookup) + one details
+});
+
+it('does not cache a FAILURE as an answer', function () {
+    Http::fake([
+        'places.googleapis.com/v1/places:searchText' => Http::response(['places' => [['id' => 'ChIJpark']]]),
+        'places.googleapis.com/v1/places/*' => Http::response(status: 500),
+    ]);
+
+    $place = Place::factory()->create(['name' => 'Bagarbyparken']);
+    $verifier = app(GoogleHoursVerifier::class);
+
+    $verifier->forPlace($place->id, 'Bagarbyparken', 59.31, 18.02);
+
+    // A timeout is not "this place has no hours". Caching it would let one bad minute
+    // poison ten — so the cache stays empty and the next caller may try again.
+    expect(Cache::get(CacheKeys::placeHours($place->id)))->toBeNull();
 });
