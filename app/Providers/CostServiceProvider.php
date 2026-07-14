@@ -8,6 +8,8 @@ use App\Cost\Services\CostLedger;
 use App\Cost\Services\CostMeter;
 use App\Cost\Services\PriceBook;
 use App\Enums\CostActorKind;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -65,6 +67,7 @@ final class CostServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->meterOutboundHttp();
+        $this->flushOnConsoleCommands();
         $this->flushOnQueuedJobs();
     }
 
@@ -92,6 +95,48 @@ final class CostServiceProvider extends ServiceProvider
                 // generation on the product's only paid path.
                 resource: $prices->resourceForHost($host),
             );
+        });
+    }
+
+    /**
+     * A CONSOLE COMMAND IS A UNIT OF WORK TOO, and it was the one that got away.
+     *
+     * The ledger flushed on a terminating HTTP request and on JobProcessed. An artisan
+     * command is neither — so `curation:draft-pack` called Gemini once per candidate,
+     * spent real money, and wrote NOTHING to cost_events. Drafting the eight local packs
+     * ran ~130 capable-tier generations and the ledger did not move a cent: it still read
+     * $0.0250, exactly what it had said before.
+     *
+     * That is the same failure this provider's own comment argues against — "coverage by
+     * default beats correctness by convention". The queue seam was built precisely because
+     * an opt-in middleware would miss the job whose author had not read the file. Then the
+     * console, which is where the most expensive thing in the product is actually
+     * triggered, was left opt-in by omission.
+     *
+     * The cap never fired either, which is the sharper end of it: SpendGuard is booked from
+     * the ledger flush, so an unflushed command cannot trip the kill-switch. An admin
+     * looping a pack draft could have spent the daily cap several times over and the guard
+     * would have gone on reporting $0.00.
+     *
+     * Booked as `system`: a command is spent on nobody's behalf. `region` and the rest are
+     * set by whatever the command itself calls (DraftPackFromWorldModel and friends).
+     */
+    private function flushOnConsoleCommands(): void
+    {
+        Event::listen(function (CommandStarting $event): void {
+            $this->app->make(CostMeter::class)->actingAs(CostActorKind::System);
+        });
+
+        Event::listen(function (CommandFinished $event): void {
+            $meter = $this->app->make(CostMeter::class);
+
+            $meter->recordCompute(
+                resource: 'command:'.($event->command ?? 'unknown'),
+                cpuMs: $this->cpuMs(),
+                peakMemKb: (int) round(memory_get_peak_usage(true) / 1024),
+            );
+
+            $this->app->make(CostLedger::class)->flush($meter);
         });
     }
 
