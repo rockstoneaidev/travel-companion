@@ -313,6 +313,27 @@ NewsLocalScout at scale (closures, alerts) · BestTime evaluation · Flickr dens
   mining into pack builds
 ```
 
+**E39 status (2026-07-15): the practical layer and the local-alert path are built.**
+
+- **PracticalScout** is live — pharmacies, toilets, EV charging, shelter and transport
+  hubs, near-range only (a pharmacy 30 km ahead is a countdown, not a suggestion). The
+  places were already ingested from OSM; E39 added the transport-hub tags (`railway=station`,
+  `public_transport=station`, `amenity=bus_station|ferry_terminal`) and the scout that reads
+  the `practical` domain by intent.
+- **Local alerts** (closures, strikes, disruptions, hazards) are read from RSS feeds by
+  `NewsFeedReader` → classified deterministically by `AlertClassifier` (NOT the LLM — the
+  fact is the newspaper's and must be citable to it; a keyword detector we can point at beats
+  a clever reading we cannot) → materialised as **ephemeral opportunities** with
+  citation-only evidence (`MaterializeAlertOpportunities`). The licence line is drawn in
+  code: headline + link, never the article body. An alert that cannot be pinned to a real
+  place is **dropped, never guessed onto the map**.
+- **Still config-gated, by design:** the per-region feed URLs live in `config/sources.php`
+  (`news_feeds`), empty by default — a region gets a local-alert layer only after somebody
+  adds its feed and reads its terms. **GTFS static feeds and national road-closure APIs
+  (e.g. Bison Futé) are the next adapters into this same seam** — they need real endpoints
+  to verify, so they are deliberately not stubbed. `MaterializeAlertOpportunities` is
+  source-agnostic and they drop straight into it.
+
 ### Phase 3 (expansion)
 
 ```text
