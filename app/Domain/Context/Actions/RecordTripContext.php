@@ -12,6 +12,7 @@ use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Trips\Contracts\TripLookup;
 use App\Domain\Trips\Data\TripData;
 use App\Jobs\Ranking\DetectVisitsJob;
+use App\Jobs\Ranking\InferHomeZoneJob;
 use App\Jobs\Ranking\InferTripSegmentsJob;
 
 /**
@@ -123,6 +124,13 @@ final class RecordTripContext
          * prompts, not the kind of place worth going to.
          */
         DetectVisitsJob::dispatch($tripId);
+
+        /*
+         * ...and, at most once a day, reconsider where this person lives (E40). The job is
+         * unique-per-user for 24h, so a day of pings dispatches it once. Home is inferred
+         * only to be PROPOSED — never activated without the user's word (PRD §16).
+         */
+        InferHomeZoneJob::dispatch((int) $trip->userId);
 
         return TripContextResult::recorded($event);
     }

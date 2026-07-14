@@ -81,4 +81,27 @@ return [
         'max_radius_meters' => 2_000,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Home-zone inference (E40, PRD §16)
+    |--------------------------------------------------------------------------
+    |
+    | Proposing a home zone from background patterns. Conservative on purpose: a wrongly
+    | proposed zone that the user waves through would silently suppress a whole
+    | neighbourhood, so the bar to even ASK is high.
+    |
+    */
+    'home_inference' => [
+        // Nights of evidence before we will propose anything. A weekend away must not
+        // become "home"; a fortnight in one flat should.
+        'min_nights' => 5,
+
+        // Home must stand clear of the runner-up cell. Two bases split evenly is genuinely
+        // ambiguous, and an ambiguous home zone is one we should not propose at all.
+        'dominance_ratio' => 1.8,
+
+        // Where confidence saturates.
+        'confident_at_nights' => 14,
+    ],
+
 ];
