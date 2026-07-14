@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Curation\Actions\DraftPackFromWorldModel;
+use App\Domain\Curation\Data\PackPlan;
 use Illuminate\Console\Command;
 
 /**
@@ -19,22 +20,10 @@ final class CurationDraftPackCommand extends Command
 
     protected $description = 'Draft curated items for a region from stored evidence, into the admin review queue';
 
-    /** CURATION §4's pack plan. Shared with the admin console's draft button. */
-    public const TARGETS = [
-        'paris' => 40,
-        'nice' => 30,
-        'nantes' => 30,
-        'dijon' => 25,
-        'lyon' => 20,
-        'bordeaux' => 20,
-        'toulouse' => 20,
-        'stockholm' => 30,
-    ];
-
     public function handle(DraftPackFromWorldModel $draft): int
     {
         $region = (string) $this->argument('region');
-        $target = (int) ($this->option('target') ?: self::TARGETS[$region] ?? 20);
+        $target = (int) ($this->option('target') ?: PackPlan::targetFor($region));
 
         $this->components->info("Drafting {$region} — target {$target} items. Every draft lands in review; nothing is served until approved.");
 

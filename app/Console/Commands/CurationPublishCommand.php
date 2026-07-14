@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Curation\Actions\PublishPack;
+use App\Domain\Curation\Data\PackPlan;
 use App\Domain\Curation\Models\Pack;
 use Illuminate\Console\Command;
 
@@ -24,7 +25,10 @@ final class CurationPublishCommand extends Command
 
     protected $description = 'Publish a regional knowledge pack — approved items become Tier-A evidence in the feed';
 
-    private const TARGET_APPROVED = 25;
+    // The per-region plan (CURATION §4) — no longer a flat number this command invented
+    // for itself. A single 25 refused Bordeaux (23 approved, target 20) and Lyon (20/20),
+    // two packs that had MET their target and were finished. The plan said one thing and
+    // the gate said another, and the gate won.
 
     public function handle(PublishPack $publish): int
     {
@@ -37,11 +41,12 @@ final class CurationPublishCommand extends Command
         }
 
         $approved = $publish->approvedCount($pack);
+        $target = PackPlan::targetFor((string) $pack->region_slug);
 
-        if ($approved < self::TARGET_APPROVED && ! $this->option('force')) {
+        if ($approved < $target && ! $this->option('force')) {
             $this->components->error(sprintf(
                 '%s has %d approved item%s — the target is %d.',
-                $pack->region_slug, $approved, $approved === 1 ? '' : 's', self::TARGET_APPROVED,
+                $pack->region_slug, $approved, $approved === 1 ? '' : 's', $target,
             ));
             $this->line('  Publishing now would ship a pack that puts almost no curated voice in the feed.');
             $this->line('  Review the queue at /admin/curation, or pass --force if this is deliberate.');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Queries;
 
-use App\Console\Commands\CurationDraftPackCommand;
+use App\Domain\Curation\Data\PackPlan;
 use App\Domain\Curation\Services\PackCandidateSelector;
 use App\Domain\Sources\Data\IngestRegion;
 use Illuminate\Support\Facades\DB;
@@ -70,11 +70,11 @@ final class RegionWorldModelStats
             //
             // The button used to be labelled with `pack_candidates` ("~100 LLM calls"),
             // which was never the number: 100 is just the cap on the candidate QUERY,
-            // while a draft run stops at CurationDraftPackCommand::TARGETS (30 for
+            // while a draft run stops at the pack plan's target (CURATION §4 — 30 for
             // Stockholm). So the one button on the site that spends money overstated
             // its own cost by 3-5x. It is a click, one place at a time, on a paid LLM —
             // that is precisely the number that has to be true.
-            'pack_target' => min(CurationDraftPackCommand::TARGETS[$region->key] ?? 20, $candidates),
+            'pack_target' => min(PackPlan::targetFor($region->key), $candidates),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Curation\Data\PackPlan;
 use App\Domain\Curation\Enums\CurationStatus;
 use App\Domain\Curation\Models\CuratedItem;
 use App\Domain\Curation\Models\Pack;
@@ -56,7 +57,10 @@ function packWithApproved(int $approved, string $region = 'stockholm'): Pack
 }
 
 it('publishes a pack, bumping the version and mapping its tiles', function () {
-    packWithApproved(25);
+    // Seeded to the region's PLANNED target (CURATION §4), not to a number that happened
+    // to equal the old flat gate. The gate used to be 25 for every region; Stockholm's
+    // plan is 30, and the two agreeing by coincidence is what let them drift apart.
+    packWithApproved(PackPlan::targetFor('stockholm'));
 
     $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 90])
         ->assertSuccessful();
@@ -65,7 +69,7 @@ it('publishes a pack, bumping the version and mapping its tiles', function () {
 
     expect($pack->status)->toBe('published')
         ->and($pack->pack_version)->toBe(1)
-        ->and($pack->h3_set)->toHaveCount(25)
+        ->and($pack->h3_set)->toHaveCount(PackPlan::targetFor('stockholm'))
         ->and($pack->effort_minutes)->toBe(90);   // the Phase-3 cost model's only input
 });
 
@@ -89,7 +93,10 @@ it('publishes an under-target pack when that is deliberate', function () {
 });
 
 it('accumulates review effort across versions', function () {
-    packWithApproved(25);
+    // Seeded to the region's PLANNED target (CURATION §4), not to a number that happened
+    // to equal the old flat gate. The gate used to be 25 for every region; Stockholm's
+    // plan is 30, and the two agreeing by coincidence is what let them drift apart.
+    packWithApproved(PackPlan::targetFor('stockholm'));
 
     $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 90])->assertSuccessful();
     $this->artisan('curation:publish', ['region' => 'stockholm', '--effort' => 30])->assertSuccessful();

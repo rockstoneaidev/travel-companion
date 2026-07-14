@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Console\Commands\CurationDraftPackCommand;
+use App\Domain\Curation\Data\PackPlan;
 use App\Domain\Places\Models\ScoutRun;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
@@ -82,7 +82,7 @@ final class WorldModelController extends Controller
     {
         abort_unless(array_key_exists($region, IngestRegion::all()), 404);
 
-        $target = CurationDraftPackCommand::TARGETS[$region] ?? 20;
+        $target = PackPlan::targetFor($region);
 
         // Claim BEFORE dispatching. Double-firing a draft is worse than double-firing a
         // build: each press is N calls to a paid LLM.
