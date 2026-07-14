@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Live — the work plan is on GitHub; this file is the map. Phase 1: M1–M3 · Phase 2: M4–M6 (created 2026-07-14; **work gated on the E19 read** — see below) |
-| **Created** | Phase 1: 2026-07-12 · Phase 2: 2026-07-14 · issue numbers match epic codes (E1 = #1 … E45 = #45; #20/21/23/26/27 are PRs, not epics) |
+| **Status** | Live — the work plan is on GitHub; this file is the map. Phase 1: M1–M3 · Phase 2: M4–M6 (entry gate **lifted** 2026-07-14 — see the Phase 2 entry note; #46 first) |
+| **Created** | Phase 1: 2026-07-12 · Phase 2: 2026-07-14 · issue numbers match epic codes (E1 = #1 … E46 = #46; #20/21/23/26/27 are PRs, not epics) |
 | **Milestones** | [M1 — Stockholm walking skeleton](https://github.com/rockstoneaidev/travel-companion/milestone/1) (due Jul 18) · [M2 — France-ready](https://github.com/rockstoneaidev/travel-companion/milestone/2) (freeze Jul 25; trip Jul 27–Aug 7) · [M3 — Phase 1 complete](https://github.com/rockstoneaidev/travel-companion/milestone/3) · [M4 — Proactive skeleton](https://github.com/rockstoneaidev/travel-companion/milestone/4) · [M5 — Road-trip grade](https://github.com/rockstoneaidev/travel-companion/milestone/5) · [M6 — Phase 2 complete](https://github.com/rockstoneaidev/travel-companion/milestone/6) |
 
 Working agreement: pick up an epic by assigning yourself / commenting on the issue; reference
@@ -48,8 +48,11 @@ authoritative — epics carry scope, not design.
 
 | # | Epic | Track | Depends on |
 |---|---|---|---|
-| [#19](https://github.com/rockstoneaidev/travel-companion/issues/19) | Pilot expansion & exit-criteria instrumentation | platform | everything |
 | [#25](https://github.com/rockstoneaidev/travel-companion/issues/25) | Cost explorer, rollup & allocation | platform | 24 |
+| [#46](https://github.com/rockstoneaidev/travel-companion/issues/46) | The living feed: move re-anchor, fresh picks & dismiss backfill | backend | — (**do first** — the §8.1 loop, found missing in Stockholm field testing) |
+
+*#19 (pilot expansion & exit-criteria instrumentation) moved to M6 — founder decision 2026-07-14;
+see the Phase 2 entry note below.*
 
 ### Critical path & parallel tracks
 
@@ -79,11 +82,15 @@ quality (PRD §8.2). It answers MVP validation question 3: *"Can we interrupt at
 location must not kill trust/battery/app review, and notifications must not destroy the product's
 core promise.
 
-**Entry gate — code starts only after the E19 read.** CLAUDE.md constraint 5 ("don't build Phase 2
-machinery early") holds until the Phase 1 exit criteria (#19) are evaluated after the France pilot
-(trip ends Aug 7, 2026). PRD §13.1 explicitly defers the mobile-stack decision and repo to that
-moment. The only pre-gate work allowed is paper: the DPIA revision draft (#32) and the
-mobile-stack evaluation criteria (#28).
+**Entry gate — LIFTED (founder decision, 2026-07-14).** The original plan gated Phase 2 code on
+the #19 exit-criteria read after the France pilot. The founder deems Stockholm local testing
+sufficient to proceed: Phase 2 epics may start now, and #19 moves to M6 — the pilot metrics
+(acceptance rate, confirmed "would have missed this", blind test vs. Google Maps) are deferred,
+not dropped, and the France trip (Jul 27–Aug 7) remains the natural data-collection window.
+Sequencing note that survives the gate: **#46 (the living feed) comes first** — it is the Phase 1
+loop working as §8.1 intended, and everything proactive builds on it. The notification-quality
+assumption (§8.2: "on top of proven recommendation quality") now rests on founder field judgment
+until #19's numbers exist; revisit before the first push reaches a non-founder (#44 measures it).
 
 **New track: mobile.** The Phase 2 client is a **separate repository** (native Swift/Kotlin or RN
 with a mature native background-geolocation SDK — #28 decides), a pure consumer of `/api/v1` +
@@ -135,6 +142,7 @@ and the whole trip replays in the replayer.
 
 | # | Epic | Track | Depends on |
 |---|---|---|---|
+| [#19](https://github.com/rockstoneaidev/travel-companion/issues/19) | Pilot expansion & exit-criteria instrumentation *(moved from M3)* | platform | 46 + the app working as intended |
 | [#41](https://github.com/rockstoneaidev/travel-companion/issues/41) | Second launch region | content | 11, 14; region decision |
 | [#42](https://github.com/rockstoneaidev/travel-companion/issues/42) | Embedding taste model *(gated on facet plateau)* | backend | 37 |
 | [#43](https://github.com/rockstoneaidev/travel-companion/issues/43) | Self-hosted routing: OSRM/Valhalla cost lever *(cost-triggered)* | platform | — (Routing port exists) |
@@ -144,7 +152,7 @@ and the whole trip replays in the replayer.
 ### Critical path & parallel tracks (Phase 2)
 
 ```text
-Gate:      #19 read (post France trip, ~mid-Aug) → everything below
+First:     #46 (living feed — Phase 1 loop as intended; gate lifted 2026-07-14)
 Mobile:    #28 → #33 → #34 ─┬→ #36 · #37         (the new track; battery + permission UX
                             │                     are make-or-break, PRD risk 4)
 Backend:   #29 → #30 → #31 ─┘                     (the interruption spine, PRD risk 5)
@@ -152,14 +160,14 @@ Backend:   #29 → #30 → #31 ─┘                     (the interruption spin
 Privacy:   #32                                    (parallel from day 1; M4 cannot ship
                                                    without it — consent before first push)
 Scouts:    #39 · #40                              (M5)
-M6:        #41 · #42[gated] · #43[cost-triggered] · #44 → exit read
+M6:        #19 (pilot metrics, moved from M3) · #41 · #42[gated] · #43[cost-triggered] · #44 → exit read
 ```
 
 **The road-trip-grade cut line (proposed):** #28–#37 + #44's core dashboards + #38's stay-aware
 horizon + #39's PracticalScout are **must**; the vibe axis, GTFS feeds, #40, #42 (gate may not
 fire), #43 (trigger may not fire), #45, and Reverb foreground realtime are **stretch**.
 
-### Decisions needed at the Phase 2 gate
+### Decisions needed early in Phase 2
 
 1. **Mobile stack** — native Swift/Kotlin vs. RN + native background-geolocation SDK (#28's
    output; PRD §13.1 defers it to exactly this moment).
