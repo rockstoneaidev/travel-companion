@@ -180,7 +180,12 @@ jobs:
           file: ./deployment/docker/Dockerfile
           build-args: |
             APP_ENV=production
-            GH_PACKAGES_TOKEN=${{ secrets.GH_PACKAGES_TOKEN }}
+          # A SECRET, not a build-arg. A build-arg is recorded in the image metadata
+          # (`docker history` prints it back) and lands in the layer cache — which this
+          # build exports to GitHub Actions. A token in a published cache is a published
+          # token. The secret is mounted for one RUN and never written to a layer.
+          secrets: |
+            gh_packages_token=${{ secrets.GH_PACKAGES_TOKEN }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.sha }}
