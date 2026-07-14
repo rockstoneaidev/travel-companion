@@ -95,6 +95,34 @@ Push to `main` → `.github/workflows/deploy-staging.yml`:
 
 **Rollback:** `echo "IMAGE_TAG=<previous-sha>" > .env && docker compose pull && docker compose up -d`.
 
+### The deploy window (2026-07-14)
+
+`docker compose up -d` **stops the old container and starts the new one** — for the few
+seconds in between there is no backend, and Traefik answers the only way it can: **502 Bad
+Gateway**. Reload during a deploy, which is exactly when someone is watching, and that is what
+you get.
+
+**Why we do not run two containers and swap.** That is the textbook fix and it is the wrong one
+here: Horizon runs *inside* the app container, so a second app is a second Horizon and a second
+PHP-FPM pool — on a box with ~570 MB free that is shared with other applications. Trading a
+five-second blip for an OOM kill is not a trade.
+
+So the gap is closed from the other end:
+
+- **Traefik retry** on the router (`retry.attempts=5`, `initialInterval=500ms`). It fires on a
+  *connection error* — no response was ever received, so replaying is safe even for a POST — and
+  backs off across the window (0.5s · 1s · 2s · 4s). The new container answers inside that, and
+  the request that would have been a 502 just takes a moment longer. A slow page, not a broken
+  one.
+- **A healthcheck on `/up`**, and `docker compose up -d --wait`. "The container started" was being
+  reported as "the deploy worked" — and a container that boots and immediately serves 502s
+  satisfies the first, not the second.
+- **The deploy does not finish until the site answers over HTTPS.** The healthcheck proves the app
+  is up on localhost; the curl proves the whole path — router, TLS, retry — is really serving.
+
+If this box ever gets memory headroom, the proper rolling swap becomes available and this retry
+becomes a backstop rather than the mechanism.
+
 ### Why the order matters (2026-07-14)
 
 **Horizon runs inside the `app` container** (supervisord — one fewer container on the shared box),
