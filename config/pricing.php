@@ -113,6 +113,9 @@ return [
         | configured must look conspicuous). It just happened to be right about a host
         | that is genuinely free. Every mirror the adapter can choose is listed here.
         */
+        // Self-hosted OSRM (E43): our own compute on our own box — free at the margin,
+        // and named here so it surfaces as 'free' rather than 'unknown' in the ledger.
+        'osrm' => 'free',
         'overpass-api.de' => 'free',
         'lz4.overpass-api.de' => 'free',
         'overpass.kumi.systems' => 'free',

@@ -9,6 +9,7 @@ use App\Domain\Context\Contracts\ContextLocationEraser;
 use App\Domain\Context\Contracts\Routing;
 use App\Domain\Context\Contracts\SessionPositions;
 use App\Domain\Context\Queries\LatestSessionPosition;
+use App\Domain\Context\Services\FallbackRouting;
 use App\Domain\Context\Services\GoogleRoutes;
 use App\Domain\Notifications\Contracts\PushSender;
 use App\Domain\Notifications\Services\LogPushSender;
@@ -100,8 +101,23 @@ final class DomainServiceProvider extends ServiceProvider
         // signal in half (E31).
         FeedbackRecorder::class => RecordFeedbackForRecommendation::class,
 
-        // Stage-B routing (PRD §10). A port, so self-hosted OSRM/Valhalla on our own
-        // OSM extract is a swap and not a rewrite (DATA-SOURCES §9).
-        Routing::class => GoogleRoutes::class,
+        // Stage-B routing is bound in register() — it depends on config, which the
+        // auto-binding array cannot express (see below).
     ];
+
+    /**
+     * Stage-B routing, chosen by config (E43; PRD §10, DATA-SOURCES §9).
+     *
+     * A port, so switching engines is a binding change and nothing else. Default is Google;
+     * `routing.driver=osrm` swaps in self-hosted OSRM with Google kept as a live fallback.
+     * This is cost-triggered — flip it when the ledger says Google Routes spend justifies
+     * running OSRM, not before.
+     */
+    public function register(): void
+    {
+        $this->app->bind(Routing::class, static fn ($app): Routing => match (config('routing.driver')) {
+            'osrm' => $app->make(FallbackRouting::class),
+            default => $app->make(GoogleRoutes::class),
+        });
+    }
 }

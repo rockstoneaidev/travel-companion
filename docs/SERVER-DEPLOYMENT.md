@@ -199,3 +199,30 @@ docker exec travel-companion-app php artisan migrate --force
 docker logs -f travel-companion-app                      # logs
 cd /srv/staging/apps/travel-companion && docker compose restart app scheduler
 ```
+
+## Self-hosted routing (OSRM) — E43, the cost lever, not yet flipped
+
+The Stage-B `Routing` port (PRD §10) ships bound to **Google Routes by default**. E43 adds
+a second engine — **self-hosted OSRM on our own OSM extract** — behind the same port, so
+switching is a config flip, not a rewrite. It is **cost-triggered**: turn it on when the
+cost ledger (E24/E25) says Google Routes spend justifies the ops burden, and not before.
+
+**To flip it (when the ledger says so):**
+
+1. Stand up OSRM as a container (or three — `foot`, `bicycle`, `driving` profiles) on the
+   OSM extract for the launch regions. Same private network as `app`; expose it only
+   internally (no public port). See the OSRM `docker-compose` recipe; extract build is the
+   slow one-time step.
+2. Set on staging: `ROUTING_DRIVER=osrm`, `OSRM_URL=http://osrm:5000` (the internal host),
+   and leave `OSRM_GOOGLE_FALLBACK=true` at first — Google stays a live fallback, so a bad
+   OSRM day degrades to a real number rather than to the ±30% estimator.
+3. **Spot-check parity** on staging before trusting it: a handful of served routes compared
+   against Google for the same origin/destination/mode. This is the one thing the test
+   suite cannot do — it needs the real extract — and it is the acceptance criterion for the
+   epic. Watch the cost-per-trip-hour line on the dashboard drop.
+4. Once OSRM has earned trust on real traffic, set `OSRM_GOOGLE_FALLBACK=false` and Google
+   stops being called at all.
+
+Nothing downstream changes: the port's contract ("a real number, or null → keep the
+estimator's") is identical for both engines, and `FallbackRouting` is the only thing that
+knows two of them exist.
