@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Opportunities\Queries\ListOpportunitiesForSession;
+use App\Domain\Places\Queries\CountPlacesAround;
 use App\Domain\Recommendations\Queries\CurrentServe;
 use App\Domain\Recommendations\Queries\PendingVisitPrompts;
 use App\Domain\Trips\Actions\StartExploreSession;
@@ -87,10 +88,31 @@ final class ExploreSessionController extends Controller
         ListOpportunitiesForSession $listOpportunities,
         PendingVisitPrompts $pendingVisitPrompts,
         CurrentServe $currentServe,
+        CountPlacesAround $placesAround,
     ): Response {
-        $opportunities = $listOpportunities(ExploreSessionData::fromModel($exploreSession));
+        $session = ExploreSessionData::fromModel($exploreSession);
+        $opportunities = $listOpportunities($session);
 
         return Inertia::render('explore/show', [
+            /*
+             * Do we know this area AT ALL? (PRD §8.1, §15.3.)
+             *
+             * Only asked when the feed is empty, and only because an empty feed has two
+             * completely different meanings that we were rendering identically: "we swept
+             * this neighbourhood and nothing is worth your time" and "we have never heard
+             * of this town". The world model is region-scoped (Stockholm + the France
+             * corridor), so outside it the honest answer is that we do not know the place —
+             * not that we are watching it and it is quiet.
+             *
+             * One indexed count against our own table. No scouts, no APIs, no cost.
+             */
+            'coverage' => [
+                'known' => $opportunities !== [] || ($session->origin !== null && $placesAround->within(
+                    $session->origin->lat,
+                    $session->origin->lng,
+                    $session->reachMeters(),
+                ) > 0),
+            ],
             'session' => new ExploreSessionResource($exploreSession->load('trip')),
             'opportunities' => SessionOpportunityResource::collection($opportunities),
             // Which batch this is (E46). Read AFTER the feed, because the feed is what
