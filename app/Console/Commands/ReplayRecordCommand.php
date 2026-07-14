@@ -23,6 +23,28 @@ final class ReplayRecordCommand extends Command
     {
         $session = ExploreSession::query()->with('trip')->findOrFail($this->argument('session'));
 
+        /*
+         * A gold trace is a claim about reality (ADMIN §6, §14; PRD §15.2).
+         *
+         * The gold suite is the regression net for ranking: "would this change have
+         * altered what we served to a real person, on a real afternoon, in a real
+         * place?" A session driven by an operator dragging a pin across a map answers a
+         * different question entirely — it is a fixture of the emulator's imagination,
+         * and freezing it as ground truth would pin the scoring model to a walk nobody
+         * took.
+         *
+         * Refused loudly rather than silently skipped: someone typed this command with
+         * a session id in their hand, and they should be told why it is the wrong one.
+         */
+        if (! $session->context_source->isReal()) {
+            $this->components->error(
+                "Session {$session->id} is EMULATED (ADMIN §6) and cannot become a gold trace — ".
+                'the suite is a record of what we served real people in real places.'
+            );
+
+            return self::FAILURE;
+        }
+
         $served = Recommendation::query()
             ->where('explore_session_id', $session->id)
             ->orderBy('position')

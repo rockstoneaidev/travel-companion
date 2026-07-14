@@ -114,11 +114,18 @@ role's clothing, and should be modelled as itself:
 | `users_view` | ✓ | ✓* | user list |
 | `users_manage_roles` | — | ✓* | assigning/removing roles |
 | `activity_view` | ✓ | ✓* | audit log |
+| `costs_view` | ✓ | ✓* | the cost explorer (§7.1) |
+| `cost_pause` | — | ✓* | pausing/resuming all paid calls |
+| `location_emulate` | — | ✓* | **the position emulator (§6) — E47** |
 
 \* superadmin holds nothing directly; `Gate::before` grants all. Future sections add their
-permission here when they land: `location_emulate` (superadmin-only), `curation_manage`,
-`costs_view`, `traces_view`, `privacy_operate` (superadmin-only), `scoring_configure`
-(superadmin-only).
+permission here when they land: `curation_manage`, `traces_view`, `privacy_operate`
+(superadmin-only), `scoring_configure` (superadmin-only).
+
+`location_emulate` is held by **no role**, deliberately. It drives the real pipeline from a
+fabricated position — real scouts, real scoring, real money — and what keeps that out of the
+metrics is a flag on the session. The flag is only as trustworthy as the list of people who can
+raise it.
 
 Two hard rules, both enforced in code and tests:
 
@@ -174,7 +181,7 @@ Scope is deliberately tight: **if a feature has an owning domain module, it may 
 | Activity (audit log) | `/admin/activity` | `activity_view` | `App\Admin\Queries\ListActivity` | **built** |
 | Horizon (queues, failed jobs) | `/horizon` (link) | `ops_view` | Laravel Horizon | **built** |
 | Pulse (exceptions, slow queries, usage) | `/pulse` (link) | `ops_view` | Laravel Pulse | **built** |
-| Position emulation map | `/admin/emulation` | `location_emulate` | `Domain/Context` | step 2 (§6) |
+| Position emulator | `/admin/emulator` | `location_emulate` | `Domain/Context` | **built (E47)** — §6 |
 | Source health | `/admin/sources` | `admin_access` | `Domain/Sources` | step 2 (§7.2) |
 | Pipeline events | `/admin/events` | `admin_access` | log-shaped table (§8) | step 2 |
 | Cost dashboard | `/admin/costs` | `costs_view` | cost records, conventions/08 | step 3 (§7.1) |
@@ -185,27 +192,74 @@ Scope is deliberately tight: **if a feature has an owning domain module, it may 
 | Privacy operations | `/admin/privacy` | `privacy_operate` | `Domain/Privacy` | step 4 |
 | Scoring config / replayer | `/admin/scoring` | `scoring_configure` | `Domain/Recommendations` | step 4, with the replayer (PRD §15.2) |
 
-## 6. Position emulation (step 2 — specified now, built with the Context module)
+## 6. Position emulation — `/admin/emulator` (BUILT, E47)
 
 The single most valuable dev tool in the console, and one design decision makes or breaks it:
 **the emulated position enters through the same context-ingestion boundary as a real one.**
 
-- `Domain/Context` owns a `ContextResolver`. When resolving the current context for a user it
-  first consults a per-user **location override** (Redis, TTL'd, key prefixed `travel_`); only
-  then falls back to the device-reported signal. Tile resolution, scouts, caching, scoring and
-  delivery all see the override identically to a real position — we test the actual pipeline, not
-  a lookalike.
-- Every context event records `context_source` (`device` | `emulated`) — an enum per
-  conventions/02 — and the value propagates onto the decision trace of everything downstream
-  (conventions/03 required-columns spirit). Learning, cost metrics and gold traces filter it out.
-- The map is **MapLibre GL + OSM raster tiles** — license-consistent with the ODbL world model,
-  React-native, no API key. The admin drops a pin (single position, TTL'd) or draws a **path** and
-  plays it back as a timed sequence of context events. Path playback is deliberately the
-  interactive twin of the trip replayer (PRD §15.2): the replayer runs *recorded* traces headlessly;
-  this map authors and steps through *synthetic* ones. They share the ingestion entry point.
-- Permission `location_emulate` is superadmin-only, every override set/clear is audit-logged, and
-  an active override is visibly bannered in the admin UI (an operator forgetting an override on is
-  a confusing-bug factory).
+That decision is honoured literally. A tick of the pin calls `RecordContextEvent` — the same
+action the phone's `POST /explore-sessions/{s}/context-events` calls — and nothing downstream can
+tell the difference. It cannot: we are testing the actual pipeline, not a lookalike.
+
+### The Redis override is gone (superseded by E46)
+
+**This section originally specified a `ContextResolver` consulting a per-user Redis location
+override *before* the device signal.** That was written when nothing carried a live position into
+ranking. E46 (the living feed) changed the ground under it: `context-events` **is** the ingestion
+path now, and the feed re-anchors off it at pull time.
+
+So playback posts **real context events**, and the override channel was never built — it would
+have been a second way to set a position that the pipeline does not read. "Which session is being
+emulated" is consequently **a row, not a TTL'd key**: an `explore_sessions.context_source =
+emulated` session that is `active`. The banner is a fact rather than a cache entry, and a
+forgotten override cannot outlive its session.
+
+### The contamination boundary (Principle 4, §14 — "a CLAUDE.md-grade invariant")
+
+`context_source` (`device` | `emulated`, enum per conventions/02) on `explore_sessions`,
+`context_events` and `recommendations` — the session is the **root**, and events and traces
+inherit from it.
+
+**The client never asserts it.** There is no field in any request payload to say `emulated` with,
+so no caller can launder itself out of the metrics and no real phone can be mislabelled.
+Provenance is a property of the session, not of a POST body.
+
+| Seam | Behaviour |
+|---|---|
+| **Learning** | `RecordFeedback` writes the **ledger** but does not call the learner. Deliberate: the ledger is what makes the feed *behave* (dismiss-backfill reads it), so an operator can dismiss a card and watch a new one slide in — while no facet weight moves and `event_counts` never warms α out of cold start. |
+| **Cost** | `MarkEmulatedContext` sets the request attribute `MeterCost` has read since the cost epic (`CostActorKind::AdminEmulated`). Spend is still **recorded** — the wallet counts everything (§2.4) — but `CostExplorer` / `CostRollup` already filter product metrics to `actor_kind = user`. **Including across the queue:** `GenerateOpportunityVoiceJob` carries the flag, because that is where the LLM bill actually lands. |
+| **Gold traces** | `replay:record` refuses an emulated session outright. A gold trace is a claim about reality. |
+| **The operator's own feed** | `FindActiveExploreSessionForUser` skips emulated sessions, so `/explore` never hands an operator their emulator session by mistake. |
+
+### The cockpit
+
+- **Map:** MapLibre GL over the **OpenFreeMap vector tiles the product already uses** (OSM data,
+  ODbL-consistent, no API key). *Amended from "OSM raster":* a raster host would mean a second
+  tile provider, a second attribution and a second thing to break, to render the same data in a
+  form we could not style. The licence property this section cared about is unchanged.
+- Drop/drag a pin, or draw a **path** and play it back at the mode's real `config/tiles.php` speed,
+  at **1× / 10× / 60×** (a 30-minute walk must not take 30 minutes to replay). Playback is the
+  interactive twin of the trip replayer (PRD §15.2): the replayer runs *recorded* traces
+  headlessly; this map authors and steps through *synthetic* ones. They share the ingestion entry
+  point.
+- **Coverage overlay:** the session's `CoverageGeometry` cells — disc when wandering, cone ahead of
+  the heading, corridor to a destination — drawn as actual hexagons, near vs far shaded by which
+  scouts run out there. `CoverageGeometry` always knew exactly which res-8 cells it was about to
+  scout and *nothing could draw them*: every H3 caller in the codebase wanted a centroid, so nobody
+  had ever asked for a boundary (`TileBoundaries`, E47).
+- **Device preview:** a phone-viewport iframe of the **real** `/explore/{session}` as the emulated
+  user. Not a mock of the feed — the feed. When the pin crosses into Hornstull, it re-anchors for
+  real (E46).
+- **Dry run:** `RankSession::plan()`, the pure pass — what the pin *would* serve, picked **and**
+  held with their scores. Writes nothing, spends no serve budget, leaves no trace.
+- **Pipeline log:** polling (2.5 s — no Reverb, Phase 1 discipline, PRD §8.1). Reads what the
+  pipeline already wrote down and nobody ever looked at: the serve trace's funnel (§15.1) and
+  `scout_runs`. *"reachability dropped 14 of 60 considered · ranked in 84 ms · tiles 6 hit / 1
+  filled"*.
+- Permission **`location_emulate`** is superadmin-only and held by no role; every start/stop is
+  audit-logged; an active emulation is **visibly bannered** (an operator forgetting one on is a
+  confusing-bug factory). An operator may only ever drive **their own** pin, and may never write an
+  emulated position onto a real session.
 
 ## 7. Costs & source health
 
@@ -269,7 +323,7 @@ spatie/laravel-activitylog v5. Rules:
 | Step | Contents | Status |
 |------|----------|--------|
 | **1** | permission + roles + `Gate::before`, `/admin` shell, dashboard, users & role management, activity log, Horizon/Pulse gates + links, CLI role grant, seeder, arch rules, tests | **done** |
-| **2** | with the first pipeline code: position emulation (§6), source health (§7.2), pipeline events (§8) | — |
+| **2** | with the first pipeline code: position emulation (§6), source health (§7.2), pipeline events (§8) | **position emulation done (E47)** — §6 built, incl. the pipeline log (§8); source health outstanding |
 | **3** | with the first recommendations: trace inspector, cost dashboard (§7.1) | — |
 | **4** | steady state: curation UI, tile-cache overlay, DB-backed registration allowlist, privacy operations, scoring config + replayer UI | — |
 

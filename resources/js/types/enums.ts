@@ -4,8 +4,21 @@
 export const ROLES = ['admin', 'superadmin'] as const;
 export type Role = (typeof ROLES)[number];
 
-export const PERMISSIONS = ['admin_access', 'ops_view', 'users_view', 'users_manage_roles', 'activity_view', 'costs_view', 'cost_pause'] as const;
+export const PERMISSIONS = [
+    'admin_access',
+    'ops_view',
+    'users_view',
+    'users_manage_roles',
+    'activity_view',
+    'costs_view',
+    'cost_pause',
+    'location_emulate',
+] as const;
 export type Permission = (typeof PERMISSIONS)[number];
+
+/** Where a position came from (ADMIN §6). `emulated` is never learned from. */
+export const CONTEXT_SOURCES = ['device', 'emulated'] as const;
+export type ContextSource = (typeof CONTEXT_SOURCES)[number];
 
 // --- World model (E1) ---
 

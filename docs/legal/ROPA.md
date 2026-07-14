@@ -121,6 +121,7 @@ Enumerated from the schema, not from memory. Citations are to `database/migratio
 | Observed weather | `weather` (jsonb — temp, precipitation, WMO code, cloud), `weather_observed_at` | `explore_sessions` | No — environmental, not personal. See the note below. |
 | **Spend records** | `user_id`, `occurred_at`, `trip_id` / `session_id` / `recommendation_id` / `opportunity_id`, `h3_cell` (res-8), token counts, money | `cost_events` | No — but see the note below |
 | Free text | `name` (user-chosen trip name) | `trips` | No |
+| Provenance | `context_source` (`device` \| `emulated`) | `explore_sessions`, `context_events`, `recommendations` | No — not personal data, but it is what **keeps** operator testing out of the learning and cost records below (ADMIN §6). Emulated rows are an operator's own account, never a traveller's. |
 
 **On the weather snapshot, which is kept indefinitely and deliberately not coarsened.**
 `explore_sessions.weather` records what the sky was doing over the session's tile at the moment we

@@ -1,5 +1,5 @@
 import { type NavItem, type SharedData } from '@/types';
-import { Activity, Bookmark, BookOpen, Compass, Gauge, LayoutGrid, Map, NotebookPen, ScrollText, Shield, Users } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, Compass, Gauge, LayoutGrid, Map, Navigation, NotebookPen, ScrollText, Shield, Users } from 'lucide-react';
 
 /**
  * The app navigation, shared by the sidebar (app chrome) and the menu sheet on the
@@ -38,6 +38,13 @@ export function adminNavItems(permissions: SharedData['auth']['permissions']): N
 
     items.push({ title: 'Curation', url: '/admin/curation', icon: BookOpen });
     items.push({ title: 'World model', url: '/admin/world-model', icon: Map });
+
+    // Superadmin-only (ADMIN §6). Gated on the permission, not merely hidden — the
+    // route enforces it too; "the React component does not render it" is not access
+    // control (ADMIN §3).
+    if (permissions.includes('location_emulate')) {
+        items.push({ title: 'Emulator', url: '/admin/emulator', icon: Navigation });
+    }
 
     if (permissions.includes('users_view')) {
         items.push({ title: 'Users', url: '/admin/users', icon: Users });

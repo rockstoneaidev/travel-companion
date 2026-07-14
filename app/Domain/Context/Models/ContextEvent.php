@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Context\Models;
 
 use App\Domain\Context\Enums\AppState;
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Context\Enums\MovementMode;
 use App\Domain\Places\Casts\AsCoordinates;
 use Database\Factories\Domain\Context\ContextEventFactory;
@@ -26,11 +27,23 @@ final class ContextEvent extends Model
 
     protected $guarded = [];
 
+    /*
+     * Real until something with `location_emulate` says otherwise (ADMIN §6).
+     *
+     * The database default says the same thing, but a freshly created model does not
+     * re-read the row, so without this the attribute is NULL in memory and every reader
+     * of `->context_source` fataly dereferences it. The default belongs in both places:
+     * the column defends the data, this defends the object.
+     */
+    protected $attributes = ['context_source' => 'device'];
+
     protected function casts(): array
     {
         return [
             'occurred_at' => 'immutable_datetime',
             'location' => AsCoordinates::class,
+            // Inherited from the session at write time, never read off the request.
+            'context_source' => ContextSource::class,
             'movement_mode' => MovementMode::class,
             'app_state' => AppState::class,
             'accuracy_meters' => 'integer',

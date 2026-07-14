@@ -33,6 +33,16 @@ enum Permission: string
      */
     case PauseCost = 'cost_pause';
 
+    /**
+     * Position emulation (ADMIN §6) — superadmin-only, held by no role.
+     *
+     * It is the most powerful thing in the console: it drives the real pipeline from a
+     * fabricated position, and everything it touches has to be kept out of learning,
+     * cost metrics and gold traces (§14). The flag that does that keeping-out is only
+     * as trustworthy as the list of people who can turn it on.
+     */
+    case EmulateLocation = 'location_emulate';
+
     public function label(): string
     {
         return match ($this) {
@@ -43,6 +53,7 @@ enum Permission: string
             self::ViewActivity => 'View the activity log',
             self::ViewCosts => 'View spend & the cost ledger',
             self::PauseCost => 'Pause & resume all paid calls',
+            self::EmulateLocation => 'Emulate a position (drive the pipeline from a pin)',
         };
     }
 }
