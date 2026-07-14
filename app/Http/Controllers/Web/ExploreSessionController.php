@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Opportunities\Queries\ListOpportunitiesForSession;
-use App\Domain\Places\Queries\CountPlacesAround;
+use App\Domain\Places\Services\PlaceDensity;
 use App\Domain\Recommendations\Queries\CurrentServe;
 use App\Domain\Recommendations\Queries\PendingVisitPrompts;
+use App\Domain\Sources\Services\RegionBuildStatus;
+use App\Domain\Sources\Services\RegionCatalog;
 use App\Domain\Trips\Actions\StartExploreSession;
 use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Enums\TravelMode;
@@ -88,7 +90,9 @@ final class ExploreSessionController extends Controller
         ListOpportunitiesForSession $listOpportunities,
         PendingVisitPrompts $pendingVisitPrompts,
         CurrentServe $currentServe,
-        CountPlacesAround $placesAround,
+        PlaceDensity $placesAround,
+        RegionCatalog $regions,
+        RegionBuildStatus $builds,
     ): Response {
         $session = ExploreSessionData::fromModel($exploreSession);
         $opportunities = $listOpportunities($session);
@@ -106,13 +110,7 @@ final class ExploreSessionController extends Controller
              *
              * One indexed count against our own table. No scouts, no APIs, no cost.
              */
-            'coverage' => [
-                'known' => $opportunities !== [] || ($session->origin !== null && $placesAround->within(
-                    $session->origin->lat,
-                    $session->origin->lng,
-                    $session->reachMeters(),
-                ) > 0),
-            ],
+            'coverage' => $this->coverage($session, $opportunities !== [], $placesAround, $regions, $builds),
             'session' => new ExploreSessionResource($exploreSession->load('trip')),
             'opportunities' => SessionOpportunityResource::collection($opportunities),
             // Which batch this is (E46). Read AFTER the feed, because the feed is what
@@ -125,5 +123,53 @@ final class ExploreSessionController extends Controller
                 $pendingVisitPrompts->forUser((int) $exploreSession->user_id),
             ),
         ]);
+    }
+
+    /**
+     * What we know about here, and what we are doing about it (E48; PRD §8.1, §15.3).
+     *
+     * An empty feed has THREE meanings and we used to render one:
+     *
+     *   known           → we swept this neighbourhood and it is genuinely quiet.
+     *   learning        → we had never heard of this place; we are ingesting it now.
+     *   neither         → we do not know it and nothing is coming (rate-limited, or the
+     *                     build failed). Still better said out loud than dressed up.
+     *
+     * The middle one is new, and it is the whole point of E48: the first person to walk
+     * into Skellefteå triggers the region being learned, and the screen tells them so
+     * instead of pretending to watch a town it has never heard of.
+     *
+     * @param  list<mixed>  $hasFeed
+     * @return array<string, mixed>
+     */
+    private function coverage(
+        ExploreSessionData $session,
+        bool $hasFeed,
+        PlaceDensity $placesAround,
+        RegionCatalog $regions,
+        RegionBuildStatus $builds,
+    ): array {
+        if ($hasFeed || $session->origin === null) {
+            return ['known' => true, 'learning' => false, 'progress' => null];
+        }
+
+        $known = $placesAround->within(
+            $session->origin->lat,
+            $session->origin->lng,
+            $session->reachMeters(),
+        ) > 0;
+
+        $region = $regions->covering($session->origin->lat, $session->origin->lng);
+
+        // "Learning" is only true while a build is actually running. A region row with no
+        // build behind it is a promise nobody is keeping, and the screen must not make it.
+        $learning = $region !== null && $builds->isBuilding($region->key);
+
+        return [
+            'known' => $known,
+            'learning' => $learning && ! $known,
+            'region' => $region?->name,
+            'progress' => $learning ? $builds->boxes($region->key) : null,
+        ];
     }
 }

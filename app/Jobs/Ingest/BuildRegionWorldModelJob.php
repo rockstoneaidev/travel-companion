@@ -9,6 +9,7 @@ use App\Domain\Places\Services\FetchWikipediaExtracts;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionBuildStatus;
+use App\Domain\Sources\Services\RegionCatalog;
 use App\Domain\Sources\Services\RegionIngest;
 use App\Domain\Sources\Services\SourceRegistry;
 use App\Enums\QueueLane;
@@ -78,9 +79,68 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         public readonly string $regionKey,
         public readonly string $phase = 'ingest',
         public readonly ?string $source = null,
+        /*
+         * Where the person who asked for this region is actually standing (E48).
+         *
+         * Boxes are ingested NEAREST-FIRST when we know. Stockholm is ~45 boxes at
+         * roughly a minute each, so a region learned on demand takes the better part of
+         * an hour — and ingested in grid order, the user in the middle of it sees nothing
+         * until it is nearly done. Nearest-first, the tiles they are standing in land in
+         * the first minute or two and the feed comes alive while the rest fills in behind
+         * them. Same work, a completely different experience of waiting for it.
+         */
+        public readonly ?float $nearLat = null,
+        public readonly ?float $nearLng = null,
     ) {
-        $this->onQueue(QueueLane::Ingest->value);
-        $this->onConnection(QueueLane::Ingest->connection());
+        /*
+         * The progressive resolve does NOT go on the ingest lane, and that is the whole
+         * point of it.
+         *
+         * The ingest lane is maxProcesses 1 — deliberately, because public Overpass gives
+         * us about two slots and being rude to it costs an entire city (the comment on
+         * dispatchBoxes() is the scar). So a resolve queued there lands BEHIND all
+         * fifty-five boxes and cannot possibly run until the ingest it was meant to
+         * pre-empt has already finished. I queued it there and watched it never run.
+         *
+         * It is pure database work — source items into places — so it belongs on a lane
+         * that is free to move while Overpass makes us wait.
+         */
+        $lane = $phase === 'resolve-progressive' ? QueueLane::Default : QueueLane::Ingest;
+
+        $this->onQueue($lane->value);
+        $this->onConnection($lane->connection());
+    }
+
+    /**
+     * The pin, or null — SAFE ACROSS A DEPLOY.
+     *
+     * `isset()`, not a direct read, and the difference is a production outage. A queued
+     * job is unserialized WITHOUT its constructor running, so a job that was already on
+     * the queue when this property was added has no value for it — not null, *uninitialized*
+     * — and touching a typed property in that state is a fatal Error, not a null.
+     *
+     * It happened here, immediately: fifty-one Overpass boxes queued by the previous
+     * build died on "must not be accessed before initialization" the moment the new code
+     * shipped. In production that is a rolling deploy quietly killing every in-flight job.
+     *
+     * `isset()` on an uninitialized typed property is false, and never throws. An old job
+     * therefore falls back to plain grid order — which is exactly what it was dispatched
+     * expecting.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function pin(): ?array
+    {
+        if (! isset($this->nearLat, $this->nearLng)) {
+            return null;
+        }
+
+        return [$this->nearLat, $this->nearLng];
+    }
+
+    private function catalog(): RegionCatalog
+    {
+        return app(RegionCatalog::class);
     }
 
     public function uniqueId(): string
@@ -101,7 +161,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         RegionBuildStatus $status,
         FetchWikipediaExtracts $wikipedia,
     ): void {
-        $region = IngestRegion::named($this->regionKey);
+        $region = $this->catalog()->named($this->regionKey);
 
         // So the admin console can say what is happening instead of nothing at all.
         $status->phase($this->regionKey, $this->source === null ? $this->phase : "{$this->phase}: {$this->source}");
@@ -150,6 +210,32 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
             }
 
             $this->chainOnwardFromIngest($registry, $source);
+
+            return;
+        }
+
+        /*
+         * RESOLVE WHAT WE HAVE SO FAR, while the rest is still being fetched (E48).
+         *
+         * Without this, ingesting the boxes nearest the user buys exactly nothing. A box
+         * writes SOURCE ITEMS; only the `resolve` phase turns those into `places`, and
+         * `resolve` runs when the batch FINISHES — all 55 boxes of it, which on a public
+         * Overpass being polite to us is a couple of hours. So the person who triggered
+         * the region would stare at an empty feed for the entire ingest and then have a
+         * city appear at once, long after they had gone home.
+         *
+         * A completed box dispatches this. It resolves ONE batch of tiles and stops —
+         * no chaining, no evidence phase, no opinions about what happens next; that is
+         * the full `resolve` phase's job when the ingest is actually done. Unique per
+         * region, so fifty-five boxes finishing do not queue fifty-five resolves.
+         */
+        if ($this->phase === 'resolve-progressive') {
+            $tiles = $resolve->unresolvedTiles($region, self::RESOLVE_BATCH_TILES);
+
+            if ($tiles !== []) {
+                $totals = $resolve->resolveTiles($tiles);
+                Log::info("world-model resolve {$this->regionKey} (progressive)", [...$totals, 'tiles' => count($tiles)]);
+            }
 
             return;
         }
@@ -305,13 +391,17 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
      */
     private function dispatchBoxes(IngestRegion $region, SourceRegistry $registry, string $source): void
     {
-        $boxes = $region->boxes();
+        $pin = $this->pin();
+        $boxes = $pin !== null ? $region->boxesNearest($pin[0], $pin[1]) : $region->boxes();
         $regionKey = $this->regionKey;
 
         Log::info("world-model ingest {$regionKey}/{$source}: queueing boxes", ['boxes' => count($boxes)]);
 
+        $nearLat = $pin[0] ?? null;
+        $nearLng = $pin[1] ?? null;
+
         Bus::batch(array_map(
-            static fn (int $index): IngestRegionBoxJob => new IngestRegionBoxJob($regionKey, $source, $index),
+            static fn (int $index): IngestRegionBoxJob => new IngestRegionBoxJob($regionKey, $source, $index, $nearLat, $nearLng),
             array_keys($boxes),
         ))
             ->name("ingest {$regionKey}/{$source}")
@@ -378,7 +468,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
     /** One WarmTileJob per (tile, scout); ShouldBeUnique collapses duplicates. */
     private function warmRegionTiles(string $regionKey): void
     {
-        $tiles = app(ResolveRegion::class)->tilesFor(IngestRegion::named($regionKey));
+        $tiles = app(ResolveRegion::class)->tilesFor(app(RegionCatalog::class)->named($regionKey));
 
         foreach ($tiles as $tile) {
             foreach (app()->tagged('tile-scouts') as $scout) {

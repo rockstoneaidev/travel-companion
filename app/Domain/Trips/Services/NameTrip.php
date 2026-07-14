@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Trips\Services;
 
 use App\Domain\Places\Data\Coordinates;
-use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Services\RegionCatalog;
 use Carbon\CarbonImmutable;
 
 /**
@@ -32,7 +32,7 @@ final class NameTrip
             return null;
         }
 
-        foreach (IngestRegion::all() as $region) {
+        foreach (app(RegionCatalog::class)->all() as $region) {
             $inside = $anchor->lat >= $region->south && $anchor->lat <= $region->north
                 && $anchor->lng >= $region->west && $anchor->lng <= $region->east;
 

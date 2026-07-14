@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Curation\Services;
 
 use App\Domain\Curation\Data\PackCandidate;
-use App\Domain\Sources\Data\IngestRegion;
+use App\Domain\Sources\Services\RegionCatalog;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -59,7 +59,7 @@ final class PackCandidateSelector
     /** @return list<PackCandidate> */
     public function forRegion(string $regionKey, int $limit): array
     {
-        $region = IngestRegion::named($regionKey);
+        $region = app(RegionCatalog::class)->named($regionKey);
 
         $rows = DB::table('places_core as p')
             ->select(['p.id', 'p.name', 'p.type', 'p.type_domain', 'p.facets', 'p.h3_index'])

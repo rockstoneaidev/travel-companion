@@ -195,4 +195,36 @@ final readonly class IngestRegion
 
         return $boxes;
     }
+
+    /**
+     * The same boxes, ordered by distance from a point — nearest first (E48).
+     *
+     * This is the difference between a usable tool and a forty-five-minute shrug.
+     * Stockholm is ~45 boxes at roughly a minute each, so a region learned on demand
+     * takes the better part of an hour to finish. Ingested in grid order (south-west
+     * corner first), the user standing in the middle of it sees nothing at all until it
+     * is nearly done.
+     *
+     * Ingested nearest-first, the tiles they are actually STANDING IN land in the first
+     * minute or two, the feed comes alive almost immediately, and the rest of the region
+     * fills in behind them while they walk. Same total work; a completely different
+     * experience of waiting for it.
+     *
+     * @return list<ScoutRequest>
+     */
+    public function boxesNearest(float $lat, float $lng): array
+    {
+        $boxes = $this->boxes();
+
+        usort($boxes, static function (ScoutRequest $a, ScoutRequest $b) use ($lat, $lng): int {
+            // Centroid distance, in plain degrees. This orders boxes; it does not measure
+            // the Earth, and a haversine here would be precision nobody spends.
+            $distance = static fn (ScoutRequest $box): float => (($box->south + $box->north) / 2 - $lat) ** 2
+                + (($box->west + $box->east) / 2 - $lng) ** 2;
+
+            return $distance($a) <=> $distance($b);
+        });
+
+        return $boxes;
+    }
 }

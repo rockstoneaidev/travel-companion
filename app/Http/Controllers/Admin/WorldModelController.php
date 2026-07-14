@@ -10,6 +10,7 @@ use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Queries\RegionWorldModelStats;
 use App\Domain\Sources\Services\RegionBuildStatus;
+use App\Domain\Sources\Services\RegionCatalog;
 use App\Http\Controllers\Controller;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
 use App\Jobs\Ingest\DraftRegionPackJob;
@@ -25,7 +26,7 @@ final class WorldModelController extends Controller
 {
     public function index(ResolveRegion $resolve, RegionWorldModelStats $stats, RegionBuildStatus $builds): Response
     {
-        $regions = collect(IngestRegion::all())
+        $regions = collect(app(RegionCatalog::class)->all())
             ->map(fn (IngestRegion $region): array => [
                 'key' => $region->key,
                 'name' => $region->name,
@@ -80,7 +81,7 @@ final class WorldModelController extends Controller
      */
     public function draft(string $region, RegionBuildStatus $builds): RedirectResponse
     {
-        abort_unless(array_key_exists($region, IngestRegion::all()), 404);
+        abort_unless(app(RegionCatalog::class)->find($region) !== null, 404);
 
         $target = PackPlan::targetFor($region);
 
@@ -97,7 +98,7 @@ final class WorldModelController extends Controller
 
     public function build(string $region, RegionBuildStatus $builds): RedirectResponse
     {
-        abort_unless(array_key_exists($region, IngestRegion::all()), 404);
+        abort_unless(app(RegionCatalog::class)->find($region) !== null, 404);
 
         // Claim the region BEFORE dispatching. Pressing the button five times used to
         // queue five builds of the same city — five times the Overpass traffic, on a
