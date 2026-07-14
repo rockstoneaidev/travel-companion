@@ -11,6 +11,7 @@ use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Trips\Contracts\TripLookup;
 use App\Domain\Trips\Data\TripData;
+use App\Jobs\Ranking\DetectVisitsJob;
 use App\Jobs\Ranking\InferTripSegmentsJob;
 
 /**
@@ -114,6 +115,14 @@ final class RecordTripContext
          * across a city re-classifies the day a handful of times, not a hundred.
          */
         InferTripSegmentsJob::dispatch($tripId);
+
+        /*
+         * ...and look for a visit in it (E37). This is what background location is FOR:
+         * the north star counts places the traveller actually went to, and until now the
+         * only way to know was to ask them — which measures the kind of person who answers
+         * prompts, not the kind of place worth going to.
+         */
+        DetectVisitsJob::dispatch($tripId);
 
         return TripContextResult::recorded($event);
     }

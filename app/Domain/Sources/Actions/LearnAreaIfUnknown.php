@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Sources\Actions;
 
 use App\Domain\Places\Services\PlaceDensity;
+use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Models\DerivedRegion;
 use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Domain\Sources\Services\RegionCatalog;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\FirstLightJob;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -63,8 +65,42 @@ final class LearnAreaIfUnknown
          * A region we already have is a promise we already kept. Whether today's feed is
          * empty is a question about ranking, not about coverage.
          */
-        if ($this->catalog->covering($lat, $lng) !== null) {
-            return false;
+        $claimed = $this->catalog->covering($lat, $lng);
+
+        if ($claimed !== null) {
+            /*
+             * ...unless the claim was never honoured.
+             *
+             * A region row is a promise. `derived_regions` gets one the moment somebody
+             * walks into unknown ground, and from then on this guard refuses to look at
+             * that ground again — which is correct when the build worked, and a PERMANENT
+             * DEAD ZONE when it didn't.
+             *
+             * It didn't, twice. Umeå and Skellefteå were claimed, their builds died on the
+             * old region-key scheme, and both towns then sat there with a row saying "we
+             * know this place" and a database saying nothing at all. Ten hours of "Nothing
+             * worth interrupting you for" over a city of 90,000 people, with no way back:
+             * the claim blocked the retry that would have fixed it.
+             *
+             * So the guard now asks the honest question. Not "did somebody promise to learn
+             * this?" but "do we actually know anything here?" A claim with no places behind
+             * it is not coverage, it is a scar — and the cure is to try again.
+             */
+            if ($this->places->within($lat, $lng, $reachMeters) > 0) {
+                return false;
+            }
+
+            // Being learned right now? Then wait for it — `isBuilding()` already knows that a
+            // stalled claim is a corpse holding the door, not a build.
+            if ($this->status->isBuilding($claimed->key)) {
+                return false;
+            }
+
+            Log::warning('A region claimed this ground and never delivered it. Learning it again.', [
+                'region' => $claimed->key, 'name' => $claimed->name,
+            ]);
+
+            return $this->build($claimed, $lat, $lng);
         }
 
         /*
@@ -82,6 +118,18 @@ final class LearnAreaIfUnknown
 
         $region = ($this->derive)($lat, $lng, $userId);
 
+        Log::info('Learning a region nobody had asked for before.', [
+            'region' => $region->key, 'name' => $region->name, 'user_id' => $userId,
+        ]);
+
+        return $this->build($region, $lat, $lng);
+    }
+
+    /**
+     * Start learning: first light now, the whole region behind it.
+     */
+    private function build(IngestRegion $region, float $lat, float $lng): bool
+    {
         // Already building. `RegionBuildStatus::start()` is the lock, and it is the same
         // one the admin console's Build button takes — an operator and a traveller cannot
         // race each other into ingesting the same city twice.
@@ -89,14 +137,23 @@ final class LearnAreaIfUnknown
             return false;
         }
 
-        Log::info('Learning a region nobody had asked for before.', [
-            'region' => $region->key, 'name' => $region->name, 'user_id' => $userId,
-        ]);
-
         try {
+            /*
+             * FIRST LIGHT, before anything else.
+             *
+             * One small box around the person, on a lane that is not about to be full of
+             * this region's fifty boxes. Overpass answers central Umeå in under four
+             * seconds — the data was never slow, our shape was. The feed comes alive with
+             * the places they can actually walk to while the full region fills in behind.
+             *
+             * Nothing it writes is provisional. It is the same ingest, run on the ground
+             * they are standing on, FIRST.
+             */
+            FirstLightJob::dispatch($region->key, $lat, $lng);
+
             // The pin travels with the job: boxes are ingested NEAREST-FIRST, so the tiles
-            // this person is standing in land within a minute or two and the feed comes
-            // alive while the rest of the region fills in behind them.
+            // this person is standing in land early and the feed keeps thickening while the
+            // rest of the region fills in behind them.
             BuildRegionWorldModelJob::dispatch(
                 regionKey: $region->key,
                 nearLat: $lat,
