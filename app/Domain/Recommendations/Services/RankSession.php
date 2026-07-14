@@ -563,6 +563,32 @@ final class RankSession
             'picked' => $picked,
             'held' => $decided['held'],
             'near_misses' => $nearMisses,
+
+            /*
+             * EVERYTHING, ranked — the browse list (E51).
+             *
+             * Five is the INTERRUPTION budget: the number of things worth putting in front
+             * of somebody unasked. It was never meant to be a ceiling on what a person is
+             * allowed to look at, and using it as one makes the product an authority it has
+             * not earned. The founder's words, and he is right: *"showing 5 is a supremacy
+             * thing that makes the system be the authority it is not."*
+             *
+             * The remarkable part is that this costs NOTHING. The pipeline already scored
+             * every reachable candidate — coverage, scouts, the gate, all eight sub-scores —
+             * and then dropped all but five on the floor. This list is the work we were
+             * already doing and throwing away.
+             *
+             * Composite is computed with `repetition_raw = 0`, deliberately. The repetition
+             * penalty is a property of a FEED (SCORING §5.2) — it stops five cards being
+             * five churches. A browse list is not a feed; it is the candidate set itself,
+             * and penalising the fourth church there would be the system quietly editing
+             * what the user asked to see for themselves.
+             *
+             * Nothing here is persisted, materialised, sent to Google or given a voice. A
+             * hundred rows of LLM copy for a list somebody is scrolling would be the most
+             * expensive way imaginable to be ignored — the money is spent when they OPEN one.
+             */
+            'ranked' => $this->rankAll($decided['served'], $scorer, $context, $alpha, $closed),
             // Candidates the reachability gate dropped, with their breakdowns.
             // The gate computed these and they were being thrown away, so a trace
             // could never answer "why was this not offered to me" — which is the
@@ -584,6 +610,140 @@ final class RankSession
             // the very same instant, not on a nearby one.
             'at' => $at,
         ];
+    }
+
+    /**
+     * "Show me everything." (E51.)
+     *
+     * The browse list: every reachable, evidence-cleared, non-suppressed candidate this
+     * session has, ranked, with no feed-shaped editing on top. The user is the authority
+     * on what they want to look at; our job is to sort it well and then get out of the way.
+     *
+     * Read-only by construction — no recommendation rows, no opportunities, no LLM, no
+     * Google. That is what makes it affordable to show a hundred of them, and it is why
+     * `open()` exists: the money is spent on the one they choose, not on the ninety-nine
+     * they scroll past.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int}
+     */
+    public function browse(ExploreSessionData $session, int $limit, int $offset = 0): array
+    {
+        if ($session->origin === null) {
+            return ['items' => [], 'total' => 0];
+        }
+
+        $this->cost->onTrip($session->tripId)->onSession($session->id);
+
+        $ranked = $this->plan($session, excludePlaceIds: $this->dismissedPlaceIds($session->id))['ranked'];
+
+        return [
+            'items' => array_slice($ranked, $offset, $limit),
+            'total' => count($ranked),
+        ];
+    }
+
+    /**
+     * They picked one out of the list. NOW make it real (E51).
+     *
+     * A browse item is a scored candidate and nothing more — it has no opportunity, no
+     * recommendation row, and therefore no trace, no "why did I get this", and nothing for
+     * keep or dismiss to attach to. Opening one has to mint all of that, or the browse list
+     * would be a dead end that silently loses every signal the user gives it.
+     *
+     * It joins the CURRENT serve batch rather than starting a new one: the user did not
+     * move and we did not re-rank — they simply chose something we already had. Appending
+     * keeps the batch a truthful record of "what this person was looking at, in order".
+     */
+    public function open(ExploreSessionData $session, string $placeId, ?CarbonImmutable $at = null): ?Recommendation
+    {
+        if ($session->origin === null || ! $session->isLive()) {
+            return null;
+        }
+
+        $at ??= now()->toImmutable()->startOfSecond();
+
+        $existing = $this->latestBatch($session->id);
+
+        foreach ($existing as $row) {
+            // Already served this session — the detail page is right there.
+            if (($row->score_inputs['candidate']['place_id'] ?? null) === $placeId) {
+                return $row;
+            }
+        }
+
+        $plan = $this->plan($session, $at);
+
+        $chosen = array_values(array_filter(
+            $plan['ranked'],
+            static fn (array $c): bool => $c['place_id'] === $placeId,
+        ));
+
+        if ($chosen === []) {
+            return null;   // it has fallen out of reach, or shut, since the list was drawn
+        }
+
+        $group = $existing === [] ? 1 : (int) $existing[0]->serve_group;
+
+        $served = $this->persist(
+            $session,
+            [...$plan, 'picked' => [$chosen[0]]],
+            ServeReason::Browse,
+            $group,
+            count($existing),
+        );
+
+        return $served[0] ?? null;
+    }
+
+    /**
+     * The whole candidate set, best first (E51).
+     *
+     * @param  list<array<string, mixed>>  $served
+     * @param  list<string>  $closed  places we verified are shut — they are not options
+     * @return list<array<string, mixed>>
+     */
+    private function rankAll(array $served, CompositeScorer $scorer, string $context, float $alpha, array $closed): array
+    {
+        $ranked = [];
+
+        foreach ($served as $candidate) {
+            if (in_array($candidate['place_id'], $closed, true)) {
+                continue;
+            }
+
+            $result = $scorer->composite(
+                $candidate['sub_scores'],
+                $context,
+                $alpha,
+                $candidate['friction_raw'],
+                repetitionRaw: 0.0,
+            );
+
+            $ranked[] = [
+                ...$candidate,
+                'composite' => $result['composite'],
+                /*
+                 * The same selection trace a picked card carries — because if the user opens
+                 * one of these, `persist()` writes it as a real recommendation and the trace
+                 * has to be able to answer "why did I get this" exactly as it would from the
+                 * feed (PRD §15.1).
+                 *
+                 * `repetition_raw` is 0 and that is not a placeholder, it is the truth: this
+                 * candidate was never selected against a feed, so nothing repeated. Writing
+                 * the feed's penalty here would be recording a decision that did not happen.
+                 */
+                'selection' => [
+                    'weights' => $result['weights'],
+                    'alpha' => $result['alpha'],
+                    'repetition_raw' => 0.0,
+                    'duration_bucket' => null,
+                ],
+            ];
+        }
+
+        usort($ranked, static fn (array $a, array $b): int => $b['composite'] <=> $a['composite']);
+
+        return $ranked;
     }
 
     /**
