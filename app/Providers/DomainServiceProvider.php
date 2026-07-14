@@ -25,7 +25,9 @@ use App\Domain\Recommendations\Contracts\RecommendationTraceEraser;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
 use App\Domain\Trips\Contracts\TripLocationEraser;
+use App\Domain\Trips\Contracts\TripLookup;
 use App\Domain\Trips\Queries\FindExploreSession;
+use App\Domain\Trips\Queries\FindTrip;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -50,6 +52,10 @@ final class DomainServiceProvider extends ServiceProvider
 
         // Trips — what other modules may know about a session / a trip's locations.
         ExploreSessionLookup::class => FindExploreSession::class,
+
+        // ...and "is the companion switched on for this trip?", which Context must ask
+        // before it stores a single background ping (E29).
+        TripLookup::class => FindTrip::class,
         TripLocationEraser::class => EraseTripLocations::class,
 
         // Privacy — may we learn a taste profile at all? (Art. 9(2)(a), DPIA §3.2).

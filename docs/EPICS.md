@@ -119,7 +119,7 @@ trace, and the consent/DPIA set covering the whole flow.
 | # | Epic | Track | Depends on |
 |---|---|---|---|
 | [#28](https://github.com/rockstoneaidev/travel-companion/issues/28) | Mobile stack decision & background-location spike | mobile | gate (19) |
-| [#29](https://github.com/rockstoneaidev/travel-companion/issues/29) | Trip Mode domain: lifecycle, device registry, background context ingestion | backend | gate (19) |
+| [#29](https://github.com/rockstoneaidev/travel-companion/issues/29) | Trip Mode domain: lifecycle, device registry, background context ingestion | backend | **DONE 2026-07-14** — per-trip explicit opt-in (timestamped, revocable); `devices` registry; background stream on `context_events` with a nullable session; home zone never written at all; "never a raw GPS stream" enforced server-side. **ROPA B12 (DPIA rev 2) blocks non-founder use — E32.** |
 | [#30](https://github.com/rockstoneaidev/travel-companion/issues/30) | Notification decision engine, budget & user tolerances | backend | 29 |
 | [#31](https://github.com/rockstoneaidev/travel-companion/issues/31) | Push delivery: FCM/APNs, receipts & observability | platform | 29, 30 |
 | [#32](https://github.com/rockstoneaidev/travel-companion/issues/32) | Privacy for proactivity: DPIA rev 2, consents, ROPA, DPAs | platform | — (parallel from day 1; **blocks M4 exit**) |

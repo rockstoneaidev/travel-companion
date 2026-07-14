@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\ExploreSessionContextEventController;
 use App\Http\Controllers\Api\V1\ExploreSessionController;
 use App\Http\Controllers\Api\V1\ExploreSessionEndController;
@@ -7,8 +8,10 @@ use App\Http\Controllers\Api\V1\ExploreSessionOpportunityController;
 use App\Http\Controllers\Api\V1\ExploreSessionRefreshController;
 use App\Http\Controllers\Api\V1\PlaceSearchController;
 use App\Http\Controllers\Api\V1\RecommendationFeedbackController;
+use App\Http\Controllers\Api\V1\TripContextEventController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\TripLocationHistoryController;
+use App\Http\Controllers\Api\V1\TripModeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -84,6 +87,37 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
         ->name('trips.show');
 
     Route::patch('trips/{trip}', [TripController::class, 'update'])->name('trips.update');
+
+    /*
+    | TRIP MODE (E29; PRD §8.2, §14.5) — the switch that turns a pull-based app into a
+    | companion. Everything Phase 2 may do (background location, geofences, interrupting
+    | somebody who is not looking at their phone) is downstream of `start` returning 200.
+    |
+    | `stop` is gated on ownership and NOTHING else — no status check, no throttle. An
+    | off-switch that can fail is an off-switch nobody trusts, and it is the control the
+    | whole consent story rests on (PRD §16).
+    */
+    Route::post('trips/{trip}/trip-mode/start', [TripModeController::class, 'start'])
+        ->can('update', 'trip')
+        ->name('trips.trip-mode.start');
+
+    Route::post('trips/{trip}/trip-mode/stop', [TripModeController::class, 'stop'])
+        ->can('update', 'trip')
+        ->name('trips.trip-mode.stop');
+
+    /*
+    | The background stream. Authorization lives in the Form Request (it already resolves
+    | the trip), and the throttle is the same one the session stream uses — this is the
+    | same firehose arriving through a different door, and PRD §13.4 is emphatic that it
+    | must never become a raw GPS feed.
+    */
+    Route::post('trips/{trip}/context-events', [TripContextEventController::class, 'store'])
+        ->middleware('throttle:context-events')
+        ->name('trips.context-events.store');
+
+    // The push-token registry — the address of somebody's pocket.
+    Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
+    Route::delete('devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy');
 
     Route::delete('trips/{trip}/location-history', [TripLocationHistoryController::class, 'destroy'])
         ->can('eraseLocationHistory', 'trip')

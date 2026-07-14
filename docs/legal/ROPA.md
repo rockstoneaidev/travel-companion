@@ -121,6 +121,9 @@ Enumerated from the schema, not from memory. Citations are to `database/migratio
 | Observed weather | `weather` (jsonb — temp, precipitation, WMO code, cloud), `weather_observed_at` | `explore_sessions` | No — environmental, not personal. See the note below. |
 | **Spend records** | `user_id`, `occurred_at`, `trip_id` / `session_id` / `recommendation_id` / `opportunity_id`, `h3_cell` (res-8), token counts, money | `cost_events` | No — but see the note below |
 | Free text | `name` (user-chosen trip name) | `trips` | No |
+| **Device identifiers** | `push_token` (**the address of a person's pocket** — an identifier that delivers a message to a specific handset), `platform`, `app_version`, `last_seen_at` | `devices` | No — but it is a *credential* as well as an identifier. Never echoed in an API response; **never included in the Art. 15 export** (an export lands in a downloads folder; the user is entitled to their data, not to a loaded gun). |
+| **Background location** | `location`, `power_tier`, `movement_mode` recorded while the app is **closed**, under Trip Mode (E29) | `context_events` (rows with `explore_session_id IS NULL`) | No — **but see §5, and §6.2 below.** This is the most invasive processing in the product. |
+| **Proactive consent** | `trip_mode_started_at`, `trip_mode_ended_at` | `trips` | No — this **is** the Art. 7(1) record: *when* somebody agreed to be followed, and when they stopped. |
 | Provenance | `context_source` (`device` \| `emulated`) | `explore_sessions`, `context_events`, `recommendations` | No — not personal data, but it is what **keeps** operator testing out of the learning and cost records below (ADMIN §6). Emulated rows are an operator's own account, never a traveller's. |
 
 **On the weather snapshot, which is kept indefinitely and deliberately not coarsened.**
@@ -292,6 +295,38 @@ recipient, and a new recipient is an Art. 30 obligation before it is a feature.*
 own usage policy also caps unauthenticated use at ~1 req/s and forbids bulk querying — a second
 reason the hot path should be self-hosted (DATA-SOURCES §14).
 
+### 6.2 Trip Mode: the most invasive thing we do (E29, 2026-07-14)
+
+Phase 1 could only ever see you when you opened the app and asked it something. Trip Mode can
+see you when you did not. That is a categorical change, not an incremental one, and this record
+should say so plainly rather than list it as another column.
+
+What makes it lawful is that it is **explicit, per-trip, timestamped, and revocable** — and that
+three rules are enforced on the SERVER, where a mobile release cannot regress them:
+
+1. **Nothing is stored unless Trip Mode is on.** A background ping for a trip whose mode is off
+   is refused, not stored-and-ignored (`RecordTripContext`).
+2. **No tracking at home — not even the coarse cell.** The foreground path keeps an H3 cell
+   inside the home zone and drops the coordinate; that is defensible, because the user is
+   looking at a screen and asked for something. **Background is stricter: the row is not written
+   at all.** A trail of coarse cells at somebody's home address, gathered while they were not
+   using the app, is exactly what PRD §16 promises never to hold.
+3. **Never a raw GPS stream.** PRD §13.4 says the phone sends *meaningful context changes*. A
+   promise that lives only in a mobile client lasts until the next release, so the floor
+   (`config/trips.trip_mode`) is enforced here: an event neither far enough nor long enough from
+   the last one is **discarded**, and the client is told `not_meaningful` so it learns to stop.
+
+Consent is **per trip**, deliberately. Agreeing to be followed around Burgundy in August is not
+agreeing to be followed around Stockholm in October, and a consent that outlives its context is
+not a consent.
+
+**Still open, and owned by E32 (DPIA rev 2):** the DPIA predates this stream and must be revised
+before any of it reaches a non-founder — Art. 35 requires the assessment *before* the processing,
+and background location on a live phone is the textbook trigger. The consent WORDING (Art. 7(1)
+demonstrability, CONSENT.md) has not been written either. **The plumbing is safe; the paperwork
+is not done, and shipping the former without the latter is exactly the failure this document
+exists to prevent.**
+
 ## 7. Retention (Art. 30(1)(f))
 
 Numbers live in `config/privacy.php` and are enforced nightly by `EnforceRetentionJob`
@@ -306,6 +341,8 @@ Numbers live in `config/privacy.php` and are enforced nightly by `EnforceRetenti
 | Calibration answers (`profile_signals`) | Until account deletion | Deleted | FK cascade |
 | Feedback ledger | Until account deletion | Deleted | FK cascade |
 | Account + identity | Until the user deletes it | Deleted | `DeleteAccount` |
+| **Devices (`devices`)** | Until account deletion or revocation | FK cascade on account deletion. A revoked device is **kept, not deleted** — "we stopped being able to reach this person on the 3rd" is what explains the silence on the 4th. | FK cascade |
+| **Background location** (`context_events` rows with no session) | **30 days**, exactly like every other raw coordinate | Coarsened to H3 res-8, coordinate hard-deleted | `CoarsenExpiredLocations` — it is the same table, so this was true the moment the column was nullable |
 | **Spend records (`cost_events`)** | **90 days** identified; the de-identified row is kept **24 months** for accounting | `user_id`, the correlation ids and `h3_cell` are **nulled**; the money, the timestamp and the vendor stay. **The row is not deleted on erasure — it is de-identified**, immediately. | `DeidentifyCostEvents` (nightly, and on erasure) |
 | Google opening hours | **600 seconds**, in Redis | Evicted. **Never persisted** to any table — only the `place_id` string is stored. | `GoogleHoursVerifier` |
 | **Telemetry (`pulse_*`)** | **7 days** (`PULSE_STORAGE_KEEP`) | Trimmed by Pulse itself. **Not** touched by our retention job, and **not** deleted on erasure. | Pulse's own trim — see §7.2 |
@@ -437,6 +474,7 @@ Ranked. These are additions to DPIA §7, not a restatement of it.
 | **B8** | Encryption at rest and backup retention unverified (§8) | A backup outliving the retention clock silently defeats it. And Art. 34(3)(a) — encryption is the difference between emailing your users about a breach and logging it. | Medium | OPEN |
 | **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) | OPEN |
 | **B10** | **No breach detection at all** (BREACH-PROCEDURE §8) | The 72-hour clock starts when you *notice*. Nothing pages anyone. | Medium–High | OPEN |
+| **B12** | **DPIA and consent wording do not cover Trip Mode** (§6.2) | Art. 35 requires the assessment *before* the processing, and background location on a live phone is the textbook trigger. The E29 plumbing enforces the rules; nobody has written down what the user is agreeing to. | **Blocker for any non-founder use** | **OPEN — E32** |
 | **B11** | Reverse geocoding sent the user's precise origin to Nominatim (§6.1) | B3 repeated in a new host: a real coordinate to a third party, for an answer a tile centroid gives just as well. Introduced and caught the same day (E48). | High | **FIXED** — `ReverseGeocoder::forTile()` sends an H3 res-8 centroid; asserted in `LearnUnknownRegionTest` |
 
 ---

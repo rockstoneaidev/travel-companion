@@ -30,6 +30,19 @@ final class TripResource extends JsonResource
             'ended_at' => $this->ended_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
 
+            /*
+             * Trip Mode (E29). The client MUST be able to see this and act on it: an app
+             * that thinks the companion is on when the server thinks it is off will happily
+             * burn a battery in the background for nothing — and, far worse, an app that
+             * thinks it is OFF when the server thinks it is on is a consent failure wearing
+             * a UI bug's clothing.
+             *
+             * `trip_mode_started_at` is exposed, not just the boolean, because "since when"
+             * is the question a privacy screen has to answer.
+             */
+            'trip_mode' => $this->inTripMode(),
+            'trip_mode_started_at' => $this->trip_mode_started_at?->toIso8601String(),
+
             'explore_sessions_count' => $this->whenCounted('exploreSessions'),
             'explore_sessions' => ExploreSessionResource::collection($this->whenLoaded('exploreSessions')),
         ];
