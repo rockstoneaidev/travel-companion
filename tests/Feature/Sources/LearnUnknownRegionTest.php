@@ -14,6 +14,7 @@ use App\Domain\Trips\Events\ExploreSessionStarted;
 use App\Domain\Trips\Models\ExploreSession;
 use App\Domain\Trips\Models\Trip;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\FirstLightJob;
 use App\Listeners\LearnAreaOnSessionStart;
 use App\Models\User;
 use DateInterval;
@@ -354,4 +355,91 @@ it('names a region after the town, not the administrative wrapper', function () 
     // recognises. (The KEY does not care — identity is the cell — but a region list an
     // operator has to decode is a region list nobody reads.)
     expect($region->name)->toBe('Skellefteå');
+});
+
+/*
+|--------------------------------------------------------------------------
+| First light, and the dead zone (the Umeå bug)
+|--------------------------------------------------------------------------
+|
+| The founder dropped a pin in Umeå. Ten hours later there were zero places and the
+| screen still said "Nothing worth interrupting you for" — a sentence that is a LIE when
+| the truth is "I have never heard of this town".
+|
+| Two separate faults, and the second is the nastier one:
+|
+|   1. The region build queues ~50 boxes on a maxProcesses-1 lane, so the person standing
+|      in the middle of it waits the better part of an hour for the first place.
+|   2. The region ROW is written the moment the ground is claimed — and the guard that
+|      stops Stockholm re-ingesting itself then reads that row as "we know this place".
+|      When the build dies, the claim survives it, and the town is dead forever.
+|
+*/
+
+it('learns a region again when the last attempt claimed the ground and never delivered it', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+
+    // A region row exists — somebody walked in here before and we promised to learn it.
+    // The build then died (as Umeå's did, on the old region-key scheme).
+    $region = app(DeriveRegionForPosition::class)(63.8258, 20.2630, (int) $user->id);
+
+    expect(app(RegionCatalog::class)->covering(63.8258, 20.2630))->not->toBeNull();
+
+    // ...and there is nothing here. Not "a thin feed" — NOTHING.
+    expect(DB::table('places_core')->count())->toBe(0);
+
+    /*
+     * The old guard asked "did somebody promise to learn this?" and stopped. The town was
+     * unreachable from then on: the claim blocked the only thing that could have fixed it.
+     *
+     * The guard now asks the honest question — "do we actually know anything here?" — and
+     * a claim with no places behind it is not coverage, it is a scar.
+     */
+    expect(app(LearnAreaIfUnknown::class)(63.8258, 20.2630, 12_000, (int) $user->id))->toBeTrue();
+
+    Queue::assertPushed(FirstLightJob::class);
+    Queue::assertPushed(BuildRegionWorldModelJob::class);
+});
+
+it('still refuses to re-learn a region that actually has places in it', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+
+    app(DeriveRegionForPosition::class)(63.8258, 20.2630, (int) $user->id);
+
+    // One real place within reach. The feed being quiet here is a question about RANKING,
+    // not about coverage — and re-ingesting 584 km² because today's feed is thin is the
+    // self-inflicted denial of service the original guard existed to prevent.
+    Place::factory()->create([
+        'location' => DB::raw("ST_GeogFromText('POINT(20.2630 63.8258)')"),
+        'h3_index' => DB::selectOne('SELECT h3_lat_lng_to_cell(POINT(?, ?), 8)::text AS c', [20.2630, 63.8258])->c,
+    ]);
+
+    expect(app(LearnAreaIfUnknown::class)(63.8258, 20.2630, 12_000, (int) $user->id))->toBeFalse();
+
+    Queue::assertNotPushed(BuildRegionWorldModelJob::class);
+});
+
+it('puts first light in front of the region build, on a lane that is not blocked behind it', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+
+    app(LearnAreaIfUnknown::class)(63.8258, 20.2630, 12_000, (int) $user->id);
+
+    /*
+     * The ingest lane is maxProcesses 1 — deliberately, because public Overpass gives us
+     * about two slots. So first light MUST NOT be queued there: it would land behind the
+     * fifty boxes it exists to pre-empt and arrive last, which is an exquisite way of
+     * achieving nothing. (I have made this exact mistake once already, with the
+     * progressive resolve.)
+     */
+    Queue::assertPushed(FirstLightJob::class, function (FirstLightJob $job): bool {
+        return $job->queue === 'default'
+            && abs($job->lat - 63.8258) < 0.0001
+            && abs($job->lng - 20.2630) < 0.0001;
+    });
 });
