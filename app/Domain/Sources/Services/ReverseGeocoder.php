@@ -97,11 +97,29 @@ final class ReverseGeocoder
 
         $address = is_array($response['address'] ?? null) ? $response['address'] : [];
 
+        /*
+         * Prefer the SETTLEMENT. Fall back to the administrative unit, and strip its
+         * suffix when we do.
+         *
+         * Nominatim answers `city`/`town`/`village` when the point is in one and falls back
+         * to `municipality` out in the countryside — so two cells around the same town came
+         * back as "Skellefteå" and "Skellefteå kommun", and the console listed them as
+         * though they were different places.
+         *
+         * They are not. A `kommun` is an administrative wrapper around a town, and the town
+         * is the thing a person recognises. Stripping the suffix is not cosmetic tidying:
+         * it is the difference between a region list an operator can read and one they have
+         * to decode.
+         *
+         * (The KEY does not care — identity is the H3 cell. Two neighbouring cells may
+         * quite properly both be labelled "Skellefteå"; they are different ground with the
+         * same nearest town, and the key says so.)
+         */
         $name = $address['city']
             ?? $address['town']
             ?? $address['village']
-            ?? $address['municipality']
-            ?? $address['county']
+            ?? $this->settlement($address['municipality'] ?? null)
+            ?? $this->settlement($address['county'] ?? null)
             ?? ($response['name'] ?? null);
 
         $country = strtolower((string) ($address['country_code'] ?? ''));
@@ -121,5 +139,34 @@ final class ReverseGeocoder
         );
 
         return [(float) $row->lat, (float) $row->lng];
+    }
+
+    /**
+     * "Skellefteå kommun" → "Skellefteå". "Comté de X" → "X".
+     *
+     * Only the administrative wrapper, and only when it is a suffix or prefix of something
+     * else — never enough of the string that removing it leaves nothing to call the place.
+     */
+    private function settlement(?string $administrative): ?string
+    {
+        if ($administrative === null || $administrative === '') {
+            return null;
+        }
+
+        $stripped = preg_replace(
+            '/\s+(kommun|kommune|municipality|county|district|department|province|region)$/iu',
+            '',
+            $administrative,
+        );
+
+        $stripped = preg_replace(
+            '/^(municipality|commune|arrondissement|département|departement)\s+(of|de|du|des|d\')\s*/iu',
+            '',
+            (string) $stripped,
+        );
+
+        $stripped = trim((string) $stripped);
+
+        return $stripped === '' ? $administrative : $stripped;
     }
 }

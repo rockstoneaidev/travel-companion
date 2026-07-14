@@ -67,7 +67,8 @@ it('learns a region nobody has ever asked for', function () {
 
     $region = DerivedRegion::query()->sole();
 
-    expect($region->name)->toBe('Skellefteå')
+    expect($region->key)->toStartWith('r5-')            // the H3 cell IS the identity
+        ->and($region->name)->toBe('Skellefteå')
         // The locale is load-bearing, not decorative: the adapters read `name:{locale}`
         // and follow the matching Wikipedia sitelink. A Swedish town that inherited `en`
         // would quietly ingest far less than it should (E13 learned this the hard way).
@@ -288,4 +289,69 @@ it('never sends a traveller’s exact position to Nominatim', function () {
 
         return true;
     });
+});
+
+it('gives the same town one region, however people wander into it', function () {
+    Queue::fake();
+
+    $derive = app(DeriveRegionForPosition::class);
+
+    // Two pins ~10 km apart — the same town, arrived at from opposite sides. This is
+    // exactly what produced TWO overlapping Skellefteås, under two different names:
+    //
+    //     Skellefteå         skelleftea-6475-2095          200 places, box 41 of 55
+    //     Skellefteå kommun  skelleftea-kommun-6488-2080     3 places, queued
+    //
+    // ...because identity was anchored to the PIN, and Nominatim answers `city` in a town
+    // and `municipality` out in the countryside. The name was the symptom; identity was
+    // the disease. A region anchored to an arbitrary point never tiles anything — it just
+    // accumulates.
+    $a = $derive(SKELLEFTEA['lat'], SKELLEFTEA['lng']);
+    $b = $derive(SKELLEFTEA['lat'] + 0.05, SKELLEFTEA['lng'] + 0.05);
+
+    expect($a->key)->toBe($b->key)
+        ->and(DerivedRegion::query()->count())->toBe(1)
+        // The cell IS the identity — no slug, no rounded coordinates pretending to be one.
+        ->and($a->key)->toStartWith('r5-');
+});
+
+it('tiles outward instead of overlapping: the next cell is a new region', function () {
+    Queue::fake();
+
+    $derive = app(DeriveRegionForPosition::class);
+
+    $here = $derive(SKELLEFTEA['lat'], SKELLEFTEA['lng']);
+
+    // Well outside the cell (~17 km across) — genuinely different ground.
+    $far = $derive(SKELLEFTEA['lat'] + 0.4, SKELLEFTEA['lng']);
+
+    expect($far->key)->not->toBe($here->key)
+        ->and(DerivedRegion::query()->count())->toBe(2);
+
+    // ...and they do not overlap, which is the whole point of a grid. Two boxes covering
+    // the same ground means fetching the same Overpass twice and calling it two towns.
+    $overlaps = $here->south < $far->north && $far->south < $here->north
+        && $here->west < $far->east && $far->west < $here->east;
+
+    expect($overlaps)->toBeFalse();
+});
+
+it('names a region after the town, not the administrative wrapper', function () {
+    Queue::fake();
+
+    // What Nominatim actually returns for a rural cell: no city/town/village, only the
+    // municipality. It gave us "Skellefteå kommun" and "Norrtälje kommun", and the console
+    // listed them as though they were different places from "Skellefteå" and "Norrtälje".
+    Http::fake([
+        'nominatim.openstreetmap.org/*' => Http::response([
+            'address' => ['municipality' => 'Skellefteå kommun', 'country_code' => 'se'],
+        ]),
+    ]);
+
+    $region = app(DeriveRegionForPosition::class)(SKELLEFTEA['lat'], SKELLEFTEA['lng']);
+
+    // A `kommun` is an administrative wrapper around a town; the town is what a person
+    // recognises. (The KEY does not care — identity is the cell — but a region list an
+    // operator has to decode is a region list nobody reads.)
+    expect($region->name)->toBe('Skellefteå');
 });

@@ -67,7 +67,7 @@ export function useLivingFeed(
             if (emulated) {
                 // Never volunteer where this browser is. Just ask what the pin's session
                 // serves now.
-                router.reload({ only: ['opportunities', 'serve'] });
+                router.reload({ only: ['opportunities', 'serve', 'coverage'] });
 
                 return;
             }
@@ -79,7 +79,7 @@ export function useLivingFeed(
             // request that reliably changes nothing.
             if (!reported) return;
 
-            router.reload({ only: ['opportunities', 'serve'] });
+            router.reload({ only: ['opportunities', 'serve', 'coverage'] });
         } finally {
             pulling.current = false;
         }
@@ -124,7 +124,7 @@ export function useLivingFeed(
                 await reportPosition(sessionId);
             }
 
-            router.post(`/explore/${sessionId}/refresh`, {}, { preserveScroll: true, only: ['opportunities', 'serve'] });
+            router.post(`/explore/${sessionId}/refresh`, {}, { preserveScroll: true, only: ['opportunities', 'serve', 'coverage'] });
         })();
     }, [sessionId, emulated]);
 
