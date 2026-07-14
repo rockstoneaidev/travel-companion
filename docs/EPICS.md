@@ -51,6 +51,9 @@ authoritative — epics carry scope, not design.
 | [#25](https://github.com/rockstoneaidev/travel-companion/issues/25) | Cost explorer, rollup & allocation | platform | 24 |
 | [#47](https://github.com/rockstoneaidev/travel-companion/issues/47) | Position emulator: map, mode-timed playback, device preview & pipeline log (ADMIN §6+) | platform | **DONE 2026-07-14** — `/admin/emulator`; `context_source` end-to-end (never learned from, never a gold trace, metered as `admin_emulated`); coverage hexes drawn from `CoverageGeometry`; live device preview re-anchors via E46 |
 | [#46](https://github.com/rockstoneaidev/travel-companion/issues/46) | The living feed: move re-anchor, fresh picks & dismiss backfill | backend | **DONE 2026-07-14** — serve batches (`recommendations.serve_group` / `serve_reason` / `anchor`); the client finally calls `context-events`; dismissals exclude by *place*, session-wide; replayer replays each serve on its own clock and anchor |
+| [#54](https://github.com/rockstoneaidev/travel-companion/issues/54) | On-demand region ingest: learn an area the first time someone goes there | backend | **DONE 2026-07-14** — derived regions, nearest-first boxes, progressive resolve, scout-cache invalidation |
+| [#58](https://github.com/rockstoneaidev/travel-companion/issues/58) | Self-host the hot path: Overpass, Nominatim, routing (hours → minutes) | platform | — (**measured**: public Overpass = ~2 h per region; DATA-SOURCES §14) |
+| [#59](https://github.com/rockstoneaidev/travel-companion/issues/59) | Image coverage: 2.4% of places have a photo | backend | — (Commons GeoSearch + the OSM `image`/`wikimedia_commons` tags we already bin; DATA-SOURCES §15) |
 
 *#19 (pilot expansion & exit-criteria instrumentation) moved to M6 — founder decision 2026-07-14;
 see the Phase 2 entry note below.*

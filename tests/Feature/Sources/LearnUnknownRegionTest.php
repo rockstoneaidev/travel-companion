@@ -18,6 +18,7 @@ use App\Listeners\LearnAreaOnSessionStart;
 use App\Models\User;
 use DateInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -243,4 +244,48 @@ it('keeps saying it is learning even after the first places trickle in', functio
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('coverage.learning', true)
             ->where('coverage.region', 'Skellefteå'));
+});
+
+it('never sends a traveller’s exact position to Nominatim', function () {
+    Queue::fake();
+    Http::fake([
+        'nominatim.openstreetmap.org/*' => Http::response([
+            'name' => 'Skellefteå',
+            'address' => ['city' => 'Skellefteå', 'country_code' => 'se'],
+        ]),
+    ]);
+
+    // A very precise position — a doorstep, not a town.
+    $lat = 64.750731;
+    $lng = 20.952812;
+
+    app(LearnAreaIfUnknown::class)($lat, $lng, 5_000, null);
+
+    /*
+     * Nominatim is a third party, and the only thing it needs in order to say "this is
+     * Skellefteå" is roughly where Skellefteå is. Handing it a traveller's exact position
+     * would put a real coordinate in somebody else's logs for no gain at all — the same
+     * mistake ROPA's open finding B3 records against Open-Meteo, and it would falsify
+     * ROPA §6's claim that the OSM family receives "no user data at all".
+     *
+     * So it is asked about a res-8 TILE CENTROID (~0.74 km²). The city is the same; the
+     * doorstep is not.
+     */
+    Http::assertSent(function (Request $request) use ($lat, $lng): bool {
+        if (! str_contains($request->url(), 'nominatim')) {
+            return true;
+        }
+
+        $sentLat = (float) ($request->data()['lat'] ?? 0);
+        $sentLng = (float) ($request->data()['lon'] ?? 0);
+
+        // Not the person...
+        expect($sentLat)->not->toBe($lat)
+            ->and($sentLng)->not->toBe($lng)
+            // ...but still the right town (a res-8 cell is well under a kilometre across).
+            ->and(abs($sentLat - $lat))->toBeLessThan(0.01)
+            ->and(abs($sentLng - $lng))->toBeLessThan(0.02);
+
+        return true;
+    });
 });

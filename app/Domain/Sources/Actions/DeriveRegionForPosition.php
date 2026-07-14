@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Actions;
 
+use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Models\DerivedRegion;
 use App\Domain\Sources\Services\RegionCatalog;
@@ -40,6 +41,7 @@ final class DeriveRegionForPosition
     public function __construct(
         private readonly RegionCatalog $catalog,
         private readonly ReverseGeocoder $geocoder,
+        private readonly TileIndexer $tiles,
     ) {}
 
     /**
@@ -57,7 +59,16 @@ final class DeriveRegionForPosition
             return $existing;
         }
 
-        $described = $this->geocoder->describe($lat, $lng);
+        /*
+         * Name it from the TILE, never from the person (PRD §16; ROPA §6).
+         *
+         * Nominatim is a third party, and the only thing it needs in order to say "this is
+         * Skellefteå" is roughly where Skellefteå is. Handing it a traveller's exact
+         * position to answer that would put a real coordinate in someone else's logs for
+         * no gain at all — the same mistake ROPA's open finding B3 records against
+         * Open-Meteo. A res-8 cell is ~0.74 km²; the city is the same, the doorstep is not.
+         */
+        $described = $this->geocoder->forTile($this->tiles->cellFor($lat, $lng));
 
         $latSpan = self::HALF_SPAN_KM / self::KM_PER_DEGREE_LAT;
 
