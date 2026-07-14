@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sources\Services;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -39,7 +40,33 @@ final class ReverseGeocoder
         'pl' => 'pl', 'cz' => 'cs', 'gr' => 'el',
     ];
 
-    /** @return array{name: string, locale: string} */
+    /**
+     * @return array{name: string, locale: string}
+     *
+     * TAKES A TILE, NOT A PERSON — and that is a GDPR requirement, not a style choice.
+     *
+     * The first version of this took the session origin and posted it straight to
+     * Nominatim: a real user's exact coordinate, leaving the system to a third party, to
+     * answer a question ("what is this town called?") that does not need it. ROPA §6 said
+     * of the OSM family "region bounding boxes — no user data at all", and I quietly made
+     * that false. It is the same mistake as open finding B3, where Open-Meteo receives raw
+     * coordinates instead of a tile centroid.
+     *
+     * A res-8 cell is ~0.74 km². Naming a city from its centroid gives the same answer as
+     * naming it from a doorstep, and the doorstep is the part that identifies somebody.
+     */
+    public function forTile(string $h3Index): array
+    {
+        [$lat, $lng] = $this->centroid($h3Index);
+
+        return $this->describe($lat, $lng);
+    }
+
+    /**
+     * @return array{name: string, locale: string}
+     *
+     * @internal Coarsen first — callers should reach for {@see forTile()}.
+     */
     public function describe(float $lat, float $lng): array
     {
         $fallback = ['name' => sprintf('%.3f, %.3f', $lat, $lng), 'locale' => 'en'];
@@ -83,5 +110,16 @@ final class ReverseGeocoder
             'name' => is_string($name) && $name !== '' ? $name : $fallback['name'],
             'locale' => self::LOCALES[$country] ?? 'en',
         ];
+    }
+
+    /** @return array{0: float, 1: float} */
+    private function centroid(string $h3Index): array
+    {
+        $row = DB::selectOne(
+            'SELECT ST_Y(g) AS lat, ST_X(g) AS lng FROM (SELECT h3_cell_to_geometry(?::h3index) AS g) t',
+            [$h3Index],
+        );
+
+        return [(float) $row->lat, (float) $row->lng];
     }
 }

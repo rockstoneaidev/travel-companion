@@ -235,6 +235,7 @@ open contractual questions are in [`PROCESSORS.md`](PROCESSORS.md).
 | **Open-Meteo** | Recipient | **The user's precise origin coordinates** — *not* a tile centroid, despite the tile-level cache. See §7.1. | 🇩🇪 Germany | **No transfer** (EEA) |
 | **Resend** | Processor — transactional email | Recipient **email address** + message body (password reset, verification) | 🇺🇸 US | DPF / SCCs — **absent from the DPIA entirely** |
 | Overpass / OSM, Wikidata, Wikimedia, DATAtourisme, Mérimée | Not processors | Region bounding boxes. **No user data at all.** | — | n/a |
+| **Nominatim** (OSM) | Not a processor | **A res-8 tile centroid** (~0.74 km²) — asked "what is this place called?" when a user opens a session somewhere we have never ingested (E48). **Never the user's own coordinate**: see the note below. | 🇩🇪 Germany (OSMF) | **No transfer** (EEA) |
 
 ### 6.1 The sharpest transfer
 
@@ -270,6 +271,26 @@ is withdrawn. (Answer today: Routes and Gemini stop; Places is US-bound but carr
 data, so it survives.)
 
 ---
+
+### 6.1 Nominatim, and a mistake worth recording (E48, 2026-07-14)
+
+On-demand region ingest (E48) asks Nominatim to name an area the first time anyone explores it.
+The first implementation passed **the session's own origin** — a real traveller's exact
+coordinate, sent to a third party, to answer a question that never needed it.
+
+That is precisely open finding **B3** (Open-Meteo receives raw coordinates rather than a tile
+centroid) repeated in a new place, and it would have falsified the row above it: *"no user data
+at all"*.
+
+It is fixed at source, not documented around: `ReverseGeocoder::forTile()` takes an **H3 res-8
+cell** and derives its centroid, so the network call carries a hexagon rather than a person. A
+res-8 cell is ~0.74 km² — the city is the same, the doorstep is not. `LearnUnknownRegionTest`
+asserts that the exact position never appears in the outbound request.
+
+The general lesson is the one this record exists to enforce: **a new `Http::` host is a new
+recipient, and a new recipient is an Art. 30 obligation before it is a feature.** Nominatim's
+own usage policy also caps unauthenticated use at ~1 req/s and forbids bulk querying — a second
+reason the hot path should be self-hosted (DATA-SOURCES §14).
 
 ## 7. Retention (Art. 30(1)(f))
 
@@ -416,6 +437,7 @@ Ranked. These are additions to DPIA §7, not a restatement of it.
 | **B8** | Encryption at rest and backup retention unverified (§8) | A backup outliving the retention clock silently defeats it. And Art. 34(3)(a) — encryption is the difference between emailing your users about a breach and logging it. | Medium | OPEN |
 | **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) | OPEN |
 | **B10** | **No breach detection at all** (BREACH-PROCEDURE §8) | The 72-hour clock starts when you *notice*. Nothing pages anyone. | Medium–High | OPEN |
+| **B11** | Reverse geocoding sent the user's precise origin to Nominatim (§6.1) | B3 repeated in a new host: a real coordinate to a third party, for an answer a tile centroid gives just as well. Introduced and caught the same day (E48). | High | **FIXED** — `ReverseGeocoder::forTile()` sends an H3 res-8 centroid; asserted in `LearnUnknownRegionTest` |
 
 ---
 

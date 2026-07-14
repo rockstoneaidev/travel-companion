@@ -323,6 +323,89 @@ Pack pipeline as the per-region playbook · tourism-board partnerships
 
 ---
 
+## 14. Self-hosting the hot path (the cost/latency lever) — MEASURED, 2026-07-14
+
+§12 has always listed "self-hosted routing (cost lever)" as a Phase-2 nicety. **E48 turned it
+into a hard constraint, with a number attached.**
+
+On-demand region ingest (E48) learns an area the first time a user explores it. Driving it for
+real against **public Overpass**:
+
+| | |
+|---|---|
+| Rate limiting | 45-second waits, repeatedly |
+| Workers | **1** (`supervisor-ingest`, maxProcesses 1 — public Overpass allows ~2 slots per IP, and being rude to it once cost Nantes its entire OSM layer) |
+| Region size | ~55 grid boxes |
+| **Total** | **~2 hours per region** |
+
+Nearest-first boxes and progressive resolve (E48) mean the user does not *wait* for that — the
+feed lights up from the ground under their feet outward. But the ceiling is real, and it is
+imposed entirely by somebody else's free, volunteer-funded server.
+
+**Self-hosting turns hours into minutes**, and removes an entire class of failure from the scout
+runner. The pieces:
+
+- **Geofabrik extracts** (`download.geofabrik.de`) — free `.osm.pbf` per country/region, daily.
+  Sweden is a few hundred MB. Import once with `osm2pgsql`/`imposm` into PostGIS and the data is
+  simply *ours*, with no API in the loop. For a region-pack product this is almost certainly
+  better than any live API.
+- **Own Overpass instance** from that extract — same query surface, no rate limit, no third party.
+- **Own Nominatim** (or **Photon**, which is faster for autocomplete) — the public instance caps
+  unauthenticated use at ~1 req/s and forbids bulk querying, and we are now in its hot path
+  (E48; ROPA §6.1).
+- **Valhalla / OSRM / OpenTripPlanner** — self-hosted routing on the same OSM data. Valhalla's
+  `/sources_to_targets` matrix is exactly the shape the Stage-B edge routing of served items
+  wants (PRD §10), and OTP consumes GTFS for real transit routing.
+- **Protomaps** (`.pmtiles`, served by us) as the basemap, if OpenFreeMap ever becomes a
+  dependency we mind. MapLibre already speaks it.
+
+> **The rule this implies.** Overpass, Nominatim and Open-Meteo are free *because they are
+> volunteer-funded and their terms assume you will not hammer them*. Anything in the hot path —
+> tile scouting, geocoding, routing — should be self-hosted rather than treated as
+> infrastructure. Geofabrik → PostGIS → our own Overpass/Nominatim/Valhalla is roughly a weekend
+> of setup, and it is the difference between a product and a guest.
+
+### 14.1 The OSM *editing* API is not a data source
+
+`api.openstreetmap.org` (the "OSM API v0.6") is the **editing** API for iD and JOSM. Its terms
+explicitly forbid using it as a data source for applications; it is heavily rate-limited and
+returns raw nodes/ways/relations you would have to assemble into geometry yourself. The data is
+fine — it is ODbL and lives happily inside the `places_core` boundary (ODBL-REVIEW §6) — but the
+read paths are **Overpass**, a **Geofabrik extract**, or **Overture**. Nothing else.
+
+---
+
+## 15. Image coverage — why most places have no photo (and the free fixes)
+
+**1,479 of 60,962 places have an image (2.4%).** The feed falls back to the paper stripe, as
+designed (DESIGN §3), but a wall of stripes is not the product.
+
+The cause is precise, and it is not a licensing problem: **`FetchCommonsImages` only looks up
+places that carry a Wikidata link** — it queries Wikidata's `P18` (image) for places whose
+`place_source_ids` include `wikidata`. Most OSM long-tail places have no `wikidata=` tag at all,
+so they are structurally unreachable by the only image path we have.
+
+Free sources, roughly in order of value-per-hour:
+
+| Source | Licence | Why it helps |
+|---|---|---|
+| **Commons GeoSearch** (`list=geosearch`, ns 6) | CC (per file) | Finds **geotagged files near a coordinate** — no Wikidata link required. This is the single biggest coverage win available, and it reuses the Commons plumbing we already have. |
+| **OSM tags we already fetch and throw away** | ODbL / per-file | OSM POIs frequently carry `image=<url>`, `wikimedia_commons=File:…` and `wikipedia=`. `OsmAdapter` keeps `wikidata` and `wikipedia` and **discards the other two**. Free, already in the payload, currently binned. |
+| **Wikipedia `pageimages`** | CC-BY-SA | A place with a `wikipedia=` tag but no Wikidata `P18` can still take the article's lead image. We already store the tag and already call Wikipedia (`FetchWikipediaExtracts`). |
+| **Mapillary** | CC-BY-SA | Street-level imagery, free API. Answers "what does this actually look like from the pavement" for places no photographer ever pointed a camera at. |
+| **Openverse / Flickr (CC-filtered)** | CC-BY / CC0 | Geotagged CC photos. Needs per-file licence filtering, which the `place_images` schema already carries. |
+| **National heritage portals** | Usually permissive | Riksantikvarieämbetet (SE) and POP/Mérimée (FR) — both already adapters — carry imagery we do not currently take. |
+
+**Explicitly not Google Places photos.** They cannot be persisted into any world-model table
+(ODBL-REVIEW §6, conventions/09) — edge-only, and they cost money per view. A photo is not worth
+a licensing incident.
+
+**Also worth knowing:** the `photos` phase runs at the *end* of a region build, so a region being
+learned on demand has no images until the whole ingest finishes — the same "waits for everything"
+shape that nearest-first ingest and progressive resolve were built to fix (E48).
+
+---
+
 ## 13. Summary of changes vs. the original source discussion
 
 | Original | Disposition |
