@@ -32,13 +32,40 @@ final class CoverageGeometry
         $reachM = $modeConfig['speed_kmh'] * 1000 * ($timeBudgetMinutes / 60) * $modeConfig['outbound_fraction'];
         $originCell = $this->cellFor($lat, $lng);
 
+        $isCorridor = $destLat !== null && $destLng !== null;
+
         $cells = match (true) {
-            $destLat !== null && $destLng !== null => $this->corridor($lat, $lng, $destLat, $destLng, (int) $modeConfig['corridor_width_m']),
+            $isCorridor => $this->corridor($lat, $lng, $destLat, $destLng, (int) $modeConfig['corridor_width_m']),
             $headingDeg !== null => $this->cone($originCell, $lat, $lng, $reachM, $headingDeg),
             default => $this->disc($originCell, $reachM),
         };
 
         $cells = $this->prefilterByRes6($cells);
+
+        /*
+         * THE CORRIDOR BUDGET (E35).
+         *
+         * `corridor()` returns cells ordered by progress along the route, so "the road
+         * ahead of you" is simply a prefix of the list. We scout that prefix inline and
+         * hand the rest to the queue.
+         *
+         * Note what we deliberately do NOT do: truncate the corridor at `reachM`. Reach
+         * is "how far can I get and still come home", which is the right question for a
+         * disc and the wrong one for a corridor — a driver bound for Göteborg is going to
+         * Göteborg whether or not it fits in their outbound budget. Truncating there would
+         * silently amputate the second half of every road trip. The constraint that
+         * actually binds is not distance, it is *how many tiles we may scout before the
+         * traveller gets bored*, and that is a count.
+         */
+        $pending = [];
+
+        if ($isCorridor) {
+            $inline = (int) $config['coverage']['max_inline_tiles'];
+            $ahead = (int) $config['coverage']['max_prescout_tiles'];
+
+            $pending = array_slice($cells, $inline, $ahead);
+            $cells = array_slice($cells, 0, $inline);
+        }
 
         // Near ring: walking-scale around origin (and destination) — the tiles
         // every source scouts regardless of mode (conventions/09).
@@ -52,7 +79,13 @@ final class CoverageGeometry
         $far = array_values(array_filter($cells, static fn (string $c): bool => ! isset($nearSet[$c])));
         $nearInCoverage = array_values(array_intersect($near, [...$cells, ...$near]));
 
-        return new Coverage($originCell, $mode->value, $nearInCoverage, $far);
+        // A tile we are about to scout inline must not also be queued for pre-scouting:
+        // WarmTileJob is idempotent, but paying a worker to re-derive an answer the
+        // request already has is just noise in the hit-rate metric.
+        $inlineSet = array_flip([...$nearInCoverage, ...$far]);
+        $pending = array_values(array_filter($pending, static fn (string $c): bool => ! isset($inlineSet[$c])));
+
+        return new Coverage($originCell, $mode->value, $nearInCoverage, $far, $pending);
     }
 
     private function cellFor(float $lat, float $lng): string
@@ -107,14 +140,38 @@ final class CoverageGeometry
         return $cells;
     }
 
-    /** @return list<string> One polygon fill along the origin→destination line — the fetch unit is the corridor, never per-tile calls. */
+    /**
+     * One polygon fill along the origin→destination line — the fetch unit is the
+     * corridor, never per-tile calls (conventions/12) — **ordered by progress along
+     * the route** (E35).
+     *
+     * The ordering is the whole feature. Without it, "the corridor" is an unordered
+     * bag of thousands of cells and the only sane thing to do with it is scout all of
+     * them, which is exactly what we cannot afford. With it, the bag becomes a
+     * *sequence*: the next few kilometres are a prefix, and the tail is something a
+     * queue can chew through while the car is still driving toward it.
+     *
+     * `ST_LineLocatePoint` gives the fraction along the line of the point on it
+     * closest to a cell's centre; multiplied by the line's geographic length that is
+     * "how far down this road is this tile", in metres. Cells abreast of each other
+     * across the corridor's width sort together, which is the correct behaviour: they
+     * become relevant at the same moment.
+     *
+     * @return list<string>
+     */
     private function corridor(float $lat, float $lng, float $destLat, float $destLng, int $widthM): array
     {
         return array_column(DB::select(
-            'SELECT h3_polygon_to_cells(
-                        ST_Buffer(ST_MakeLine(ST_SetSRID(ST_MakePoint(?, ?), 4326), ST_SetSRID(ST_MakePoint(?, ?), 4326))::geography, ?)::geometry,
-                        ?
-                    )::text AS cell',
+            'WITH route AS (
+                 SELECT ST_MakeLine(
+                            ST_SetSRID(ST_MakePoint(?, ?), 4326),
+                            ST_SetSRID(ST_MakePoint(?, ?), 4326)
+                        ) AS line
+             )
+             SELECT c::text AS cell
+             FROM route,
+                  h3_polygon_to_cells(ST_Buffer(route.line::geography, ?)::geometry, ?) AS c
+             ORDER BY ST_LineLocatePoint(route.line, h3_cell_to_geometry(c))',
             [$lng, $lat, $destLng, $destLat, $widthM, config('tiles.resolution')],
         ), 'cell');
     }
@@ -136,8 +193,14 @@ final class CoverageGeometry
             'SELECT DISTINCT h3_cell_to_parent(h3_index::h3index, 6)::text AS parent FROM places_core',
         ), 'parent'));
 
+        // WITH ORDINALITY + ORDER BY, not a bare unnest: the corridor's cells arrive
+        // sorted by progress along the route (E35), and the prefilter is a *filter* —
+        // it may drop cells, it may not reorder them, or the tile budget would slice
+        // an arbitrary chunk out of the middle of the road instead of the next few km.
         $parents = DB::select(
-            'SELECT c AS cell, h3_cell_to_parent(c::h3index, 6)::text AS parent FROM unnest(?::text[]) AS c',
+            'SELECT c AS cell, h3_cell_to_parent(c::h3index, 6)::text AS parent
+             FROM unnest(?::text[]) WITH ORDINALITY AS t(c, ord)
+             ORDER BY t.ord',
             ['{'.implode(',', $cells).'}'],
         );
 
