@@ -27,13 +27,17 @@ not a consent.
 |---|---|---|---|---|---|
 | **C1** | Being profiled — the taste model, and the calibration answers it learns from | **9(2)(a)** explicit + 6(1)(a) | `v1` | `users.profiling_consent_at`, `users.profiling_consent_version` | **Off** |
 | **C2** | Research use — traces keep full-precision coordinates past 30 days | 6(1)(a) | (unversioned — see §4.3) | `users.research_consent` | **Off** |
-| **C3** | — | — | — | — | — |
+| **C3** | **Trip Mode** — being followed in the background, and interrupted about it | 6(1)(a) + ePrivacy Art. 5(3) | `v1` | `trips.trip_mode_started_at` / `trip_mode_ended_at` | **Off** |
 
-There is deliberately **no C3 for location**. Location is processed under Art. 6(1)(b),
-not consent — see ROPA §3. Asking for "consent" to the one thing the product cannot work
-without would produce a consent that is not freely given (Art. 4(11)), which is worse than
-not asking. This is a point where the intuitive answer ("ask for everything") is the wrong
-one.
+**There is deliberately no consent for FOREGROUND location.** It is processed under Art.
+6(1)(b), not consent (ROPA §3): asking for "consent" to the one thing the product cannot work
+without would produce a consent that is not freely given (Art. 4(11)), which is worse than not
+asking. This is the point where the intuitive answer — "ask for everything" — is the wrong one.
+
+**C3 is the opposite case, and that is precisely why it exists.** Trip Mode is *separable*: the
+app works completely without it. So it is genuinely optional, which makes consent both available
+and correct — and per-trip, because agreeing to be followed around Burgundy in August is not
+agreeing to be followed around Stockholm in October.
 
 ---
 
@@ -146,6 +150,89 @@ Worth recording, because it is the part that makes the consent real rather than 
   transaction that clears the flag. Holding a vector from which religious belief can be
   deduced is itself processing; "stop learning but keep what you inferred" would leave us
   storing Art. 9 data with **no lawful basis at all** — a worse position than never asking.
+
+---
+
+## 2A. C3 — Trip Mode (background location + being interrupted)
+
+### 2A.1 The exact text, v1
+
+Shown on the Trip Mode switch, **before** the OS permission dialog — never after, and never as
+a consequence of it. The OS asks "allow background location?"; it does not ask "do you want a
+companion", and a user who taps *Allow* on a system sheet has agreed to a permission, not to a
+product.
+
+The switch starts **off**, always, on every trip.
+
+> **Shall I come with you?**
+>
+> Right now I only look when you ask me to. Turn this on and I'll keep an eye out while your
+> phone is in your pocket — and say something when there's a reason to.
+>
+> ☐ **Follow me on this trip.**
+>
+> **What that means, honestly:**
+>
+> - **I'll know roughly where you are, while this trip is on.** Not every step — my phone app
+>   only tells the server when you've actually *moved somewhere*, not every few seconds.
+> - **I'll interrupt you.** At most **three times a day**, never within an hour of the last one,
+>   never between 22:00 and 08:00, and never while you're driving. If I've nothing worth saying,
+>   I say nothing.
+> - **Not at home.** Inside your home zone I record nothing at all — not even roughly.
+> - **It ends when the trip ends.** This is for *this trip*. The next one asks again.
+>
+> [ Come with me ]   ← disabled until the box is ticked
+>
+> *Not this time*
+>
+> You'll still get everything else. I'll just wait to be asked.
+>
+> What I collect and how long I keep it: [the privacy notice](/privacy-policy).
+
+**The off switch**, in Settings → Privacy and on the trip screen, one tap, always available:
+
+> **Stop following me.**
+> *Takes effect immediately. Nothing more is recorded, and the pushes stop. What I already
+> learned about the trip stays until you delete the trip's location history — that button is
+> right below.*
+
+### 2A.2 Why the four bullets are the four bullets
+
+Not marketing. Each one is a **rule the server actually enforces**, and the wording is chosen so
+that a user can hold us to it:
+
+| The promise | Where it is true |
+|---|---|
+| "only when you've actually moved somewhere" | `RecordTripContext::meaningful()` — an event too close in space *and* time to the last is discarded, and the phone is told `not_meaningful`. The floor is on the server so a client release cannot quietly widen it. |
+| "at most three times a day / not within an hour / not at night / not while driving" | `NotificationPolicy` — hard gates, all of them, and a daily cap the urgent exception cannot buy its way past. |
+| "not at home — not even roughly" | `RecordTripContext` drops home-zone events **entirely**: no coordinate, no H3 cell, no row. Stricter than the foreground path, because nobody asked. |
+| "it ends when the trip ends" | Consent is `trips.trip_mode_started_at`, per trip. There is no account-level flag to forget to turn off. |
+
+A consent that describes behaviour the code does not have is not a consent, it is a
+misrepresentation. These four are safe to print because they are tested.
+
+### 2A.3 The bar this has to clear
+
+- **Freely given (Art. 4(11)).** The app is fully usable without it, and says so on the screen
+  (*"You'll still get everything else"*). Nothing is withheld to coerce the tick.
+- **Specific.** Per-trip, not a global "notifications & location" toggle.
+- **Informed.** The four bullets are the actual behaviour, not a category name.
+- **Unambiguous.** An unticked box and a disabled button. No pre-tick, no dark pattern, no
+  "you're all set!" masquerading as an agreement.
+- **Withdrawable as easily as given (Art. 7(3)).** One tap, same screen, no confirmation
+  gauntlet. `StopTripMode` never throws, from any state, deliberately.
+- **Demonstrable (Art. 7(1)).** The timestamp *and this version of this text* — which is why this
+  document exists.
+
+**ePrivacy Art. 5(3)** independently requires consent for push notifications to a device,
+regardless of GDPR. The same tick covers both; it is described in terms of what happens, not in
+terms of which regulation demands it.
+
+### 2A.4 What is NOT claimed
+
+Trip Mode does **not** imply consent to profiling (that is C1, separate and off by default) and
+does **not** imply research consent (C2). A user may be followed and interrupted while we learn
+nothing from it — the taste learner is gated on C1 and does not care that a push happened.
 
 ---
 
