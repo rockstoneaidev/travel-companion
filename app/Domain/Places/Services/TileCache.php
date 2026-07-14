@@ -19,6 +19,27 @@ final class TileCache
      * @param  Closure(): list<array<string, mixed>>  $fill
      * @return array{0: list<array<string, mixed>>, 1: bool} candidates, wasHit
      */
+    /**
+     * Forget a tile — because a cached EMPTY is a lie the moment we ingest the place.
+     *
+     * `DbScout`'s TTL is a day, and "there is nothing in this hexagon" caches exactly like
+     * any other answer. So when a region is being learned on demand (E48), the scouts read
+     * a cache that was filled while the ground was still virgin, and go on believing it for
+     * twenty-four hours — while the places land in the table right underneath them.
+     *
+     * The founder watched it happen: 27 canonical places in Skellefteå, and a pipeline log
+     * reading "49 tiles (49 hit, 0 filled), 0 candidates". Every tile a hit. Every hit empty.
+     * The feed said "nothing worth interrupting you for" about a town it had just finished
+     * mapping.
+     *
+     * The cache is not wrong to hold emptiness. It is wrong to hold it after we have made
+     * it false.
+     */
+    public function forget(string $scoutKey, string $h3Index, string $version): void
+    {
+        Cache::forget(CacheKeys::scout($scoutKey, $h3Index, $version));
+    }
+
     public function remember(string $scoutKey, string $h3Index, string $version, DateInterval $ttl, Closure $fill): array
     {
         $key = CacheKeys::scout($scoutKey, $h3Index, $version);

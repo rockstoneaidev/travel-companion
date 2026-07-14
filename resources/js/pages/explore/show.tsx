@@ -229,6 +229,23 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                     {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
 
                     {/*
+                     * A feed that HAS items while the region is still being learned.
+                     *
+                     * Without this line, a thin feed over a half-mapped town looks exactly
+                     * like a thin feed over a well-mapped one — and the user has no way to
+                     * know the difference between "this is all there is" and "this is all
+                     * there is SO FAR". The second one gets better on its own, and saying so
+                     * is the difference between a disappointing app and a patient one.
+                     */}
+                    {coverage.learning && items.length > 0 && (
+                        <p className="text-quiet border-border-soft border-l-2 py-1 pl-3 font-serif text-xs italic">
+                            Still mapping {coverage.region ?? 'this area'}
+                            {coverage.progress !== null && ` — ${coverage.progress.done} of ${coverage.progress.total} areas`}. More will appear as it
+                            lands.
+                        </p>
+                    )}
+
+                    {/*
                      * The feed followed you. Say so once, quietly, and get out of the way —
                      * the cards below already ARE the new picks, so this is a note, not an
                      * offer, and it must never be a modal standing between the user and the
@@ -269,32 +286,12 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                          * it says nothing, nothing was worth saying. That promise is worthless
                          * if it also says nothing when it simply wasn't looking.
                          */
-                        coverage.known ? (
+                        coverage.learning ? (
+                            <EmptyFeed headline={`I'm learning ${coverage.region ?? 'this area'}.`} body={learningBody(coverage)} />
+                        ) : coverage.known ? (
                             <EmptyFeed
                                 headline="Nothing worth interrupting you for."
                                 body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
-                            />
-                        ) : coverage.learning ? (
-                            <EmptyFeed
-                                headline={`I'm learning ${coverage.region ?? 'this area'}.`}
-                                body={
-                                    /*
-                                     * HONEST about the clock, because it is not fast.
-                                     *
-                                     * The first draft promised "a minute or two". Driving it
-                                     * for real: public Overpass rate-limits us to 45-second
-                                     * waits, and a region is ~55 boxes on one worker — the
-                                     * better part of two hours. Places do appear from the
-                                     * nearest boxes first (that is what the ordering and the
-                                     * progressive resolve are for), so the feed fills in as
-                                     * it goes rather than staying dark until the end. But a
-                                     * screen that says "a minute or two" and then sits there
-                                     * for forty is a screen that lied.
-                                     */
-                                    coverage.progress !== null
-                                        ? `Nobody has been here before, so I'm mapping it — ${coverage.progress.done} of ${coverage.progress.total} areas, starting with the ground you're standing on. Places will appear here as they land. It takes a while; you don't have to wait for it.`
-                                        : "Nobody has been here before, so I'm mapping it now, starting with the ground you're standing on. Places will appear here as they land."
-                                }
                             />
                         ) : (
                             <EmptyFeed headline="I don't know this area yet." body="I'd rather say so than pretend I'm watching." />
@@ -403,4 +400,21 @@ function urgencyFor(item: SessionOpportunity): { remaining: number; note: string
         remaining: Math.min(1, remainingMs / totalMs),
         note: minutesLeft >= 60 ? `${Math.round(minutesLeft / 60)} h left` : `${minutesLeft} min left`,
     };
+}
+
+/**
+ * What to say while a region is being learned (E48).
+ *
+ * Honest about the clock, because it is not fast: public Overpass rate-limits us to
+ * 45-second waits and a region is ~55 boxes on one worker. Places appear from the
+ * boxes nearest the user first, so the feed fills in from where they are standing
+ * outward — but a screen that promises "a minute or two" and then sits there for
+ * forty is a screen that lied.
+ */
+function learningBody(coverage: { progress: { done: number; total: number } | null }): string {
+    if (coverage.progress === null) {
+        return "Nobody has been here before, so I'm mapping it now, starting with the ground you're standing on. Places will appear as they land.";
+    }
+
+    return `Nobody has been here before, so I'm mapping it — ${coverage.progress.done} of ${coverage.progress.total} areas, starting with the ground you're standing on. Places will appear here as they land. It takes a while; you don't have to wait for it.`;
 }

@@ -7,6 +7,7 @@ namespace App\Jobs\Ingest;
 use App\Domain\Places\Services\FetchCommonsImages;
 use App\Domain\Places\Services\FetchWikipediaExtracts;
 use App\Domain\Places\Services\ResolveRegion;
+use App\Domain\Places\Services\ScoutRunner;
 use App\Domain\Sources\Data\IngestRegion;
 use App\Domain\Sources\Services\RegionBuildStatus;
 use App\Domain\Sources\Services\RegionCatalog;
@@ -234,7 +235,34 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
 
             if ($tiles !== []) {
                 $totals = $resolve->resolveTiles($tiles);
-                Log::info("world-model resolve {$this->regionKey} (progressive)", [...$totals, 'tiles' => count($tiles)]);
+
+                /*
+                 * AND TELL THE SCOUTS THE GROUND HAS CHANGED.
+                 *
+                 * This is the line that makes the whole progressive ingest visible, and
+                 * without it everything above it is theatre. `DbScout`'s cache TTL is a
+                 * DAY, and "there is nothing in this hexagon" caches exactly like any other
+                 * answer — so the scouts that swept this region while it was still virgin
+                 * ground go on serving that emptiness for twenty-four hours, while the
+                 * places land in the table right underneath them.
+                 *
+                 * The founder watched it: 27 canonical places in Skellefteå, and a pipeline
+                 * log reading "49 tiles (49 hit, 0 filled), 0 candidates". Every tile a hit.
+                 * Every hit empty. The feed said "nothing worth interrupting you for" about
+                 * a town it had just finished mapping.
+                 *
+                 * So each batch of resolved tiles drops its own cached answers, and the very
+                 * next pull re-reads them from the database. The region becomes visible in
+                 * rings, from the user outward — which is exactly what nearest-first ingest
+                 * was for.
+                 */
+                $forgotten = app(ScoutRunner::class)->forgetTiles($tiles);
+
+                Log::info("world-model resolve {$this->regionKey} (progressive)", [
+                    ...$totals,
+                    'tiles' => count($tiles),
+                    'scout_cache_dropped' => $forgotten,
+                ]);
             }
 
             return;

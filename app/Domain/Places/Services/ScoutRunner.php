@@ -26,6 +26,35 @@ final class ScoutRunner
     ) {}
 
     /**
+     * Drop every scout's cached answer for these tiles (E48).
+     *
+     * Called when new places land in a tile — an on-demand region being learned box by
+     * box. Without it the scouts keep serving the emptiness they cached before the ingest,
+     * for a full day, and the feed stays dark over a town it has already mapped.
+     *
+     * Invalidate rather than re-warm: `RankSession::plan()` calls `warm()` before it calls
+     * `candidates()`, so the next pull refills these tiles from the database anyway. Warming
+     * them here would do the same work twice and pay for it in a queue worker instead of a
+     * request that actually wanted the answer.
+     *
+     * @param  list<string>  $tiles
+     * @return int tiles × scouts forgotten
+     */
+    public function forgetTiles(array $tiles): int
+    {
+        $forgotten = 0;
+
+        foreach ($this->scouts as $scout) {
+            foreach ($tiles as $tile) {
+                $this->cache->forget($scout->key(), $tile, $scout->version());
+                $forgotten++;
+            }
+        }
+
+        return $forgotten;
+    }
+
+    /**
      * @return list<array{scout: string, tiles: int, hits: int, filled: int, candidates: int, hit_rate: float}>
      */
     public function warm(Coverage $coverage, string $trigger = 'session'): array
