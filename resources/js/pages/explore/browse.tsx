@@ -113,9 +113,7 @@ export default function Browse({ session, items, total, limit }: BrowseProps) {
                     </div>
                 )}
 
-                {items.length === 0 && (
-                    <SectionLabel className="mt-12 text-center">Nothing reachable within your time budget</SectionLabel>
-                )}
+                {items.length === 0 && <SectionLabel className="mt-12 text-center">Nothing reachable within your time budget</SectionLabel>}
             </div>
         </ProductLayout>
     );
