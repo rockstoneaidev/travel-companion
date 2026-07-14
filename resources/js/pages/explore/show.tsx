@@ -287,14 +287,23 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                          * if it also says nothing when it simply wasn't looking.
                          */
                         coverage.learning ? (
-                            <EmptyFeed headline={`I'm learning ${coverage.region ?? 'this area'}.`} body={learningBody(coverage)} />
+                            <EmptyFeed
+                                headline={`I'm learning ${coverage.region ?? 'this area'}.`}
+                                body={learningBody(coverage)}
+                                working
+                                progress={coverage.progress}
+                            />
                         ) : coverage.known ? (
                             <EmptyFeed
                                 headline="Nothing worth interrupting you for."
                                 body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
                             />
                         ) : (
-                            <EmptyFeed headline="I don't know this area yet." body="I'd rather say so than pretend I'm watching." />
+                            <EmptyFeed
+                                headline="I don't know this area yet."
+                                body="I'm starting to collect what's here — give me a moment and the first places will appear."
+                                working
+                            />
                         )
                     ) : (
                         <>

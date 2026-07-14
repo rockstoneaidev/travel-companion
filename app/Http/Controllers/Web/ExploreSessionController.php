@@ -173,14 +173,28 @@ final class ExploreSessionController extends Controller
          * because it explains both the thin feed AND the fact that it will get better on
          * its own.
          */
-        $known = $placesAround->within(
+        $nearby = $placesAround->within(
             $session->origin->lat,
             $session->origin->lng,
             $session->reachMeters(),
         ) > 0;
 
+        /*
+         * "KNOWN" MEANS WE HAVE MAPPED HERE — not that something happens to be close by.
+         *
+         * It used to mean the latter, and so a pin dropped in Kusmark — a hamlet well
+         * inside a region we had already ingested — announced "I don't know this area
+         * yet" about ground we know perfectly well. There is simply nothing within
+         * walking distance of it, which is a fact about Kusmark and not about us.
+         *
+         * A region that covers this point and is not still building is a region we have
+         * looked at. The silence there is a judgement, and the honest line is "nothing
+         * worth interrupting you for" — the one that admits we looked.
+         */
+        $mapped = $region !== null && ! $learning;
+
         return [
-            'known' => $known || $hasFeed,
+            'known' => $nearby || $hasFeed || $mapped,
             'learning' => $learning,
             'region' => $region?->name,
             'progress' => $learning ? $builds->boxes($region->key) : null,
