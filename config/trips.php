@@ -42,6 +42,22 @@ return [
         // PRD §6.6 — "a 3–5 item feed".
         'feed_size' => 5,
 
+        /*
+         * ...and the number of places you may LOOK AT, which is a completely different
+         * question (E51).
+         *
+         * `feed_size` is the interruption budget: how many things are worth putting in
+         * front of somebody who did not ask. Five is right for that, and wrong for "what is
+         * around me" — using one number for both makes the product an authority it has not
+         * earned.
+         *
+         * These are free to be large because a browse item is a scored candidate and
+         * nothing more: no opportunity row, no LLM voice, no Google call. The pipeline had
+         * already scored all of them and was throwing them away.
+         */
+        'browse_page_size' => 50,
+        'browse_max' => 200,
+
         'min_time_budget_minutes' => 15,
         'max_time_budget_minutes' => 720,
 

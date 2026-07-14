@@ -32,6 +32,17 @@ enum ServeReason: string
     /** Dismissals shrank the feed; topped back up to feed_size from the next candidates. */
     case DismissBackfill = 'dismiss_backfill';
 
+    /**
+     * The user went looking, and picked this one themselves (E51).
+     *
+     * Worth its own reason, and not folded into `initial`: a place WE put in front of
+     * somebody and a place THEY went and found are different events, and the learner will
+     * one day want to tell them apart. A card the user chose out of ninety-nine is a much
+     * stronger statement of taste than a card we chose for them — and an `ignored` on one
+     * we never showed would be meaningless.
+     */
+    case Browse = 'browse';
+
     public function label(): string
     {
         return match ($this) {
@@ -39,6 +50,7 @@ enum ServeReason: string
             self::MoveReanchor => 'You moved',
             self::ManualRefresh => 'Fresh picks from here',
             self::DismissBackfill => 'Topped up after a dismissal',
+            self::Browse => 'You went looking for this one',
         };
     }
 
@@ -49,9 +61,14 @@ enum ServeReason: string
      * joins the current serve group at the next free position. A move or a refresh
      * replaces the menu, so it starts a group of its own and the previous one is
      * frozen as a trace.
+     *
+     * A BROWSE pick appends for the same reason a backfill does, and it matters more here:
+     * the user did not move and we did not re-rank — they reached into the candidate set we
+     * already had and pulled one out. Starting a new batch would throw away the five cards
+     * they were looking at a moment ago, which is the opposite of what "show me more" means.
      */
     public function opensNewGroup(): bool
     {
-        return $this !== self::DismissBackfill;
+        return $this !== self::DismissBackfill && $this !== self::Browse;
     }
 }

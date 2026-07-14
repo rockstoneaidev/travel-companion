@@ -352,6 +352,21 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                                 ))}
                             </div>
                             <p className="text-quiet text-center font-serif text-xs italic">That's all for now.</p>
+
+                            {/*
+                             * ...unless you would rather judge for yourself (E51).
+                             *
+                             * Five is the interruption budget, not a limit on what a person may
+                             * look at. The pipeline already scored every reachable place and threw
+                             * all but five away; this is the door to the rest of them. Sitting under
+                             * "That's all for now" on purpose — that sentence was true about the
+                             * FEED and quietly false about the world, and this is the correction.
+                             */}
+                            <div className="mt-3 text-center">
+                                <QuietAction onClick={() => router.visit(`/explore/${exploreSession.id}/browse`)}>
+                                    Show me everything around me
+                                </QuietAction>
+                            </div>
                         </>
                     )}
 

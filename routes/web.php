@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PwaManifestController;
+use App\Http\Controllers\Web\BrowseController;
 use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DigestController;
@@ -102,6 +103,24 @@ Route::middleware(['auth'])->group(function () {
     Route::post('explore/{exploreSession}/end', [ExploreSessionEndController::class, 'store'])
         ->can('update', 'exploreSession')
         ->name('explore.end');
+
+    /*
+     * "Show me everything" (E51).
+     *
+     * The feed is five because five is the INTERRUPTION budget — how much is worth putting
+     * in front of somebody unasked. It is not a limit on what a person may look at, and
+     * treating it as one makes the product an authority it has not earned.
+     *
+     * Costs nothing extra: the pipeline already scored every reachable candidate and threw
+     * all but five away. `open` is where money is spent — on the one they actually chose.
+     */
+    Route::get('explore/{exploreSession}/browse', [BrowseController::class, 'index'])
+        ->can('view', 'exploreSession')
+        ->name('explore.browse');
+
+    Route::post('explore/{exploreSession}/browse/{placeId}', [BrowseController::class, 'open'])
+        ->can('view', 'exploreSession')
+        ->name('explore.browse.open');
 
     /*
      * The living feed (E46).
