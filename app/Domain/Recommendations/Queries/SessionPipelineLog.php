@@ -62,7 +62,10 @@ final class SessionPipelineLog
                 'at' => $at ?: null,
                 'stage' => 'serve',
                 'line' => sprintf(
-                    'serve %d (%s) from %s — served %d, held %d, near-missed %d%s',
+                    // "serve 10 … served 1" reads like a contradiction, and during the
+                    // duplicate-rows bug it actively misled: the leading number is the
+                    // BATCH, not a count. Say which.
+                    'batch %d (%s) from %s — served %d, held %d, near-missed %d%s',
                     $first->serve_group,
                     $first->serve_reason->value,
                     $first->anchor_h3_index ?? 'unknown cell',
@@ -100,7 +103,9 @@ final class SessionPipelineLog
                 'at' => $run['at'],
                 'stage' => 'scout',
                 'line' => sprintf(
-                    '%s v%s — %d tiles (%d hit, %d filled), %d candidates in %d ms',
+                    // NOT "v%s": ScoutRun::$scout_version already carries the "v" ("v1",
+                    // "v2"), so this printed "curated vv1".
+                    '%s %s — %d tiles (%d hit, %d filled), %d candidates in %d ms',
                     $run['scout'],
                     $run['version'],
                     $run['tiles'],
