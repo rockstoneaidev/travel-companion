@@ -82,6 +82,7 @@ final class StartExploreSession
                 'heading' => $data->heading,
                 'destination_point' => $data->destinationPoint,
                 'status' => ExploreSessionStatus::Active,
+                'context_source' => $data->contextSource,
                 'started_at' => $startedAt,
                 'expires_at' => $startedAt->addMinutes($data->timeBudgetMinutes),
             ]);

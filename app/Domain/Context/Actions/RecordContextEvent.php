@@ -62,6 +62,14 @@ final class RecordContextEvent
             'explore_session_id' => $session->id,
             'trip_id' => $session->tripId,          // denormalised: the privacy erase scans by trip
             'user_id' => $session->userId,
+            /*
+             * Inherited from the SESSION, never read off the request (ADMIN §6).
+             *
+             * A client cannot claim to be emulated and a real phone cannot be mislabelled
+             * as one, because there is no field in the payload to say it with. "Is this
+             * real?" must not be a question the caller answers about itself.
+             */
+            'context_source' => $session->contextSource,
             'occurred_at' => $data->occurredAt(),
             'location' => $location,
             'h3_index' => $cell,

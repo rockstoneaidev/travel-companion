@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Recommendations\Models;
 
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Casts\AsCoordinates;
 use App\Domain\Recommendations\Enums\ServeReason;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -24,6 +25,16 @@ final class Recommendation extends Model
 
     protected $guarded = [];
 
+    /*
+     * Real until something with `location_emulate` says otherwise (ADMIN §6).
+     *
+     * The database default says the same thing, but a freshly created model does not
+     * re-read the row, so without this the attribute is NULL in memory and every reader
+     * of `->context_source` fataly dereferences it. The default belongs in both places:
+     * the column defends the data, this defends the object.
+     */
+    protected $attributes = ['context_source' => 'device'];
+
     protected function casts(): array
     {
         return [
@@ -38,6 +49,9 @@ final class Recommendation extends Model
             // feed in front of you was ranked.
             'serve_group' => 'integer',
             'serve_reason' => ServeReason::class,
+            // "Propagates onto the decision trace of everything downstream" (ADMIN §6).
+            // This is the column the learner and the gold-trace recorder read.
+            'context_source' => ContextSource::class,
             'anchor' => AsCoordinates::class,
         ];
     }

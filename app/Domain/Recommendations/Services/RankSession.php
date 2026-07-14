@@ -511,6 +511,10 @@ final class RankSession
                 // means "where the session started" and never moves.
                 'serve_group' => $group,
                 'serve_reason' => $reason,
+                // Was anyone actually standing here? (ADMIN §6.) The learner, the
+                // gold-trace recorder and the cost metrics all read this column; a serve
+                // that cannot say whether it was real is a serve that will be counted.
+                'context_source' => $session->contextSource,
                 'anchor' => $session->origin,
                 'anchor_h3_index' => $plan['origin_cell'],
                 'scores' => [...$candidate['sub_scores'], 'friction_raw' => $candidate['friction_raw'], 'composite' => $candidate['composite']],
@@ -615,6 +619,7 @@ final class RankSession
                 $session->userId,
                 $session->id,
                 $session->tripId,
+                $session->contextSource,
             );
         }
     }

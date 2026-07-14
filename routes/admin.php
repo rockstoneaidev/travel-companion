@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\Permission;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\CostController;
 use App\Http\Controllers\Admin\CurationController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EmulatorController;
 use App\Http\Controllers\Admin\EntityResolutionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
@@ -77,4 +79,27 @@ Route::middleware(['auth', 'can:admin_access'])->prefix('admin')->name('admin.')
     Route::get('entity-resolution', [EntityResolutionController::class, 'index'])->name('entity-resolution.index');
     Route::put('entity-resolution/{decision}/merge', [EntityResolutionController::class, 'merge'])->name('entity-resolution.merge');
     Route::put('entity-resolution/{decision}/distinct', [EntityResolutionController::class, 'keepDistinct'])->name('entity-resolution.distinct');
+
+    /*
+    | Position emulation (ADMIN §6) — the glass cockpit.
+    |
+    | `location_emulate` is superadmin-only and held by NO role (ADMIN §3.2), because
+    | this drives the real pipeline from a fabricated position: real scouts, real
+    | scoring, real money. What keeps it from also producing real *metrics* is the
+    | `context_source` flag on the session, and the flag is only as trustworthy as the
+    | list of people who can raise it.
+    */
+    Route::middleware('can:'.Permission::EmulateLocation->value)->group(function () {
+        Route::get('emulator', [EmulatorController::class, 'index'])->name('emulator.index');
+        Route::post('emulator/sessions', [EmulatorController::class, 'store'])->name('emulator.store');
+
+        // The tick. A real context event, through the real ingestion boundary — there is
+        // no emulator-shaped shortcut into the pipeline, and that is the whole design.
+        Route::post('emulator/positions', [EmulatorController::class, 'move'])->name('emulator.move');
+
+        // "What WOULD this serve?" — the pure planning pass. Writes nothing.
+        Route::post('emulator/dry-run', [EmulatorController::class, 'dryRun'])->name('emulator.dry-run');
+
+        Route::delete('emulator/sessions', [EmulatorController::class, 'destroy'])->name('emulator.destroy');
+    });
 });

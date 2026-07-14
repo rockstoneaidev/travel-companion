@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories\Domain\Trips;
 
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
@@ -52,6 +53,12 @@ final class ExploreSessionFactory extends Factory
             'status' => ExploreSessionStatus::Ended,
             'ended_at' => now(),
         ]);
+    }
+
+    /** An operator driving a pin, not a person walking (ADMIN §6). Never learned from. */
+    public function emulated(): self
+    {
+        return $this->state(fn (): array => ['context_source' => ContextSource::Emulated]);
     }
 
     public function at(float $lat, float $lng): self

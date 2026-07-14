@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Trips\Models;
 
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Casts\AsCoordinates;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Enums\TravelMode;
@@ -32,11 +33,25 @@ final class ExploreSession extends Model
 
     protected $guarded = [];
 
+    /*
+     * Real until something with `location_emulate` says otherwise (ADMIN §6).
+     *
+     * The database default says the same thing, but a freshly created model does not
+     * re-read the row, so without this the attribute is NULL in memory and every reader
+     * of `->context_source` fataly dereferences it. The default belongs in both places:
+     * the column defends the data, this defends the object.
+     */
+    protected $attributes = ['context_source' => 'device'];
+
     protected function casts(): array
     {
         return [
             'status' => ExploreSessionStatus::class,
             'travel_mode' => TravelMode::class,
+            // Real phone, or an operator driving a pin? (ADMIN §6.) The session is the
+            // ROOT of provenance — events and traces inherit from here, and no request
+            // body can assert it.
+            'context_source' => ContextSource::class,
             'origin' => AsCoordinates::class,
             'destination_point' => AsCoordinates::class,
             'time_budget_minutes' => 'integer',

@@ -38,16 +38,41 @@ final class RecordFeedback
         $at = $occurredAt ?? now();
         $facets = $recommendation->score_inputs['candidate']['facets'] ?? [];
 
-        DB::transaction(function () use ($recommendation, $event, $metadata, $at, $facets): void {
+        /*
+         * EMULATED CONTEXT IS RECORDED, NEVER LEARNED FROM (ADMIN §6, §14 — "a
+         * CLAUDE.md-grade invariant for this console").
+         *
+         * Note carefully what still happens for an emulated recommendation: the LEDGER
+         * is written. That is deliberate, not an oversight. The ledger is what makes the
+         * feed behave — `withoutDismissed()` reads it, and the E46 dismiss-backfill is
+         * driven by it — so an operator must be able to dismiss a card in the emulator
+         * and watch a new one slide in. That IS the tool.
+         *
+         * What must not happen is the taste profile moving. An operator walking a
+         * synthetic path through Stockholm, tapping "not for me" on things they are not
+         * looking at, would otherwise teach the founder's own profile to dislike them —
+         * and the profile is learned from sparse data, so a debugging session would show
+         * up in real recommendations for weeks. The console we built to watch the
+         * product would be quietly deforming it.
+         */
+        $learn = $recommendation->context_source->isReal();
+
+        DB::transaction(function () use ($recommendation, $event, $metadata, $at, $facets, $learn): void {
             $retraction = $this->contradicted($recommendation, $event);
 
             if ($retraction !== null) {
                 $this->ledger->record($recommendation->id, $retraction, ['retracted_by' => $event->value], $at);
-                $this->profiles->learnFromFeedback($recommendation->user_id, $retraction, $facets);
+
+                if ($learn) {
+                    $this->profiles->learnFromFeedback($recommendation->user_id, $retraction, $facets);
+                }
             }
 
             $this->ledger->record($recommendation->id, $event, $metadata, $at);
-            $this->profiles->learnFromFeedback($recommendation->user_id, $event, $facets);
+
+            if ($learn) {
+                $this->profiles->learnFromFeedback($recommendation->user_id, $event, $facets);
+            }
         });
     }
 

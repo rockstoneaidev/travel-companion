@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Trips\Data;
 
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Enums\TravelMode;
@@ -29,6 +30,7 @@ final readonly class ExploreSessionData
         public CarbonImmutable $startedAt,
         public CarbonImmutable $expiresAt,
         public ?CarbonImmutable $endedAt,
+        public ContextSource $contextSource = ContextSource::Device,
     ) {}
 
     public static function fromModel(ExploreSession $session): self
@@ -46,6 +48,7 @@ final readonly class ExploreSessionData
             startedAt: $session->started_at,
             expiresAt: $session->expires_at,
             endedAt: $session->ended_at,
+            contextSource: $session->context_source,
         );
     }
 
@@ -77,6 +80,7 @@ final readonly class ExploreSessionData
             startedAt: $this->startedAt,
             expiresAt: $this->expiresAt,
             endedAt: $this->endedAt,
+            contextSource: $this->contextSource,
         );
     }
 

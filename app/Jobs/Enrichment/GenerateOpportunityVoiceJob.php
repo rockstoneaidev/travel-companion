@@ -8,6 +8,7 @@ use App\Cost\Services\CostMeter;
 use App\Domain\Agent\Data\ContextData;
 use App\Domain\Agent\Services\AgentOrchestrator;
 use App\Domain\Agent\Services\EvidenceBundleBuilder;
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Opportunities\Actions\RecordOpportunityVoice;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Places\Contracts\PlaceLookup;
@@ -56,6 +57,18 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         public readonly ?int $forUserId = null,
         public readonly ?string $forSessionId = null,
         public readonly ?string $forTripId = null,
+        /*
+         * ...and the fourth thing the request could not carry: whether anyone was
+         * actually standing there (ADMIN §6, E47).
+         *
+         * This job is where the product's only real money is spent — see above — so it
+         * is also the biggest hole the emulator could have punched in the cost metrics.
+         * It hardcoded `CostActorKind::User`, which meant an operator dragging a pin
+         * across Stockholm billed their synthetic walk to a real traveller's usage, in
+         * the one place where the LLM bill actually lands. The flag has to survive the
+         * queue hop for the same reason the ids do.
+         */
+        public readonly ContextSource $contextSource = ContextSource::Device,
     ) {
         $this->onQueue(QueueLane::Voice->value);
     }
@@ -83,7 +96,7 @@ final class GenerateOpportunityVoiceJob implements ShouldBeUnique, ShouldQueue
         // the fact that the next four travellers past this place will read the same
         // cached line for free is not this row's problem — it is what the amortised view
         // is for. One column never means two things.
-        $cost->actingAs(CostActorKind::User, $this->forUserId)
+        $cost->actingAs($this->contextSource->isReal() ? CostActorKind::User : CostActorKind::AdminEmulated, $this->forUserId)
             ->onTrip($this->forTripId)
             ->onSession($this->forSessionId)
             ->onOpportunity($this->opportunityId);

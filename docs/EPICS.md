@@ -49,7 +49,7 @@ authoritative — epics carry scope, not design.
 | # | Epic | Track | Depends on |
 |---|---|---|---|
 | [#25](https://github.com/rockstoneaidev/travel-companion/issues/25) | Cost explorer, rollup & allocation | platform | 24 |
-| [#47](https://github.com/rockstoneaidev/travel-companion/issues/47) | Position emulator: map, mode-timed playback, device preview & pipeline log (ADMIN §6+) | platform | — (the dev harness for 46) |
+| [#47](https://github.com/rockstoneaidev/travel-companion/issues/47) | Position emulator: map, mode-timed playback, device preview & pipeline log (ADMIN §6+) | platform | **DONE 2026-07-14** — `/admin/emulator`; `context_source` end-to-end (never learned from, never a gold trace, metered as `admin_emulated`); coverage hexes drawn from `CoverageGeometry`; live device preview re-anchors via E46 |
 | [#46](https://github.com/rockstoneaidev/travel-companion/issues/46) | The living feed: move re-anchor, fresh picks & dismiss backfill | backend | **DONE 2026-07-14** — serve batches (`recommendations.serve_group` / `serve_reason` / `anchor`); the client finally calls `context-events`; dismissals exclude by *place*, session-wide; replayer replays each serve on its own clock and anchor |
 
 *#19 (pilot expansion & exit-criteria instrumentation) moved to M6 — founder decision 2026-07-14;
@@ -153,9 +153,9 @@ and the whole trip replays in the replayer.
 ### Critical path & parallel tracks (Phase 2)
 
 ```text
-Done:      #46 (living feed — the §8.1 loop, 2026-07-14). #47 (the emulator, its dev
-                 harness) landed as a plan first and is still the way to drive the loop
-                 without walking around Stockholm.
+Done:      #46 (living feed — the §8.1 loop) and #47 (the emulator that drives it),
+                 both 2026-07-14. Drive a walk from /admin/emulator rather than from
+                 Hornstull.
 Mobile:    #28 → #33 → #34 ─┬→ #36 · #37         (the new track; battery + permission UX
                             │                     are make-or-break, PRD risk 4)
 Backend:   #29 → #30 → #31 ─┘                     (the interruption spine, PRD risk 5)
