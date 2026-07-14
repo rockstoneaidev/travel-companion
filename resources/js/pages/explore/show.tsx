@@ -25,6 +25,8 @@ interface ExploreShowProps {
     opportunities: { data: SessionOpportunity[] };
     visitPrompts: { data: VisitPrompt[] };
     serve: ServeMeta | null;
+    /** Whether the world model knows this area at all — an empty feed means two things. */
+    coverage: { known: boolean };
 }
 
 const TABS = (sessionId: string, tripId: string) => [
@@ -46,7 +48,7 @@ function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: n
 
 const VISIT_PROMPT_RADIUS_M = 150;
 
-export default function ExploreShow({ session, opportunities, visitPrompts, serve }: ExploreShowProps) {
+export default function ExploreShow({ session, opportunities, visitPrompts, serve, coverage }: ExploreShowProps) {
     const exploreSession = session.data;
     const { online, lastFreshAt } = useOnline('feed');
     const [dismissing, setDismissing] = useState<string | null>(null);
@@ -243,10 +245,32 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                     ))}
 
                     {items.length === 0 ? (
-                        <EmptyFeed
-                            headline="Nothing worth interrupting you for."
-                            body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
-                        />
+                        /*
+                         * TWO DIFFERENT SILENCES, and we were telling the same story about both.
+                         *
+                         * "Nothing worth interrupting you for. I'm watching the places around
+                         * you" is a lovely line when we HAVE swept the neighbourhood and it is
+                         * genuinely quiet. It is a lie 700 km north of the launch region, where
+                         * we know nothing at all — the founder dropped a pin in Skellefteå, a
+                         * town of 35,000, and the app claimed to be keeping an eye on it.
+                         *
+                         * PRD §8.1 asks for exactly the opposite there: "graceful degradation
+                         * elsewhere — we don't know this area deeply yet". Coverage honesty
+                         * (§15.3) is not a nicety; the promise this product makes is that when
+                         * it says nothing, nothing was worth saying. That promise is worthless
+                         * if it also says nothing when it simply wasn't looking.
+                         */
+                        coverage.known ? (
+                            <EmptyFeed
+                                headline="Nothing worth interrupting you for."
+                                body="You're in a good spot — I'm watching the places around you and I'll have something when it's worth your time."
+                            />
+                        ) : (
+                            <EmptyFeed
+                                headline="I don't know this area yet."
+                                body="We've only learned Stockholm and a handful of French cities so far. I'd rather say so than pretend I'm watching."
+                            />
+                        )
                     ) : (
                         <>
                             {/*

@@ -520,3 +520,50 @@ it('drops a serve decision that went stale while it waited for the lock', functi
     expect($stale)->toBe([])
         ->and(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(2);
 });
+
+it('says it does not know an area rather than pretending to watch it', function () {
+    // Nothing anywhere near the pin. The world model is region-scoped by design
+    // (IngestRegion: Stockholm + seven French cities), so most of the planet is empty.
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+
+    // Skellefteå — 35,000 people, 700 km north of the launch region.
+    $session = ExploreSession::factory()->at(64.7507, 20.9528)->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 180,
+    ]);
+
+    /*
+     * The empty feed had ONE story for two completely different silences, and one of
+     * them was a lie: "You're in a good spot — I'm watching the places around you."
+     *
+     * We are not watching Skellefteå. We have never heard of it. PRD §8.1 asks for the
+     * opposite ("graceful degradation elsewhere — we don't know this area deeply yet"),
+     * and §15.3 is blunt about why: the promise this product makes is that when it says
+     * nothing, nothing was worth saying. That promise is worthless if it also says
+     * nothing when it simply was not looking.
+     */
+    $this->get("/explore/{$session->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('opportunities.data', 0)
+            ->where('coverage.known', false));
+});
+
+it('still says "nothing worth interrupting you for" where it HAS looked', function () {
+    // A place we know — the launch region — that simply has nothing reachable right now.
+    feedPlace('Vinterviken', LILJEHOLMEN);
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->at(LILJEHOLMEN['lat'], LILJEHOLMEN['lng'])->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 180,
+    ]);
+
+    // Known area: the silence here is a judgement, not an absence, and the copy may
+    // legitimately claim to be watching.
+    $this->get("/explore/{$session->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('coverage.known', true));
+});
