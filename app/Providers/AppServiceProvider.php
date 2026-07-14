@@ -12,6 +12,7 @@ use App\Domain\Places\Services\Scouts\CuratedScout;
 use App\Domain\Places\Services\Scouts\HistoryScout;
 use App\Domain\Places\Services\Scouts\NatureScout;
 use App\Domain\Places\Services\Scouts\NearbyPlaceScout;
+use App\Domain\Places\Services\Scouts\PracticalScout;
 use App\Domain\Places\Services\Scouts\RouteDetourScout;
 use App\Domain\Places\Services\Scouts\UnusualnessScout;
 use App\Domain\Places\Services\TileCache;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
             UnusualnessScout::class,
             CuratedScout::class,
             RouteDetourScout::class,   // E35 — the reason to pull over
+            PracticalScout::class,     // E39 — the things you need
         ], 'tile-scouts');
 
         // The LLM port (conventions/10). Swapping provider is this one line;

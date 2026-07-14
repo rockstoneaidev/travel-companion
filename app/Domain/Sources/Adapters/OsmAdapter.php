@@ -405,11 +405,15 @@ final class OsmAdapter implements ScoutSource
             '["natural"~"^(waterfall|beach|cave_entrance|cliff|spring|rock|stone)$"]',
             '["natural"="water"]["water"="lake"]',
             '["craft"~"^(winery|brewery|distillery|pottery|goldsmith|jeweller|leather|shoemaker|watchmaker|glassblower|carpenter|bookbinder)$"]',
-            '["amenity"~"^(place_of_worship|restaurant|cafe|marketplace|theatre|concert_hall|cinema|arts_centre|fountain|pharmacy|toilets|charging_station|shelter)$"]',
+            '["amenity"~"^(place_of_worship|restaurant|cafe|marketplace|theatre|concert_hall|cinema|arts_centre|fountain|pharmacy|toilets|charging_station|shelter|bus_station|ferry_terminal)$"]',
             '["leisure"~"^(park|garden|beach_resort|sports_centre|stadium|sauna)$"]',
             '["man_made"="tower"]',
             '["shop"~"^(bakery|deli|cheese|books|antiques|chocolate|confectionery|coffee|tea|wine)$"]',
             '["place"="square"]',
+            // Transport hubs (E39) — stations you route TO, not the millions of roadside
+            // bus-stop poles (highway=bus_stop). PracticalScout surfaces these at near range.
+            '["railway"~"^(station|halt)$"]',
+            '["public_transport"="station"]',
         ];
 
         $body = implode('', array_map(

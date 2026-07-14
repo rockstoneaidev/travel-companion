@@ -109,6 +109,30 @@ final class OsmTagMap
             'toilets' => PlaceType::Toilet,
             'charging_station' => PlaceType::ChargingPoint,
             'shelter' => PlaceType::Shelter,
+            'bus_station' => PlaceType::TransportHub,
+            'ferry_terminal' => PlaceType::TransportHub,
+            default => self::transport($tags),
+        };
+    }
+
+    /**
+     * Transport hubs (E39). Stations live under several OSM keys, not just `amenity`, so
+     * this catches the ones `amenity()` did not — a railway station is
+     * `railway=station`, a metro entrance is `railway=subway_entrance`, and a stop area is
+     * `public_transport=station`.
+     *
+     * Deliberately NOT every bus stop and tram pole: `highway=bus_stop` is millions of
+     * roadside signs, and a companion pointing at each one is noise. A hub is a place you
+     * would route *to* — a station, a terminal — not a pole you pass.
+     *
+     * @param  array<string, string>  $tags
+     */
+    private static function transport(array $tags): ?PlaceType
+    {
+        return match (true) {
+            in_array($tags['railway'] ?? null, ['station', 'halt'], true) => PlaceType::TransportHub,
+            ($tags['public_transport'] ?? null) === 'station' => PlaceType::TransportHub,
+            ($tags['amenity'] ?? null) === 'bus_station' => PlaceType::TransportHub,
             default => null,
         };
     }

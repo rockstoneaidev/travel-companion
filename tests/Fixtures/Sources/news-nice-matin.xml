@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Nice-Matin</title>
+    <item>
+      <title>Promenade des Anglais fermée ce week-end pour travaux</title>
+      <description>La circulation sera coupée samedi et dimanche.</description>
+      <link>https://www.nicematin.com/vie-locale/promenade-fermee-123</link>
+      <pubDate>Wed, 15 Jul 2026 08:00:00 +0200</pubDate>
+    </item>
+    <item>
+      <title>Ouverture d'un nouveau restaurant sur le port</title>
+      <description>Une belle adresse pour l'été.</description>
+      <link>https://www.nicematin.com/gastronomie/nouveau-resto-456</link>
+      <pubDate>Wed, 15 Jul 2026 09:00:00 +0200</pubDate>
+    </item>
+    <item>
+      <title>Grève des transports lundi: le réseau Lignes d'Azur perturbé</title>
+      <description>Préavis déposé par les syndicats.</description>
+      <link>https://www.nicematin.com/transports/greve-789</link>
+      <pubDate>Wed, 15 Jul 2026 10:00:00 +0200</pubDate>
+    </item>
+  </channel>
+</rss>
