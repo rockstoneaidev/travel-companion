@@ -630,7 +630,29 @@ Opportunities that don't clear the push/feed bar don't die — they surface in a
 - **Visual design — DECIDED (2026-07-12): the warm/analog direction** (warm/analog travel journal;
   working wordmark, name may change). Design system and per-screen specs:
   [design/DESIGN.md](design/DESIGN.md) · [design/SCREENS.md](design/SCREENS.md).
-- **Phase 2:** background behavior, battery, permission UX, and notification quality are make-or-break — move to native Swift/Kotlin **or** React Native with a mature native background-geolocation SDK. This decision is explicitly deferred until Phase 1 proves quality. The mobile app lives in a **separate repository**, is a pure consumer of `/api/v1` + Sanctum (the API-first boundary exists for exactly this — nothing in the backend restructures), and implements the **same design system** ([design/DESIGN.md](design/DESIGN.md) is platform-agnostic by design; share tokens + API types across repos, not components). Do not scaffold that repo before the Phase 1 exit criteria are met.
+- **Phase 2 — DECIDED (2026-07-14): React Native via Expo (New Architecture), TypeScript, with
+  `react-native-background-geolocation` (Transistorsoft) for background location.** The reasoning, in
+  full, because PRD risk 4 says this must not be treated casually:
+
+  **The hard part of this app is not the UI. It is background location** — significant-change
+  wakes, geofences, iOS permission escalation, Android Doze, and App Store review of a
+  background-location entitlement. Native Swift + Kotlin does not make that problem easier; it makes
+  us solve it **twice**, in the two places where getting it wrong costs a battery complaint or a
+  rejected binary.
+
+  The mature RN SDK solves exactly that, and it is the only part we pay for. Everything above it —
+  the feed, the map, the digest, the calibration — is React + TypeScript against `/api/v1`, which is
+  the code this team already writes and the design system already describes (DESIGN.md is
+  platform-agnostic by design; share **tokens + API types**, never components).
+
+  **The escape hatch is a native module, not a rewrite.** If one behaviour needs Swift, write that
+  behaviour in Swift and bridge it. That asymmetry — RN's floor is high, its ceiling is native — is
+  what makes this the low-regret choice rather than merely the fast one.
+
+  **What is still owed (and does not block the decision):** measured battery drain on a real handset
+  over a real trip-day, and a permission-UX walkthrough against Apple's background-location review
+  criteria. Those are numbers to *record*, not a fork in the road — either stack would have to pass
+  the same bar. The mobile app lives in a **separate repository**, is a pure consumer of `/api/v1` + Sanctum (the API-first boundary exists for exactly this — nothing in the backend restructures), and implements the **same design system** ([design/DESIGN.md](design/DESIGN.md) is platform-agnostic by design; share tokens + API types across repos, not components).
 
 ### 13.2 Onboarding taste calibration (cold start)
 

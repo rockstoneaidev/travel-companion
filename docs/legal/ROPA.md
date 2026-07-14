@@ -478,7 +478,7 @@ Ranked. These are additions to DPIA §7, not a restatement of it.
 | **B9** | No age assurance (§2) | Only defensible while registration is allowlisted. | Medium (Low today) | OPEN |
 | **B10** | **No breach detection at all** (BREACH-PROCEDURE §8) | The 72-hour clock starts when you *notice*. Nothing pages anyone. | Medium–High | OPEN |
 | **B13** | **No DPA with Google for FCM** (§6) | Push delivery sends a token *and a message body* — "the market near you closes in 22 minutes" is content about where somebody is. That is a processor relationship (Art. 28) and there is no signed DPA. **The sender is unset by default and reaches nobody**, so nothing has leaked; it must stay that way until this is signed. | **Blocker before the first real send** | **OPEN — yours (PROCESSORS.md)** |
-| **B12** | **DPIA and consent wording do not cover Trip Mode** (§6.2) | Art. 35 requires the assessment *before* the processing, and background location on a live phone is the textbook trigger. The E29 plumbing enforces the rules; nobody has written down what the user is agreeing to. | **Blocker for any non-founder use** | **OPEN — E32** |
+| **B12** | ~~DPIA and consent wording do not cover Trip Mode~~ (§6.2) | Art. 35 wants the assessment *before* the processing, and background location on a live phone is the textbook trigger. The E29 plumbing enforced the rules; nothing said what the user was agreeing to. | High | **FIXED (E32)** — [DPIA §3.4 + §5.9](../DPIA.md) (rev 2: purpose P5, risks R8–R10, the five Trip Mode controls) and [CONSENT.md §2A](CONSENT.md) (C3, the exact words on the switch) |
 | **B11** | Reverse geocoding sent the user's precise origin to Nominatim (§6.1) | B3 repeated in a new host: a real coordinate to a third party, for an answer a tile centroid gives just as well. Introduced and caught the same day (E48). | High | **FIXED** — `ReverseGeocoder::forTile()` sends an H3 res-8 centroid; asserted in `LearnUnknownRegionTest` |
 
 ---
@@ -504,6 +504,7 @@ which everybody fixes.
 | Date | Version | Change | By |
 |---|---|---|---|
 | 2026-07-12 | 0.1 | First record. Written from the schema and the outbound-call inventory, not from the DPIA — which is why it disagrees with DPIA §2.4 in two places (§7.1). | Claude (Opus 4.8), for the controller |
+| 2026-07-14 | 0.2 | Phase 2: `devices`, `notifications`, Trip Mode's background events, and FCM as a recipient. B11 fixed, **B12 fixed** (DPIA rev 2 + consent C3), B13 still open — it needs a signature, which is the one thing no document can supply. | Claude (Opus 4.8), for the controller |
 
 **Next review:** on any migration adding personal data, any new outbound recipient, any
 change to `config/privacy.php`, or the first user outside the pilot — whichever is first.

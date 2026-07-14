@@ -2,7 +2,9 @@
 
 **Travel Companion AI** · GDPR Article 35
 **Status: DRAFT — not yet reviewed. Must be reviewed before any user outside the pilot group.**
-**Version:** 0.1 (2026-07-14) · Policy version: `config/privacy.php` → `v1`
+**Version:** 0.2 (2026-07-14) — **rev 2 adds Trip Mode (background location) and push delivery**, the two
+processing operations Phase 2 introduces and the two that change this document's risk picture most.
+· Policy versions: `config/privacy.php` → `v1` · `NotificationPolicy::VERSION` → `v1`
 
 ---
 
@@ -76,6 +78,16 @@ scale. **This changes if the pilot grows** (§7.4).
 | P2 | Personalise those recommendations | Requires a preference profile, learned from feedback |
 | P3 | Explain a recommendation ("why did I get this?") | Requires retaining the decision trace |
 | P4 | Improve the ranking model | Requires replaying past decisions against gold traces |
+| **P5** | **Speak first — interrupt the user when something nearby is worth it and about to stop being available** (Phase 2, "Trip Mode") | Requires **location while the app is not open**, and a push token |
+
+**P5 is the purpose this revision exists for, and it is a different kind of purpose from P1–P4.**
+P1 answers a question the user asked. P5 decides, on the user's behalf, that a moment is worth their
+attention — and it does so from data collected while they were not looking at their phone. That is
+the processing a regulator would look at first, and it should be.
+
+It is also the only purpose that is **entirely optional**, in the strict sense that the product is
+complete without it. That is what makes consent available as a basis (§4.2), and it is why the
+controls in §5.9 are structured as *refusals to collect* rather than as promises about use.
 
 P4 is the only one that is not strictly necessary to deliver the service to *that* user, which is
 why it is the one gated behind separate opt-in consent (§4.2).
@@ -90,6 +102,15 @@ why it is the one gated behind separate opt-in consent (§4.2).
 | Inferred preferences | facet weights, walk tolerance, price band | `user_taste_profiles` | **Potentially — see §3.2** |
 | Behavioural | accepted / kept / dismissed / **visited** | `recommendation_feedback` | No, but see §3.2 |
 | Decision traces | every sub-score and input behind a recommendation | `recommendations` | No |
+| **Background location** (Trip Mode only) | position pings recorded **while the app is closed**, during an opted-in trip | `context_events` (`context_source`) | No, but **see §3.4** |
+| **Device / push token** | FCM registration token, platform, last-seen | `devices` | No |
+| **Interruption record** | every push we sent **and every one we decided not to send**, with the gate that stopped it | `notifications` | No |
+
+The third row deserves a note, because a naive reading makes it look like over-collection. We store
+the **denials** as well as the sends (`notifications.allowed = false`, `denied_by`). That is more
+data about a person, not less, and it is deliberate: PRD §12.2 requires being able to ask, offline,
+*"would policy v3 have avoided the push that policy v2 sent?"* — a question only answerable if the
+refusals are on record. A system that stores only its interruptions cannot prove its restraint.
 
 ### 2.4 Recipients and processors
 
@@ -102,6 +123,7 @@ why it is the one gated behind separate opt-in consent (§4.2).
 | **Google OAuth** (sign-in) | the sign-in itself; returns `sub`, email, name, avatar | US — **independent controller**, not a processor |
 | **Open-Meteo** (`api.open-meteo.com`) | **the user's origin coordinates, at full precision** — *not* a tile centroid; see the correction below | EU (Germany) |
 | **Resend** (transactional email) | **the user's email address** + message body | US — see §6 |
+| **Google FCM** (`fcm.googleapis.com`) — *Phase 2* | a **device push token** + the notification title/body/deep-link. **No coordinates, no user id, no place id.** | US — see §6, and **§7.5: there is no DPA for this yet** |
 | **Overpass / OpenStreetMap, Wikidata, Wikimedia, DATAtourisme, Mérimée** | region bounding boxes only — **no user data at all** | n/a |
 
 > **CORRECTION (2026-07-12).** Version 0.1 of this table said Open-Meteo receives "the
@@ -143,6 +165,9 @@ Numbers, not adjectives — they live in `config/privacy.php` and are enforced n
 | Traces (research-consent accounts) | indefinite, **full precision** | Nothing — that is what the consent buys |
 | Taste profile | until reset or account deletion | Deleted |
 | Feedback ledger | until account deletion | Deleted |
+| **Background pings (Trip Mode)** | **the same 30 days as any other location** — Trip Mode buys no retention extension | Coarsened to H3 res-8; coordinate hard-deleted |
+| **Push tokens** | until the device is revoked or the account deleted | Deleted |
+| **Notification decisions** | until account deletion | Deleted with the account |
 
 ---
 
@@ -202,11 +227,54 @@ We do not currently have a lawful basis under Art. 9(2) for this. The only reali
 | R5 | Breach — sole controller, no security team | Low–Medium | High | **Medium–High** |
 | R6 | Function creep (data kept "just in case") | Medium | Medium | Medium |
 | R7 | Consent that is not freely given (3 friends of the founder) | **High** | Low–Medium | Medium |
+| R8 | **Background location — a continuous record of where a person went, collected while they were not looking** (§3.4) | **High — by design, when Trip Mode is on** | High | **High** |
+| R9 | **Interruption itself as a harm** — being spoken to at the wrong moment (§3.4) | Medium | Low–Medium | Medium |
+| R10 | Push token + notification content held by Google, with **no DPA** (§7.5) | Certain | Low–Medium | **Medium** |
 
 R7 deserves a word. Consent must be **freely given** (Art. 4(11)), and a pilot group of three people
 who know the founder personally is close to the definition of social pressure. Mitigation: the pilot
 must be able to leave, delete everything, and refuse research consent **without it being awkward** —
 which is a design and a social problem, not just a legal one.
+
+---
+
+### 3.4 The second-sharpest risk: being followed, and being spoken to
+
+§3.2 is about what the profile can *infer*. This is about what the trace can *see* — and Trip Mode is
+the feature that changes the answer.
+
+**Foreground location is a set of moments the user chose.** They opened an app and asked a question,
+and the answer required knowing where they stood. Each ping is an act of asking.
+
+**Background location is not moments. It is a line.** Turn it on for a week in Burgundy and the
+`context_events` rows are a reconstruction of a person's week: where they slept, how long they
+lingered, who they might have been near, when they stopped moving and for how long. Nobody
+volunteered that. They agreed to a *feature*, and the line is a by-product.
+
+The honest statement of the risk is therefore not "we collect location" — we already did — it is:
+
+> **In Trip Mode, the by-product of the feature is a movement history detailed enough to answer
+> questions the user never asked and would not have agreed to.**
+
+Three specific ways it bites, and what each one is actually met with (all in §5.9, all running code):
+
+1. **The home address falls out of the data for free** (R2, now much worse). A background trace
+   overnight *is* a home address. → The home zone is not merely excluded from serving; events inside
+   it are **dropped before they are written** — no coordinate, no cell, no row.
+2. **Density becomes surveillance.** A ping every 30 seconds is a different dataset from a ping when
+   you arrive somewhere, even though both are "location". → The server enforces a
+   **meaningful-movement floor** and discards anything below it, so a chattier client release cannot
+   quietly turn a companion into a tracker.
+3. **The dwell time is the sensitive part.** *Which* place is often innocuous; **how long you stayed
+   at the clinic** is not. → The 30-day coarsening applies unchanged (Trip Mode buys no retention
+   extension), and after it, res-8 cells at ~0.7 km² no longer distinguish a building from its
+   neighbours.
+
+**R9 — interruption as a harm.** This one has no GDPR article and is easy to leave out of a document
+like this, which is exactly why it goes in. Being pushed at while driving is a *safety* risk, not a
+privacy one; being pushed at three times an hour is not a rights violation but it is the product
+failing at the only thing it promised. Art. 25 ("data protection by design") is the closest hook, and
+the design answer is that **no model chooses the moment** — §5.9.
 
 ---
 
@@ -240,9 +308,36 @@ Consequences we accept by choosing consent:
 - The service must still function, in a degraded but honest way, for a user who refuses to be
   profiled. **It does** — that is exactly what the cold-start vector is (α = 0, SCORING §6).
 
-**OPEN:** the consent *text* itself has not been written. It must name: what is collected, that a
-profile is inferred, that the profile can reflect sensitive interests (§3.2), who receives data
-(§2.4), and how to withdraw.
+~~**OPEN:** the consent *text* itself has not been written.~~ **CLOSED** — it is written, verbatim and
+versioned, in [`legal/CONSENT.md`](legal/CONSENT.md) §2 (C1). Art. 7(1) requires demonstrating not
+that consent was given but *what was agreed to*, which means the words themselves are the record.
+
+#### Trip Mode and push: consent again, and this time it is uncontroversial
+
+**Basis: Art. 6(1)(a) consent, per trip**, plus **ePrivacy Art. 5(3)** for the push itself. Wording
+in [`legal/CONSENT.md`](legal/CONSENT.md) §2A (C3).
+
+Note the contrast with foreground location, which is **Art. 6(1)(b)** — necessary for a contract the
+user asked for — and deliberately *not* consent-based, because "consent" to the one thing the product
+cannot work without would not be freely given (Art. 4(11)).
+
+Trip Mode inverts every part of that test, which is why the answer inverts too:
+
+| | Foreground location | Trip Mode |
+|---|---|---|
+| Can the product work without it? | No | **Yes, completely** |
+| Would refusing it degrade the service the user asked for? | Fatally | Not at all — it *adds* a service |
+| Is a "no" therefore free? | Not really | **Yes** |
+| So the basis is | 6(1)(b) | **6(1)(a) consent** |
+
+**Scoped to a trip, not to an account.** The consent lives in `trips.trip_mode_started_at`, so it
+expires with the trip that motivated it. There is no global switch to leave on by accident, and
+"follow me around Burgundy in August" cannot silently become "follow me around Stockholm in October".
+
+**Withdrawal (Art. 7(3)) is one tap and takes effect at the next ping** — `StopTripMode` sets
+`trip_mode_ended_at`, and `RecordTripContext` refuses (`trip_mode_off`) any event that arrives after
+it, *including one already in flight from the handset*. The refusal is server-side on purpose: a
+withdrawal that depended on the client honouring it would be a promise, not a control.
 
 ### 4.3 Purpose limitation
 
@@ -324,6 +419,47 @@ Generation happens only from stored evidence, every generation records its `prom
 user identity or profile is ever sent (§2.4). A factual claim on a card ("~40 min of light left") is
 *computed* (`SunClock`), never generated.
 
+### 5.9 Trip Mode: four refusals, and a policy that is not a model
+
+Everything here is running code with tests
+(`tests/Feature/Context/TripModeTest.php`, `tests/Feature/Notifications/NotificationPolicyTest.php`,
+`tests/Feature/Notifications/PushDeliveryTest.php`). Each control is a **refusal to collect or to
+act**, enforced on the server — never a promise about what we will later do with what we took.
+
+**(a) No consent, no data.** `RecordTripContext` refuses (`trip_mode_off`) every background event for
+a trip whose `trip_mode_started_at` is null or whose `trip_mode_ended_at` has passed. The client
+cannot override it, and an event already in flight when the user withdraws is refused on arrival. This
+is what makes Art. 7(3) withdrawal a control rather than a courtesy.
+
+**(b) The home zone is not written down.** Inside a declared home zone, a background event is
+**discarded entirely** — the row is never created. Stricter than the foreground path (which stores a
+coarsened cell), and deliberately so: a trace that shows *nothing at all* between 22:00 and 07:00 is
+the only trace that does not contain a home address. Directly answers R2 and §3.4(1).
+
+**(c) A meaningful-movement floor, on the server.** An event closer than
+`min_distance_meters` (250) to the last one **and** sooner than `min_interval_seconds` (600) is
+refused as `not_meaningful` and never stored. *Far enough OR long enough* — never both, so a
+stationary user is still recorded occasionally and a walking one is not recorded constantly. The floor
+is server-side precisely so that a future client release cannot widen the collection without a server
+change that shows up in review.
+
+**(d) Deterministic policy, and no model gets a vote.**
+`NotificationPolicy` is pure PHP with no I/O (non-negotiable #4). Eleven hard gates — Trip Mode off,
+quiet hours (22:00–08:00, wrapping midnight), **driving**, not pushable by licence, low confidence,
+not open, detour too far, stale evidence, category recently rejected — then a **hard cap of 3 pushes
+a day** and a 60-minute cooldown. The "urgent" exception (confidence > .85 ∧ urgency > .85 ∧ fit >
+.75) buys the right to skip the **cooldown** and nothing else: it cannot buy the daily cap, it cannot
+buy quiet hours, and it certainly cannot buy driving.
+
+An LLM may write the *words* of a push. It may never choose the *moment*. That is the difference
+between a decision that can be explained to a data subject and one that can only be apologised for —
+and it is why R9 is met by an `if` statement rather than by a prompt.
+
+**(e) The push carries a token and a sentence.** `FcmPushSender` sends the device token, a title, a
+body and a deep link. **No coordinates, no user id, no place id, no profile.** Google learns that a
+handset was pinged and what it was told; it does not learn where the handset was or who owns it. The
+remaining exposure is R10 — the missing DPA (§7.5), not the payload.
+
 ### 5.8 Security
 - TLS terminated at the proxy; the app trusts it explicitly (`bootstrap/app.php`).
 - Registration allowlisted while pre-launch (`ALLOWED_REGISTRATION_EMAILS`).
@@ -340,6 +476,10 @@ The three Google services (Places, Routes, Gemini) are provided by **Google LLC 
 Google is certified under the **EU–US Data Privacy Framework**, which is an adequacy decision
 (Art. 45), so a transfer to a DPF-certified recipient is lawful without SCCs. Google's Cloud/Maps
 terms also incorporate SCCs as a fallback.
+
+**FCM (Phase 2)** is the same story with one difference that matters: the payload is minimal (a token
+and a sentence — §5.9(e)), but **there is no DPA covering it**, and Firebase's terms are not the Cloud
+terms or the Maps terms. See §7.5; this is an errand, not a design problem.
 
 **OPEN — for the legal reviewer:**
 - Confirm the *specific* Google entity and terms we contract with, and that they cover the DPF or
@@ -440,10 +580,11 @@ the first is an afternoon's work.
 every outbound call, which is how it found **Resend**, a processor holding every user's email address
 that this document had never mentioned.
 
-**Writing the register does not close this. Signing does.** Four errands, none delegable to any LLM,
+**Writing the register does not close this. Signing does.** Five errands, none delegable to any LLM,
 tracked in [legal/dpa/](legal/dpa/): Hetzner AVV, Resend DPA, confirming the Google Cloud DPA actually
-covers **Maps Platform** (a different product, and assuming one DPA covers both is the trap), and
-filing the PDFs — because Art. 5(2) accountability means being able to *demonstrate* compliance, and
+covers **Maps Platform** (a different product, and assuming one DPA covers both is the trap),
+**adding Firebase Cloud Messaging to that same question** (a *third* Google product with *third* terms —
+ROPA B13, and the reason R10 exists), and filing the PDFs — because Art. 5(2) accountability means being able to *demonstrate* compliance, and
 "I'm sure I clicked accept" is not a demonstration.
 
 **The Gemini tier question is CLOSED (2026-07-12): we are on the paid tier**, where Google does not
@@ -451,7 +592,7 @@ train on API input. On a free key it generally does, which would have made place
 part-of-day into processing for *Google's* purposes rather than ours — a processor acting outside the
 controller's instructions (Art. 28(3)(a)), for a purpose disclosed to nobody.
 
-What remains is **four errands and a filing cabinet**, and they are the whole of what stands between
+What remains is **five errands and a filing cabinet**, and they are the whole of what stands between
 this and a defensible launch.
 
 ### 7.6 Accepted residual risk
@@ -475,6 +616,7 @@ the "large scale" thresholds move too.
 | Date | Version | Change | By |
 |---|---|---|---|
 | 2026-07-14 | 0.1 | First draft, from PRD §16 and the implemented controls | Claude (Opus 4.8), for the controller |
+| 2026-07-14 | **0.2** | **Rev 2 — Trip Mode and push (E29–E31).** New purpose P5; background-location, device-token and notification-decision categories; FCM as a recipient; risks R8–R10 and the §3.4 narrative; consent basis for Trip Mode (§4.2) with the wording in CONSENT.md §2A (C3); the five controls in §5.9. Closes the §4.2 "consent text not written" item and ROPA B12. | Claude (Opus 4.8), for the controller |
 
 **Next review:** before the first user outside the pilot group, or on any change to the categories of
 data, the processors, or the retention numbers in `config/privacy.php` — whichever comes first.
