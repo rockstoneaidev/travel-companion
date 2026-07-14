@@ -10,6 +10,8 @@ use App\Domain\Context\Contracts\Routing;
 use App\Domain\Context\Contracts\SessionPositions;
 use App\Domain\Context\Queries\LatestSessionPosition;
 use App\Domain\Context\Services\GoogleRoutes;
+use App\Domain\Notifications\Contracts\PushSender;
+use App\Domain\Notifications\Services\LogPushSender;
 use App\Domain\Places\Contracts\ExternalIdRegistry;
 use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Places\Contracts\PlaceLookup;
@@ -21,6 +23,8 @@ use App\Domain\Privacy\Services\UserProfilingConsent;
 use App\Domain\Profiles\Actions\ResetTasteProfile;
 use App\Domain\Profiles\Contracts\TasteProfileEraser;
 use App\Domain\Recommendations\Actions\EraseRecommendationAnchors;
+use App\Domain\Recommendations\Actions\RecordFeedbackForRecommendation;
+use App\Domain\Recommendations\Contracts\FeedbackRecorder;
 use App\Domain\Recommendations\Contracts\RecommendationTraceEraser;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
@@ -79,6 +83,22 @@ final class DomainServiceProvider extends ServiceProvider
         // was left open by DeleteTripLocationHistory ("traces carry no coordinate
         // columns yet"); `recommendations.anchor` (E46) is the column that closed it.
         RecommendationTraceEraser::class => EraseRecommendationAnchors::class,
+
+        /*
+         * The push rail (E31). A PORT — FCM today, APNs direct if it ever has to be, and a
+         * log line in development.
+         *
+         * The default is LogPushSender, and the default is the safe one: a misconfigured
+         * environment that silently sends real notifications to real phones is a far worse
+         * failure than one that silently sends none. Reaching FCM requires saying so out
+         * loud (`FCM_PROJECT_ID`).
+         */
+        PushSender::class => LogPushSender::class,
+
+        // ...and the way back: a push receipt is feedback like any other tap, and must land
+        // in the SAME ledger. A separate notification-feedback table would split the learning
+        // signal in half (E31).
+        FeedbackRecorder::class => RecordFeedbackForRecommendation::class,
 
         // Stage-B routing (PRD §10). A port, so self-hosted OSRM/Valhalla on our own
         // OSM extract is a swap and not a rewrite (DATA-SOURCES §9).

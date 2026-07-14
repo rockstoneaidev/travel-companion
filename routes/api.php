@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ExploreSessionController;
 use App\Http\Controllers\Api\V1\ExploreSessionEndController;
 use App\Http\Controllers\Api\V1\ExploreSessionOpportunityController;
 use App\Http\Controllers\Api\V1\ExploreSessionRefreshController;
+use App\Http\Controllers\Api\V1\NotificationReceiptController;
 use App\Http\Controllers\Api\V1\PlaceSearchController;
 use App\Http\Controllers\Api\V1\RecommendationFeedbackController;
 use App\Http\Controllers\Api\V1\TripContextEventController;
@@ -114,6 +115,16 @@ Route::middleware('auth:sanctum')->prefix('v1')->name('api.v1.')->group(function
     Route::post('trips/{trip}/context-events', [TripContextEventController::class, 'store'])
         ->middleware('throttle:context-events')
         ->name('trips.context-events.store');
+
+    /*
+    | Notification receipts (E31). The moat closing: an opened push and an ignored one are
+    | the only signals that measure whether an INTERRUPTION was worth it, as opposed to
+    | whether the place was any good — which the feed already knows.
+    */
+    Route::post('notifications/{notification}/opened', [NotificationReceiptController::class, 'opened'])
+        ->name('notifications.opened');
+    Route::post('notifications/{notification}/dismissed', [NotificationReceiptController::class, 'dismissed'])
+        ->name('notifications.dismissed');
 
     // The push-token registry — the address of somebody's pocket.
     Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
