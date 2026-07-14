@@ -293,13 +293,31 @@ jobs:
             # new code — long-running workers never pick up a new binding or job
             # class on their own, so a worker that is not restarted is a worker
             # running last week's code.
-            docker compose up -d
+            #
+            # `--wait` blocks until the app's healthcheck passes (`/up`), and fails
+            # the deploy if it never does. Without it, "the container started" was
+            # being reported as "the deploy worked" — and a container that boots and
+            # immediately serves 502s satisfies the first and not the second. The
+            # deploy is the last place that should be optimistic.
+            docker compose up -d --wait
 
             # Belt and braces: if compose decided the app container did not need
             # recreating (identical tag on a re-run), tell Horizon to cycle its
             # workers anyway. Graceful — supervisord's stopsignal=QUIT lets
             # in-flight jobs finish.
             docker compose exec -T app php artisan horizon:terminate || true
+
+            # The deploy is not done until the SITE answers, not merely the container.
+            # A healthcheck proves the app is up on localhost:80; this proves the whole
+            # path — Traefik's router, its TLS, and the retry middleware that is meant to
+            # cover the swap — is actually serving. Cheap, and it is the only assertion
+            # here that a user would recognise.
+            for i in $(seq 1 10); do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" https://travel.bergsten.net/up || echo 000)
+              if [ "$CODE" = "200" ]; then echo "site healthy (/up → 200)"; break; fi
+              if [ "$i" = "10" ]; then echo "::error::site is not serving after deploy (/up → $CODE)"; exit 1; fi
+              sleep 3
+            done
 
             # A queue that fails silently is the whole problem we are fixing, so
             # say so out loud. Not fatal: a pre-existing failure should not block

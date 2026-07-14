@@ -45,6 +45,22 @@ services:
     networks:
       - web
       - internal
+    # -------------------------------------------------------------------------
+    # Readiness, so "the container is running" stops being mistaken for "the app
+    # is serving".
+    # -------------------------------------------------------------------------
+    # `/up` is Laravel's health route (bootstrap/app.php). PHP-FPM and nginx come
+    # up in well under a second, but the entrypoint runs `optimize:clear` and boots
+    # supervisord first, and for that handful of seconds the port is open to nobody.
+    #
+    # The deploy waits on THIS (`up -d --wait`), so a container that comes up broken
+    # fails the deploy instead of quietly serving 502s until someone notices.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/up >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12          # 60s to become healthy: generous, and still fails a real breakage
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       # HTTPS router
@@ -53,6 +69,29 @@ services:
       - "traefik.http.routers.travel-companion.tls=true"
       - "traefik.http.routers.travel-companion.tls.certresolver=le"
       - "traefik.http.services.travel-companion.loadbalancer.server.port=80"
+
+      # -----------------------------------------------------------------------
+      # THE DEPLOY WINDOW, and why this is a retry rather than a second container.
+      # -----------------------------------------------------------------------
+      # `docker compose up -d` STOPS the old container and STARTS the new one. For
+      # the few seconds in between there is no backend at all, and Traefik answers
+      # the only way it can: 502 Bad Gateway. Reload during a deploy — which is
+      # exactly when someone is watching — and that is what you get.
+      #
+      # The textbook fix is to run the new container alongside the old and swap once
+      # it is healthy. We deliberately do NOT: Horizon lives inside this container,
+      # so a second app is a second Horizon plus a second PHP-FPM pool, and this box
+      # has ~570 MB free and is shared with other apps. Trading a five-second blip
+      # for an OOM kill is not a trade.
+      #
+      # So the gap is CLOSED FROM THE OTHER END. Traefik's retry fires on a
+      # connection error — no response was ever received, so replaying the request is
+      # safe even for a POST — and backs off across the window: 0.5s, 1s, 2s, 4s.
+      # The new container answers inside that, and the request that would have been a
+      # 502 simply takes a moment longer. The user sees a slow page, not a broken one.
+      - "traefik.http.middlewares.travel-companion-retry.retry.attempts=5"
+      - "traefik.http.middlewares.travel-companion-retry.retry.initialInterval=500ms"
+      - "traefik.http.routers.travel-companion.middlewares=travel-companion-retry"
       # HTTP -> HTTPS redirect (app-scoped middleware to avoid clashing with other apps)
       - "traefik.http.routers.travel-companion-http.rule=Host(`travel.bergsten.net`)"
       - "traefik.http.routers.travel-companion-http.entrypoints=web"
