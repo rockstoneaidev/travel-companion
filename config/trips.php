@@ -95,6 +95,31 @@ return [
         'position_max_age_seconds' => 900,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trip Mode — the background stream (E29; PRD §13.4)
+    |--------------------------------------------------------------------------
+    |
+    | "The phone sends MEANINGFUL CONTEXT CHANGES — never a raw GPS stream." That is a
+    | promise about battery and about trust, and promises that live only in a mobile
+    | client last until the next release. So the floor is enforced on the server, and
+    | these are the numbers it enforces.
+    |
+    | Generous on purpose: they are not trying to second-guess a good summarizer, only to
+    | make a bad one harmless. A phone behaving as §13.4 describes never notices them.
+    |
+    */
+    'trip_mode' => [
+        // A different place, whatever the clock says.
+        'min_distance_meters' => 250,
+
+        // A different moment, even standing still — the light changed, the market opened.
+        // EITHER of these makes an event meaningful; requiring both would discard the
+        // traveller who sat in a café for an hour and then walked out, which is precisely
+        // the moment the companion exists for.
+        'min_interval_seconds' => 600,
+    ],
+
     'feed' => [
         // An opportunity wins the GO NOW slot only if its window closes within
         // this horizon (SCREENS S1). Wider, and "go now" stops meaning now.

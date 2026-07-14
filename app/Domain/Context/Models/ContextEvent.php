@@ -7,6 +7,7 @@ namespace App\Domain\Context\Models;
 use App\Domain\Context\Enums\AppState;
 use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Context\Enums\MovementMode;
+use App\Domain\Context\Enums\PowerTier;
 use App\Domain\Places\Casts\AsCoordinates;
 use Database\Factories\Domain\Context\ContextEventFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -46,6 +47,10 @@ final class ContextEvent extends Model
             'context_source' => ContextSource::class,
             'movement_mode' => MovementMode::class,
             'app_state' => AppState::class,
+            // Which battery tier caught this (E29, PRD §13.4). A `low` event is a
+            // significant-change ping; a `high` one means the app was open. Most of what
+            // the notification policy will reason about is the difference.
+            'power_tier' => PowerTier::class,
             'accuracy_meters' => 'integer',
             'speed_mps' => 'float',
             'heading' => 'integer',

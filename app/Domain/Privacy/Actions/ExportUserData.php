@@ -48,6 +48,20 @@ final class ExportUserData
                 ->where('user_id', $userId)
                 ->get(),
 
+            /*
+             * The phones we can reach them on (E29).
+             *
+             * The push TOKEN itself is deliberately not exported. It is a credential — it
+             * grants the ability to send a notification to that handset — and a data export
+             * lands in a downloads folder, an email, a support ticket. Art. 15 gives the
+             * user their data, not a loaded gun: the platform, the app version, and when we
+             * last saw it answer "what do you hold about my devices?" completely.
+             */
+            'devices' => DB::table('devices')
+                ->select('id', 'platform', 'app_version', 'last_seen_at', 'revoked_at', 'created_at')
+                ->where('user_id', $userId)
+                ->get(),
+
             'context_events' => DB::table('context_events')
                 ->selectRaw('id, occurred_at, h3_index, movement_mode, speed_mps, app_state,
                              ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng')

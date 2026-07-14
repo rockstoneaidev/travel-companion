@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Trips\Actions;
 
+use App\Domain\Context\Enums\ContextSource;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Enums\TripSource;
 use App\Domain\Trips\Enums\TripStatus;
@@ -36,9 +37,13 @@ final class ResolveOrCreateTripForSession
 {
     public function __construct(private readonly NameTrip $name) {}
 
-    public function __invoke(int $userId, Coordinates $origin, CarbonImmutable $at): Trip
-    {
-        return DB::transaction(function () use ($userId, $origin, $at): Trip {
+    public function __invoke(
+        int $userId,
+        Coordinates $origin,
+        CarbonImmutable $at,
+        ContextSource $contextSource = ContextSource::Device,
+    ): Trip {
+        return DB::transaction(function () use ($userId, $origin, $at, $contextSource): Trip {
             $liveTrip = Trip::query()
                 ->where('user_id', $userId)
                 ->where('status', TripStatus::Active)
@@ -70,6 +75,15 @@ final class ResolveOrCreateTripForSession
                 'source' => TripSource::Auto,
                 'anchor_point' => $origin,
                 'clustering_version' => config('trips.clustering.version'),
+                /*
+                 * Provenance flows DOWN, from the session that caused this trip (E29/E47).
+                 *
+                 * The trip is the root for Trip Mode's background stream exactly as the
+                 * session is the root for the foreground one — so an emulated walk driven
+                 * from /admin/emulator produces an emulated trip, and its background events
+                 * can never teach a taste profile or poison a cost metric either.
+                 */
+                'context_source' => $contextSource,
                 'started_at' => $at,
                 'last_session_at' => $at,
             ]);

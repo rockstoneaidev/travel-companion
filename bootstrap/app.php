@@ -3,6 +3,7 @@
 use App\Admin\Exceptions\OperatorCannotModifyOwnRoles;
 use App\Domain\Context\Exceptions\ExploreSessionNotAcceptingEvents;
 use App\Domain\Trips\Exceptions\ExploreSessionAlreadyEnded;
+use App\Domain\Trips\Exceptions\TripModeNotAvailable;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\MarkEmulatedContext;
 use App\Http\Middleware\MeterCost;
@@ -48,6 +49,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // their answer from this one place.
         $exceptions->render(function (OperatorCannotModifyOwnRoles $e) {
             return back()->withErrors(['roles' => $e->getMessage()]);
+        });
+
+        /*
+         * Trip Mode on a trip that is over (E29). Well-formed request, impossible state →
+         * 409, exactly like an already-ended session.
+         *
+         * Note there is deliberately no counterpart for STOPPING: `StopTripMode` never
+         * throws, from any state whatsoever. An off-switch that can fail is an off-switch
+         * nobody trusts, and it is the control the whole consent story rests on (PRD §16).
+         */
+        $exceptions->render(function (TripModeNotAvailable $e, Request $request) {
+            return $request->expectsJson()
+                ? response()->json(['message' => $e->getMessage()], Response::HTTP_CONFLICT)
+                : back()->withErrors(['trip' => $e->getMessage()]);
         });
 
         // A session that is already over: the request is well-formed but the

@@ -54,7 +54,7 @@ final class StartExploreSession
                     'updated_at' => $startedAt,
                 ]);
 
-            $trip = ($this->resolveTrip)($data->userId, $data->origin, $startedAt);
+            $trip = ($this->resolveTrip)($data->userId, $data->origin, $startedAt, $data->contextSource);
 
             /*
              * The res-8 cell, written at creation — the seam the migration promised
