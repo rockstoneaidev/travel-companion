@@ -42,6 +42,25 @@ return [
         'cone_half_angle_deg' => 60,   // full reach within ±60° ahead of heading
         'behind_fraction' => 0.40,     // ~40% reach behind (the "pear")
         'near_ring_m' => 1200,         // walking-scale ring around origin/destination — ScoutRange::Near
+
+        /*
+         * The corridor budget (E35). A long drive is thousands of res-8 cells, and the
+         * two numbers below are what stop that from becoming a request.
+         *
+         * Corridor cells arrive ordered by progress along the route, so these are a
+         * prefix and a tail, not a sample:
+         *
+         *   max_inline_tiles   — scouted synchronously; the ranker is waiting on them.
+         *   max_prescout_tiles — the road ahead, handed to the scouts lane so it is warm
+         *                        by the time the vehicle arrives. Nobody waits on these.
+         *
+         * 180 occupied tiles is roughly 130 km² of *populated* corridor (empty countryside
+         * is already dropped by the res-6 prefilter, so these slots are never spent on
+         * forest). 2000 pre-scout tiles covers a full Stockholm→Göteborg leg. Both are
+         * caps, not targets: a walk to the next neighbourhood uses a handful.
+         */
+        'max_inline_tiles' => 180,
+        'max_prescout_tiles' => 2000,
     ],
 
 ];

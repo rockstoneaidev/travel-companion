@@ -8,6 +8,7 @@ use App\Domain\Places\Contracts\TileScout;
 use App\Domain\Places\Data\Coverage;
 use App\Domain\Places\Models\ScoutRun;
 use App\Domain\Sources\Enums\ScoutRange;
+use App\Jobs\Scouts\WarmTileJob;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -96,10 +97,37 @@ final class ScoutRunner
                 'filled' => $filled,
                 'candidates' => $candidates,
                 'hit_rate' => $run->hitRate(),
+                'prescouted' => $this->preScout($scout, $coverage),
             ];
         }
 
         return $summary;
+    }
+
+    /**
+     * The road ahead (E35): warm the corridor tail on the queue, in progress order.
+     *
+     * This is the half of corridor scouting nobody is waiting for, and that is exactly
+     * what makes it affordable. The synchronous half serves the cards on screen; this
+     * half is a bet that the vehicle will keep going, and the bet is cheap because
+     * `WarmTileJob` is `ShouldBeUnique` per (tile, scout) — re-aiming the corridor every
+     * few hundred metres re-dispatches mostly the same tiles, and mostly they collapse.
+     *
+     * **Full-range scouts only.** A `Near` source has no business 40 km up the E4: the
+     * payoff gradient (conventions/12) says a café ahead of you on a motorway is noise,
+     * and pre-scouting noise costs the same as pre-scouting signal.
+     */
+    private function preScout(TileScout $scout, Coverage $coverage): int
+    {
+        if ($coverage->pendingTiles === [] || $scout->range() === ScoutRange::Near) {
+            return 0;
+        }
+
+        foreach ($coverage->pendingTiles as $tile) {
+            WarmTileJob::dispatch($scout::class, $tile);
+        }
+
+        return count($coverage->pendingTiles);
     }
 
     /**
