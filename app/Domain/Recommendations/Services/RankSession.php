@@ -23,6 +23,7 @@ use App\Domain\Recommendations\Enums\ServeReason;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Trips\Data\ExploreSessionData;
 use App\Domain\Trips\Services\SessionWeatherLog;
+use App\Domain\Trips\Services\StayHorizon;
 use App\Jobs\Enrichment\GenerateOpportunityVoiceJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -74,6 +75,7 @@ final class RankSession
         private readonly GoogleHoursVerifier $hours,
         private readonly SessionWeatherLog $sessionWeather,
         private readonly SessionAnchor $anchor,
+        private readonly StayHorizon $horizon,
     ) {}
 
     /**
@@ -527,7 +529,7 @@ final class RankSession
                     static fn (array $c): bool => ! in_array($c['place_id'], $closed, true),
                 ));
 
-            $picked = $selector->select($pool, $context, $alpha, $feedSize);
+            $picked = $selector->select($pool, $context, $alpha, $feedSize, $this->domainsSeenToday($session->tripId, $at));
 
             $shut = $this->verifyOpenNow($picked, $at);
 
@@ -883,7 +885,21 @@ final class RankSession
 
         $light = $this->light->forCandidate($type, (float) $candidate['lat'], (float) $candidate['lng'], $at);
 
-        $closesAt = $this->earliest($at->endOfDay(), $light->closesAt);
+        /*
+         * ...and the STAY-AWARE horizon on top of it (E38, SCORING §4.3). When the trip
+         * knows when it ends, `last_feasible_start` stops being "before bedtime" and
+         * becomes "before you leave the region" — which is what makes an evergreen place
+         * calm on day one and everything urgent on the last morning, with no rule anywhere
+         * that mentions either. A trip with no declared departure falls straight back to
+         * the line above.
+         */
+        $closesAt = $this->horizon->lastFeasibleStart(
+            $session->tripId,
+            $at,
+            $at->endOfDay(),
+            $light->closesAt,
+        );
+
         $slack = max(0.0, $at->diffInMinutes($closesAt, false) - $travel);
 
         // The special-moment floor is NOT a deadline — it is a reason. The light is
@@ -1170,6 +1186,67 @@ final class RankSession
     }
 
     /** @return list<array{type: ?string, type_domain: ?string, event: string, age_days: float}> */
+    /**
+     * What have we already shown this person TODAY? (E38; SCORING §5.2.)
+     *
+     * The repetition penalty was session-scoped, which was the right Phase 1 answer to the
+     * right Phase 1 question — *no three churches in one five-item feed*. But a trip is not
+     * a feed. Across a day of pulling the app out every hour, a session-scoped penalty
+     * resets every time, and the traveller gets a church at ten, a church at noon and a
+     * church at three, each of them individually well-behaved.
+     *
+     * Day-scoped, the count carries. The third church of the DAY is penalised like the
+     * third church of a feed, because from the traveller's side of the screen it is the
+     * same experience.
+     *
+     * Distinct PLACES, not rows: a card re-served across four pulls of the living feed is
+     * one church, and counting it four times would blacklist a domain for the crime of the
+     * user having refreshed.
+     *
+     * @return array<string, int> type_domain → how many distinct places of it we served today
+     */
+    private function domainsSeenToday(string $tripId, CarbonImmutable $at): array
+    {
+        $rows = Recommendation::query()
+            ->where('trip_id', $tripId)
+            ->whereNotNull('served_at')
+            ->where('served_at', '>=', $at->startOfDay())
+            /*
+             * STRICTLY BEFORE this decision — not "today so far".
+             *
+             * The replayer found this, which is exactly what it is for. A replay re-ranks a
+             * past serve at its original instant, and that serve's own rows are sitting in
+             * the table with `served_at` equal to the instant we are ranking at. Counting
+             * them would let the batch penalise itself: the replay would see three churches
+             * it is in the middle of deciding to serve, and refuse to serve them — so a
+             * pipeline with no changes in it would report a diff, and the one tool that
+             * exists to tell us whether we broke ranking would have broken itself.
+             *
+             * "What had we already shown them at the moment of this decision" is both the
+             * replayable definition and the true one.
+             */
+            ->where('served_at', '<', $at)
+            ->get(['opportunity_id', 'score_inputs']);
+
+        $seen = [];
+        $counted = [];
+
+        foreach ($rows as $row) {
+            $candidate = $row->score_inputs['candidate'] ?? [];
+            $domain = $candidate['type_domain'] ?? null;
+            $placeId = $candidate['place_id'] ?? $row->opportunity_id;
+
+            if ($domain === null || isset($counted[$placeId])) {
+                continue;
+            }
+
+            $counted[$placeId] = true;
+            $seen[$domain] = ($seen[$domain] ?? 0) + 1;
+        }
+
+        return $seen;
+    }
+
     private function tripHistory(string $tripId, CarbonImmutable $at): array
     {
         $rows = Recommendation::query()

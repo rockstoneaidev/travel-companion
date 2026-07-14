@@ -11,6 +11,7 @@ use App\Domain\Places\Contracts\TileIndexer;
 use App\Domain\Privacy\Services\HomeZone;
 use App\Domain\Trips\Contracts\TripLookup;
 use App\Domain\Trips\Data\TripData;
+use App\Jobs\Ranking\InferTripSegmentsJob;
 
 /**
  * The background stream — a phone in a pocket, noticing things (E29; PRD §13.4).
@@ -102,6 +103,17 @@ final class RecordTripContext
             'battery_level' => $data->batteryLevel,
             'is_low_power_mode' => $data->isLowPowerMode,
         ]);
+
+        /*
+         * The trip just learned something about its own shape (E38). Re-read it.
+         *
+         * Deliberately fire-and-forget on the queue: a background ping is the cheapest
+         * thing in the system and must stay that way — the handset is on battery, and the
+         * one hard guardrail Trip Mode has to clear is that watching somebody costs them
+         * nothing they can feel. The job is unique-per-trip for five minutes, so a walk
+         * across a city re-classifies the day a handful of times, not a hundred.
+         */
+        InferTripSegmentsJob::dispatch($tripId);
 
         return TripContextResult::recorded($event);
     }
