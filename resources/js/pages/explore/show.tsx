@@ -1,9 +1,10 @@
 import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, StalenessLine, TabBar, VisitPromptCard } from '@/components/app';
+import { useLivingFeed } from '@/hooks/use-living-feed';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
 import { cn } from '@/lib/utils';
-import { type ExploreSession, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
+import { type ExploreSession, type ServeMeta, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -11,12 +12,18 @@ import { useEffect, useRef, useState } from 'react';
  * S1 — NOW, the feed (SCREENS.md): server order is the order, at most one
  * urgent slot, silence as a designed state, and the ~5 s dismiss undo —
  * the POST is deferred until the snackbar expires.
+ *
+ * The feed is alive (E46): opening the screen reports where you are, and the server
+ * re-anchors the menu if you have walked somewhere new. Nothing here re-ranks or
+ * re-sorts — the client's entire role in that loop is to say "here I am" and ask
+ * again. Server order is still the order.
  */
 
 interface ExploreShowProps {
     session: { data: ExploreSession };
     opportunities: { data: SessionOpportunity[] };
     visitPrompts: { data: VisitPrompt[] };
+    serve: ServeMeta | null;
 }
 
 const TABS = (sessionId: string, tripId: string) => [
@@ -38,7 +45,7 @@ function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: n
 
 const VISIT_PROMPT_RADIUS_M = 150;
 
-export default function ExploreShow({ session, opportunities, visitPrompts }: ExploreShowProps) {
+export default function ExploreShow({ session, opportunities, visitPrompts, serve }: ExploreShowProps) {
     const exploreSession = session.data;
     const { online, lastFreshAt } = useOnline('feed');
     const [dismissing, setDismissing] = useState<string | null>(null);
@@ -48,9 +55,52 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
     const [kept, setKept] = useState<string[]>(() => opportunities.data.filter((item) => item.kept).map((item) => item.id));
     const [answered, setAnswered] = useState<string[]>([]);
     const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
-    const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => () => clearTimeout(undoTimer.current ?? undefined), []);
+    /*
+     * One timer PER dismissal, not one timer for the screen.
+     *
+     * This was a single ref, and it quietly ate feedback: dismiss two cards inside the
+     * 5 s undo window and the second `setTimeout` overwrote the first, so the first
+     * card's `dismissed` POST never fired — while the card stayed hidden, because
+     * `hidden` kept both. The user saw two dismissals and the ledger got one, and at
+     * η .25 that is the strongest signal the Phase 1 learner has. It also means the
+     * lost place is not excluded from the next batch (E46), so it walks back into the
+     * feed — which is precisely the bug this epic is here to kill.
+     */
+    const undoTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+    useEffect(() => {
+        const timers = undoTimers.current;
+
+        return () => timers.forEach(clearTimeout);
+    }, []);
+
+    // Report where we are, and re-pull if the server re-anchored (E46). Only while the
+    // session is live: an ended session is a record, and the server will not re-serve it.
+    const { refresh } = useLivingFeed(exploreSession.id, exploreSession.status === 'active');
+
+    /*
+     * "You've moved" — shown only when the server actually replaced the menu.
+     *
+     * Detected from the serve group climbing, not from the browser's own sense of
+     * having moved: the client does not get to decide that it is somewhere new. It
+     * reports a position; the server applies the drift threshold and the accuracy
+     * discount and either re-anchors or doesn't. A banner driven off the client's
+     * geolocation would announce a fresh menu on the strength of a GPS twitch, and
+     * then show the same cards.
+     */
+    const [moved, setMoved] = useState(false);
+    const lastGroup = useRef(serve?.group ?? 0);
+
+    useEffect(() => {
+        const group = serve?.group ?? 0;
+
+        if (group > lastGroup.current && serve?.reason === 'move_reanchor') {
+            setMoved(true);
+        }
+
+        lastGroup.current = group;
+    }, [serve?.group, serve?.reason]);
 
     // The proximity half of the "Were you there?" rule (SCREENS S4). Only asked
     // for if there is something to ask about, and never a permission prompt of
@@ -89,20 +139,40 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
         setKept((ids) => (isKept ? ids.filter((id) => id !== item.id) : [...ids, item.id]));
     };
 
-    // Not for me: hide immediately, POST only when the undo window closes.
+    /*
+     * Not for me: hide immediately, POST only when the undo window closes.
+     *
+     * Once that POST lands, the feed reloads (lib/feedback.ts flushes, then reloads),
+     * and the server tops the batch back up to a full menu — so a new card slides into
+     * the gap rather than the feed simply getting shorter (E46). The client does not
+     * request the replacement and does not know what it will be; it just asks again.
+     */
     const notForMe = (item: SessionOpportunity) => {
-        if (item.recommendation_id === null) return;
-        setDismissing(item.recommendation_id);
+        const recommendationId = item.recommendation_id;
+
+        if (recommendationId === null) return;
+
+        setDismissing(recommendationId);
         setHidden((h) => [...h, item.id]);
-        undoTimer.current = setTimeout(() => {
-            feedback(item.recommendation_id, 'dismissed');
-            setDismissing(null);
-        }, 5000);
+
+        undoTimers.current.set(
+            recommendationId,
+            setTimeout(() => {
+                feedback(recommendationId, 'dismissed');
+                undoTimers.current.delete(recommendationId);
+                setDismissing((current) => (current === recommendationId ? null : current));
+            }, 5000),
+        );
     };
 
     const undo = (item: SessionOpportunity) => {
-        clearTimeout(undoTimer.current ?? undefined);
-        setDismissing(null);
+        const recommendationId = item.recommendation_id;
+
+        if (recommendationId === null) return;
+
+        clearTimeout(undoTimers.current.get(recommendationId));
+        undoTimers.current.delete(recommendationId);
+        setDismissing((current) => (current === recommendationId ? null : current));
         setHidden((h) => h.filter((id) => id !== item.id));
     };
 
@@ -137,6 +207,21 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                     <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
 
                     {!online && <StalenessLine lastFreshAt={lastFreshAt} />}
+
+                    {/*
+                     * The feed followed you. Say so once, quietly, and get out of the way —
+                     * the cards below already ARE the new picks, so this is a note, not an
+                     * offer, and it must never be a modal standing between the user and the
+                     * thing they opened the app to see.
+                     */}
+                    {moved && (
+                        <div className="border-border-soft text-quiet flex items-center justify-between gap-4 border-l-2 py-1 pl-3 font-serif text-xs italic">
+                            <span>You've moved — these are picks for where you are now.</span>
+                            <button className="underline underline-offset-[3px]" onClick={() => setMoved(false)}>
+                                Got it
+                            </button>
+                        </div>
+                    )}
 
                     {/* Top of NOW, above the feed — quiet, dismissible, never a modal. */}
                     {prompts.map((prompt) => (
@@ -207,7 +292,14 @@ export default function ExploreShow({ session, opportunities, visitPrompts }: Ex
                     )}
 
                     {exploreSession.status === 'active' && (
-                        <div className="border-border-soft border-t pt-4 text-center">
+                        <div className="border-border-soft flex items-center justify-center gap-6 border-t pt-4 text-center">
+                            {/*
+                             * The user's own override of the drift threshold (E46). They may not
+                             * have moved a metre — they may simply have eaten, or read all five
+                             * and wanted the next five. A distance threshold cannot know that;
+                             * they can.
+                             */}
+                            <QuietAction onClick={refresh}>Fresh picks from here</QuietAction>
                             <QuietAction onClick={() => router.post(`/explore/${exploreSession.id}/end`)}>End session</QuietAction>
                         </div>
                     )}

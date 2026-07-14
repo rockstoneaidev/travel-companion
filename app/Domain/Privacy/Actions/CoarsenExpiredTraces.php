@@ -32,9 +32,19 @@ final class CoarsenExpiredTraces
         $cutoff = now()->subDays($days);
 
         /*
-         * Strip lat/lng from the candidate snapshot, in the database, leaving the
-         * rest of the trace (name, type, facets, h3_index, scouts) untouched — that
-         * is what the replayer reads.
+         * Strip the precise geography, in the database, leaving the rest of the trace
+         * (name, type, facets, h3_index, scouts) untouched — that is what the
+         * replayer reads.
+         *
+         * TWO coordinates, not one:
+         *
+         *  - `score_inputs.candidate.{lat,lng}` — where the PLACE is.
+         *  - `anchor` — where the USER was standing when we ranked the batch (E46).
+         *    The living feed re-anchors as you walk, so a session now records a
+         *    TRAIL of anchors, not a single origin. That is a strictly larger
+         *    disclosure than the one this job was written for, and it expires on the
+         *    same clock. `anchor_h3_index` survives and carries the geography from
+         *    here on, exactly as `candidate.h3_index` does.
          *
          * `NOT users.research_consent` is the whole exemption. A consenting account
          * keeps its precise traces; everyone else's are coarsened, on schedule,
@@ -46,14 +56,18 @@ final class CoarsenExpiredTraces
                         r.score_inputs,
                         '{candidate}',
                         (r.score_inputs -> 'candidate') - 'lat' - 'lng'
-                    )
+                    ),
+                    anchor = NULL
               FROM users u
              WHERE u.id = r.user_id
                AND NOT u.research_consent
                AND r.served_at < ?
-               -- jsonb_exists(), NOT the `?` key-exists operator: PDO would bind it
-               -- as a placeholder and the statement would fail on argument count.
-               AND jsonb_exists(r.score_inputs -> 'candidate', 'lat')",
+               AND (
+                   r.anchor IS NOT NULL
+                   -- jsonb_exists(), NOT the `?` key-exists operator: PDO would bind it
+                   -- as a placeholder and the statement would fail on argument count.
+                   OR jsonb_exists(r.score_inputs -> 'candidate', 'lat')
+               )",
             [$cutoff],
         );
 

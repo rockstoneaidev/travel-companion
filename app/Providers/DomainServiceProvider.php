@@ -7,6 +7,8 @@ namespace App\Providers;
 use App\Domain\Context\Actions\EraseContextLocations;
 use App\Domain\Context\Contracts\ContextLocationEraser;
 use App\Domain\Context\Contracts\Routing;
+use App\Domain\Context\Contracts\SessionPositions;
+use App\Domain\Context\Queries\LatestSessionPosition;
 use App\Domain\Context\Services\GoogleRoutes;
 use App\Domain\Places\Contracts\ExternalIdRegistry;
 use App\Domain\Places\Contracts\PlaceImageLookup;
@@ -18,6 +20,8 @@ use App\Domain\Privacy\Contracts\ProfilingConsent;
 use App\Domain\Privacy\Services\UserProfilingConsent;
 use App\Domain\Profiles\Actions\ResetTasteProfile;
 use App\Domain\Profiles\Contracts\TasteProfileEraser;
+use App\Domain\Recommendations\Actions\EraseRecommendationAnchors;
+use App\Domain\Recommendations\Contracts\RecommendationTraceEraser;
 use App\Domain\Trips\Actions\EraseTripLocations;
 use App\Domain\Trips\Contracts\ExploreSessionLookup;
 use App\Domain\Trips\Contracts\TripLocationEraser;
@@ -58,6 +62,17 @@ final class DomainServiceProvider extends ServiceProvider
 
         // Context — the Context half of trip-level location erasure (PRD §16).
         ContextLocationEraser::class => EraseContextLocations::class,
+
+        // ...and "where is this session now?", which is what lets the feed re-anchor
+        // when the user walks somewhere else (E46). Ranking asks Context rather than
+        // reading `context_events`, so the home-zone suppression on the way IN cannot
+        // be bypassed by a new reader.
+        SessionPositions::class => LatestSessionPosition::class,
+
+        // Recommendations — the trace half of trip-level location erasure. This seam
+        // was left open by DeleteTripLocationHistory ("traces carry no coordinate
+        // columns yet"); `recommendations.anchor` (E46) is the column that closed it.
+        RecommendationTraceEraser::class => EraseRecommendationAnchors::class,
 
         // Stage-B routing (PRD §10). A port, so self-hosted OSRM/Valhalla on our own
         // OSM extract is a swap and not a rewrite (DATA-SOURCES §9).

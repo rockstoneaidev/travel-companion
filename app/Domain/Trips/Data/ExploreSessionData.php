@@ -50,6 +50,37 @@ final readonly class ExploreSessionData
     }
 
     /**
+     * The same session, ranked from somewhere else (E46).
+     *
+     * The living feed re-anchors when the user moves, and everything downstream of
+     * the anchor — the coverage geometry, the reachability gate, the friction
+     * sub-score — reads `origin`. So a re-anchor is exactly "this session, but
+     * origin is where they are now", and the rest of the pipeline needs no notion
+     * of movement at all.
+     *
+     * The SESSION's origin is not touched by this: `explore_sessions.origin` means
+     * "where this session started" and is immutable. The rank origin lives on the
+     * serve batch (`recommendations.anchor`).
+     */
+    public function reAnchoredAt(Coordinates $origin): self
+    {
+        return new self(
+            id: $this->id,
+            tripId: $this->tripId,
+            userId: $this->userId,
+            origin: $origin,
+            timeBudgetMinutes: $this->timeBudgetMinutes,
+            travelMode: $this->travelMode,
+            heading: $this->heading,
+            destinationPoint: $this->destinationPoint,
+            status: $this->status,
+            startedAt: $this->startedAt,
+            expiresAt: $this->expiresAt,
+            endedAt: $this->endedAt,
+        );
+    }
+
+    /**
      * How far from the origin it is plausible to reach and come back within the
      * time budget, as a straight-line radius in meters.
      *

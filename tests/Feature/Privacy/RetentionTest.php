@@ -141,6 +141,48 @@ it('strips coordinates from an old trace but keeps the trace', function () {
         ->and($candidate)->not->toHaveKey('lng');
 });
 
+it('coarsens the serve anchor to its H3 cell, and keeps the cell', function () {
+    $user = User::factory()->create(['research_consent' => false]);
+    $session = sessionAt($user, 59.3103, 18.0227, now()->subDays(40)->toDateTimeString());
+
+    DB::table('recommendations')->insert([
+        'id' => DB::raw('gen_random_uuid()'),
+        'user_id' => $user->id,
+        'explore_session_id' => $session->id,
+        'trip_id' => $session->trip_id,
+        'opportunity_id' => null,
+        'position' => 1,
+        'serve_group' => 2,
+        'serve_reason' => 'move_reanchor',
+        // Where the USER was standing when we ranked this batch — not where the place
+        // is. The living feed (E46) re-anchors as they walk, so a session records a
+        // TRAIL of these, which is a strictly larger disclosure than one session origin.
+        'anchor' => DB::raw("ST_GeogFromText('SRID=4326;POINT(18.0345 59.3155)')"),
+        'anchor_h3_index' => '881f1d4881fffff',
+        'scores' => json_encode([]),
+        'score_inputs' => json_encode(['candidate' => ['name' => 'Tantolunden', 'h3_index' => '88086']]),
+        'scoring_model_version' => 'v1',
+        'taxonomy_version' => 1,
+        'served_at' => now()->subDays(40),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    app(CoarsenExpiredTraces::class)();
+
+    $row = DB::table('recommendations')->first();
+
+    // The coordinate is gone; the res-8 cell carries the geography from here on —
+    // exactly what happens to `candidate.lat/lng`, on the same 30-day clock. A new
+    // precise-location column that the retention job does not know about is a
+    // retention policy that quietly stopped being true.
+    expect($row->anchor)->toBeNull()
+        ->and($row->anchor_h3_index)->toBe('881f1d4881fffff')
+        // ...and the decision itself survives, which is the whole point of coarsening
+        // rather than deleting.
+        ->and($row->serve_reason)->toBe('move_reanchor');
+});
+
 it('exempts a research-consenting account — and nobody else', function () {
     // The sharp edge of the whole epic. Get this predicate backwards and you
     // silently retain precise location on every user who never opted in.

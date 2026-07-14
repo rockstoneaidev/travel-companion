@@ -50,6 +50,21 @@ export interface ExploreSession {
 }
 
 /** app/Http/Resources/Api/V1/PlaceResource.php — geo-core only, ships its attribution. */
+/**
+ * Which batch of the feed is on screen (E46).
+ *
+ * `group` climbs each time the server re-serves the session — because the user moved,
+ * or asked for fresh picks. A dismiss backfill joins the current batch and does NOT
+ * advance it, which is what lets the client tell "your menu was replaced" apart from
+ * "a card slid into the gap".
+ */
+export interface ServeMeta {
+    group: number;
+    reason: 'initial' | 'move_reanchor' | 'manual_refresh' | 'dismiss_backfill';
+    anchor: Coordinates | null;
+    served_at: string | null;
+}
+
 export interface Place {
     id: string;
     name: string;
