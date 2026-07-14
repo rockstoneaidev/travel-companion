@@ -149,25 +149,39 @@ final class ExploreSessionController extends Controller
         RegionCatalog $regions,
         RegionBuildStatus $builds,
     ): array {
-        if ($hasFeed || $session->origin === null) {
-            return ['known' => true, 'learning' => false, 'progress' => null];
+        if ($session->origin === null) {
+            return ['known' => true, 'learning' => false, 'region' => null, 'progress' => null];
         }
 
+        $region = $regions->covering($session->origin->lat, $session->origin->lng);
+
+        // "Learning" is true while a build is actually RUNNING. A region row with no build
+        // behind it is a promise nobody is keeping, and the screen must not make it.
+        $learning = $region !== null && $builds->isBuilding($region->key);
+
+        /*
+         * LEARNING IS NOT THE OPPOSITE OF KNOWN, and I wrote it as though it were.
+         *
+         * `learning` used to be `learning && ! $known` — so the instant the FIRST place
+         * trickled in from the first box, the screen decided the area was known and went
+         * back to "You're in a good spot — I'm watching the places around you", while
+         * thirty-five of fifty-five boxes were still outstanding. The founder watched it
+         * say that about a town it was in the middle of discovering.
+         *
+         * A region 20 boxes in is not a region we know. It is a region we are learning,
+         * that happens to have a few places in it already — and that is worth saying,
+         * because it explains both the thin feed AND the fact that it will get better on
+         * its own.
+         */
         $known = $placesAround->within(
             $session->origin->lat,
             $session->origin->lng,
             $session->reachMeters(),
         ) > 0;
 
-        $region = $regions->covering($session->origin->lat, $session->origin->lng);
-
-        // "Learning" is only true while a build is actually running. A region row with no
-        // build behind it is a promise nobody is keeping, and the screen must not make it.
-        $learning = $region !== null && $builds->isBuilding($region->key);
-
         return [
-            'known' => $known,
-            'learning' => $learning && ! $known,
+            'known' => $known || $hasFeed,
+            'learning' => $learning,
             'region' => $region?->name,
             'progress' => $learning ? $builds->boxes($region->key) : null,
         ];

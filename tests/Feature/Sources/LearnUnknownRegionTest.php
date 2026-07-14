@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Domain\Places\Models\Place;
+use App\Domain\Places\Services\CacheKeys;
+use App\Domain\Places\Services\ScoutRunner;
+use App\Domain\Places\Services\TileCache;
 use App\Domain\Sources\Actions\DeriveRegionForPosition;
 use App\Domain\Sources\Actions\LearnAreaIfUnknown;
 use App\Domain\Sources\Models\DerivedRegion;
@@ -13,7 +16,9 @@ use App\Domain\Trips\Models\Trip;
 use App\Jobs\Ingest\BuildRegionWorldModelJob;
 use App\Listeners\LearnAreaOnSessionStart;
 use App\Models\User;
+use DateInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -175,4 +180,67 @@ it('orders the ingest boxes nearest-first, so the feed lights up before the regi
      * the ground under their feet lands in the first minute or two.
      */
     expect($distance($boxes[0]))->toBeLessThan($distance($boxes[count($boxes) - 1]));
+});
+
+it('drops the scouts’ cached emptiness when new places land in a tile', function () {
+    $runner = app(ScoutRunner::class);
+    $cache = app(TileCache::class);
+
+    $cell = DB::selectOne('SELECT h3_lat_lng_to_cell(POINT(?, ?), 8)::text AS c', [SKELLEFTEA['lng'], SKELLEFTEA['lat']])->c;
+
+    // The scouts sweep virgin ground and cache what they find: nothing.
+    $cache->remember('nature', $cell, 'v2', new DateInterval('P1D'), fn (): array => []);
+
+    expect(Cache::has(CacheKeys::scout('nature', $cell, 'v2')))->toBeTrue();
+
+    /*
+     * Then the region is ingested and places land IN THAT TILE.
+     *
+     * `DbScout`'s TTL is a DAY, and "there is nothing in this hexagon" caches exactly like
+     * any other answer — so without this invalidation the scouts go on serving the
+     * emptiness for twenty-four hours while the places sit in the table underneath them.
+     *
+     * The founder watched it happen: 27 canonical places in Skellefteå, and a pipeline log
+     * reading "49 tiles (49 hit, 0 filled), 0 candidates". Every tile a hit; every hit
+     * empty. The feed said "nothing worth interrupting you for" about a town it had just
+     * finished mapping. Every other part of the progressive ingest — nearest-first boxes,
+     * the progressive resolve — is theatre without this line.
+     */
+    $forgotten = $runner->forgetTiles([$cell]);
+
+    expect($forgotten)->toBeGreaterThan(0)
+        ->and(Cache::has(CacheKeys::scout('nature', $cell, 'v2')))->toBeFalse();
+});
+
+it('keeps saying it is learning even after the first places trickle in', function () {
+    Queue::fake();
+
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    $trip = Trip::factory()->create(['user_id' => $user->id]);
+    $session = ExploreSession::factory()->at(SKELLEFTEA['lat'], SKELLEFTEA['lng'])->create([
+        'trip_id' => $trip->id, 'user_id' => $user->id, 'time_budget_minutes' => 180,
+    ]);
+
+    app(LearnAreaOnSessionStart::class)
+        ->handle(new ExploreSessionStarted($session->id, $trip->id, (int) $user->id));
+
+    // One place has landed from the first box. The region is nowhere near done.
+    $place = Place::factory()->create(['name' => 'Bodaträsket']);
+    DB::statement(
+        'UPDATE places_core SET location = ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography WHERE id = ?',
+        [SKELLEFTEA['lng'], SKELLEFTEA['lat'], $place->id],
+    );
+
+    /*
+     * `learning` used to be `learning && ! known`, so the instant the FIRST place trickled
+     * in the screen decided the area was known and went back to "You're in a good spot —
+     * I'm watching the places around you", with thirty-five of fifty-five boxes still
+     * outstanding. A region 20 boxes in is not a region we know.
+     */
+    $this->get("/explore/{$session->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('coverage.learning', true)
+            ->where('coverage.region', 'Skellefteå'));
 });
