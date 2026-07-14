@@ -7,6 +7,7 @@ namespace App\Domain\Opportunities\Data;
 use App\Domain\Opportunities\Enums\OpportunityKind;
 use App\Domain\Opportunities\Enums\OpportunityStatus;
 use App\Domain\Places\Data\PlaceData;
+use App\Domain\Trips\Enums\TravelMode;
 use Carbon\CarbonImmutable;
 
 /**
@@ -32,7 +33,19 @@ final readonly class SessionOpportunityData
         public ?CarbonImmutable $windowEndsAt,
         public CarbonImmutable $expiresAt,
         public ?string $recommendationId = null,   // E7: the trace row feedback posts against
-        public ?float $walkMinutes = null,         // Stage-A final approach (reachability trace)
+        /**
+         * How long it takes to get there — IN THE SESSION'S TRAVEL MODE.
+         *
+         * It was called `walkMinutes`, and the number has always been mode-aware (the
+         * estimator and the Stage-B route both take the session's mode), so a driving
+         * session produced a correct drive time under a name that said "walk" — and the
+         * card duly printed "64 minutes away on foot" for a place 58 km up the E4.
+         *
+         * The mode travels WITH the number, because a duration without its unit is not a
+         * fact. The detail screen had no idea which mode it was rendering.
+         */
+        public ?float $travelMinutes = null,
+        public TravelMode $travelMode = TravelMode::Walk,
         public bool $urgent = false,               // the GO NOW slot — at most one per feed (SCREENS S1)
         /**
          * The photo, with its attribution (DESIGN §3 — a card has an image slot and a
@@ -83,7 +96,8 @@ final readonly class SessionOpportunityData
             windowEndsAt: $this->windowEndsAt,
             expiresAt: $this->expiresAt,
             recommendationId: $this->recommendationId,
-            walkMinutes: $this->walkMinutes,
+            travelMinutes: $this->travelMinutes,
+            travelMode: $this->travelMode,
             urgent: true,
             image: $this->image,
             kept: $this->kept,

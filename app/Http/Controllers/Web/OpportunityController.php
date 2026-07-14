@@ -9,6 +9,8 @@ use App\Domain\Places\Models\Place;
 use App\Domain\Places\Models\PlaceImage;
 use App\Domain\Recommendations\Models\Recommendation;
 use App\Domain\Recommendations\Queries\ExplainRecommendation;
+use App\Domain\Trips\Enums\TravelMode;
+use App\Domain\Trips\Models\ExploreSession;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -85,7 +87,13 @@ final class OpportunityController extends Controller
             // explain, and nothing for an opinion to attach itself to.
             'recommendation' => $recommendation === null ? null : [
                 'id' => $recommendation->id,
-                'walk_minutes' => $recommendation->score_inputs['reachability']['travel_min'] ?? null,
+                'travel_minutes' => $recommendation->score_inputs['reachability']['travel_min'] ?? null,
+                // The mode the time was measured in. Without it the detail screen was
+                // rendering "min walk" over a number that, in a driving session, is a
+                // drive — the number was right and the noun was a lie.
+                'travel_mode' => ExploreSession::query()
+                    ->whereKey($recommendation->explore_session_id)
+                    ->value('travel_mode') ?? TravelMode::Walk->value,
             ],
             'explanation' => $recommendation === null ? null : $explain($recommendation),
             'sessionId' => $recommendation?->explore_session_id,

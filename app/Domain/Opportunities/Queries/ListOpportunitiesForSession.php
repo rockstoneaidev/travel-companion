@@ -179,7 +179,7 @@ final class ListOpportunitiesForSession
              */
             $this->cost->onRecommendation($recommendation->id);
 
-            $walkMinutes = $this->routing->minutes(
+            $travelMinutes = $this->routing->minutes(
                 $session->origin->lat,
                 $session->origin->lng,
                 $place->coordinates->lat,
@@ -201,7 +201,8 @@ final class ListOpportunitiesForSession
                 windowEndsAt: $opportunity->window_ends_at,
                 expiresAt: $opportunity->expires_at,
                 recommendationId: $recommendation->id,
-                walkMinutes: $walkMinutes,
+                travelMinutes: $travelMinutes,
+                travelMode: $session->travelMode,
                 image: $images[$opportunity->place_id] ?? null,
                 kept: isset($kept[$recommendation->id]),
             );

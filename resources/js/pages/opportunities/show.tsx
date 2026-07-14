@@ -2,6 +2,8 @@ import { EvidenceList, NavMenu, PrimaryPill, QuietAction, SecondaryPill, Section
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
+import { travelMeta } from '@/lib/travel-time';
+import { type TravelMode } from '@/types/enums';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -22,7 +24,7 @@ import { useRef, useState } from 'react';
 interface OpportunityShowProps {
     opportunity: { id: string; kind: string; title: string; summary: string | null };
     place: { name: string | null; lat: number | null; lng: number | null; type: string | null; facets: string[] };
-    recommendation: { id: string; walk_minutes: number | null } | null;
+    recommendation: { id: string; travel_minutes: number | null; travel_mode: TravelMode } | null;
     explanation: { why_you: string | null; evidence: { text: string }[] } | null;
     image: { url: string; attribution: string | null; license: string | null } | null;
     sessionId: string | null;
@@ -91,8 +93,8 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                     <div className="space-y-1">
                         <h1 className="text-title-detail text-ink font-serif font-medium">{opportunity.title}</h1>
                         <p className="text-meta-row text-meta font-medium">
-                            {recommendation?.walk_minutes != null && `${Math.round(recommendation.walk_minutes)} min walk`}
-                            {place.type !== null && `${recommendation?.walk_minutes != null ? ' · ' : ''}${place.type.replace(/_/g, ' ')}`}
+                            {recommendation?.travel_minutes != null && travelMeta(recommendation.travel_minutes, recommendation.travel_mode)}
+                            {place.type !== null && `${recommendation?.travel_minutes != null ? ' · ' : ''}${place.type.replace(/_/g, ' ')}`}
                         </p>
                     </div>
 

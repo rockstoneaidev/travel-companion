@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Context\Services;
 
+use App\Cost\Services\CostMeter;
 use App\Domain\Context\Data\OpeningHours;
 use App\Domain\Places\Contracts\ExternalIdRegistry;
 use App\Domain\Places\Services\CacheKeys;
@@ -45,10 +46,19 @@ final class GoogleHoursVerifier
     /** Short, because a stale "open" is worse than no answer at all. */
     private const HOURS_TTL_SECONDS = 600;
 
+    /**
+     * "Google has no hours for this place" — an ANSWER, cached like any other.
+     *
+     * Not a null, deliberately: null already means "the call failed", and collapsing the
+     * two is what made every park in the launch region cost $0.005 per rank, forever.
+     */
+    private const NO_HOURS = ['no_hours' => true];
+
     private const TIMEOUT_SECONDS = 4;
 
     public function __construct(
         private readonly CircuitBreaker $breaker,
+        private readonly CostMeter $cost,
         // The concordance table belongs to Places. Context may hold a place_id string,
         // never another module's Eloquent model (conventions/01 — the arch test caught
         // me reaching straight into PlaceSourceId).
@@ -76,26 +86,71 @@ final class GoogleHoursVerifier
 
         $payload = Cache::get(CacheKeys::placeHours($placeId));
 
+        if ($payload !== null) {
+            /*
+             * A hit costs nothing and would have cost $0.005.
+             *
+             * `GoogleRoutes` has recorded its cache hits since the cost epic and this file
+             * never did — so the hours cache saved real money completely invisibly, and
+             * `would_have_billed − billed`, which COST.md §2.2 calls the "is shared caching
+             * working?" number, was quietly understating itself. A saving nobody can see is
+             * a saving nobody will defend the next time someone proposes shortening the TTL.
+             */
+            $this->cost->recordApiCacheHit(
+                host: 'places.googleapis.com',
+                vendor: 'google_maps',
+                resource: 'place_details_essentials',
+            );
+        }
+
         if ($payload === null) {
             $payload = $this->breaker->call(
                 self::SOURCE,
-                fn (): ?array => Http::timeout(self::TIMEOUT_SECONDS)
-                    ->withHeaders([
-                        'X-Goog-Api-Key' => (string) config('services.google.maps_key'),
-                        'X-Goog-FieldMask' => 'currentOpeningHours.openNow,currentOpeningHours.nextCloseTime',
-                    ])
-                    ->get(self::DETAILS_URL.$googleId)
-                    ->throw()
-                    ->json('currentOpeningHours'),
+                function () use ($googleId): array {
+                    $hours = Http::timeout(self::TIMEOUT_SECONDS)
+                        ->withHeaders([
+                            'X-Goog-Api-Key' => (string) config('services.google.maps_key'),
+                            'X-Goog-FieldMask' => 'currentOpeningHours.openNow,currentOpeningHours.nextCloseTime',
+                        ])
+                        ->get(self::DETAILS_URL.$googleId)
+                        ->throw()
+                        ->json('currentOpeningHours');
+
+                    /*
+                     * "THIS PLACE HAS NO HOURS" IS AN ANSWER. IT USED TO BE A CACHE MISS.
+                     *
+                     * Google returns no `currentOpeningHours` for most of the long tail —
+                     * parks, churches, viewpoints, the entire layer this product exists to
+                     * surface. That came back as null, null was indistinguishable from "the
+                     * call failed", and nothing was cached. So every rank re-asked Google
+                     * the same question about the same park and paid $0.005 to be told
+                     * "still no hours".
+                     *
+                     * The founder drove one emulated walk and it cost $0.31: sixty-eight
+                     * `place_details` calls, not one of them a cache hit, almost all of them
+                     * about a handful of parks in Kista. Six re-anchors × five picks × a
+                     * re-verify round, and the same nine places looked up over and over.
+                     *
+                     * Distinguishing the two is the whole fix: a successful call that found
+                     * no hours returns a sentinel and IS cached; only a genuine failure
+                     * returns null and is not.
+                     */
+                    return is_array($hours) ? $hours : self::NO_HOURS;
+                },
                 fallback: null,
             );
 
             if ($payload === null) {
+                // The call itself failed (timeout, breaker open). Not an answer — do not
+                // cache it, or one bad minute poisons ten.
                 return new OpeningHours;
             }
 
             // Redis, short TTL, and nowhere else. This is the ONLY place these
             // values are allowed to live.
+            //
+            // The sentinel is safe to keep here: "Google knows of no hours for this place"
+            // is not Google's data about the place, it is the absence of it.
             Cache::put(CacheKeys::placeHours($placeId), $payload, self::HOURS_TTL_SECONDS);
         }
 

@@ -55,7 +55,7 @@ function urgentCandidate(bool $kept): SessionOpportunityData
         windowEndsAt: CarbonImmutable::parse('2026-07-13 22:00'),
         expiresAt: CarbonImmutable::parse('2026-07-14 08:00'),
         recommendationId: 'rec-1',
-        walkMinutes: 7,
+        travelMinutes: 7,
         image: null,
         kept: $kept,
     );

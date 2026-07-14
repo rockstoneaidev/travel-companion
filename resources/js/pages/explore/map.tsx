@@ -3,6 +3,7 @@ import type { MapItem } from '@/components/app/paper-map';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
+import { travelMeta } from '@/lib/travel-time';
 import { type ExploreSession, type SessionOpportunity } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
@@ -100,7 +101,7 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
         );
     };
 
-    const walkTime = (item: SessionOpportunity) => (item.walk_minutes !== null ? `${Math.round(item.walk_minutes)} min walk` : '– min walk');
+    const walkTime = (item: SessionOpportunity) => travelMeta(item.travel_minutes, item.travel_mode);
 
     return (
         <ProductLayout>

@@ -83,7 +83,7 @@ it('renders a populated feed in server order, with the payload the cards need', 
 
     foreach ($items as $item) {
         // Everything OpportunityCard reads. A missing key here is a blank card.
-        expect($item)->toHaveKeys(['id', 'title', 'summary', 'urgent', 'time_window', 'walk_minutes', 'recommendation_id', 'place']);
+        expect($item)->toHaveKeys(['id', 'title', 'summary', 'urgent', 'time_window', 'travel_minutes', 'recommendation_id', 'place']);
     }
 });
 

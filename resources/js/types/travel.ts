@@ -101,7 +101,9 @@ export interface SessionOpportunity {
     urgent: boolean;
     expires_at: string;
     recommendation_id: string | null;
-    walk_minutes: number | null;
+    /** Travel time IN `travel_mode` — not always a walk (it was called `walk_minutes`). */
+    travel_minutes: number | null;
+    travel_mode: TravelMode;
     /** The photo, with its attribution. Null renders the designed paper-stripe fallback. */
     image: { url: string; attribution: string | null; license: string | null } | null;
     place: Place;

@@ -250,7 +250,7 @@ it('shows a real walk time but never stores one — Google routes are edge-only'
 
     // What the user SEES is the real route (PRD §10 — "the numbers a user actually
     // sees are Stage-B real"). A "12 min walk" on a card is a promise.
-    expect(round($items[0]->walkMinutes, 2))->toBe(22.28);
+    expect(round($items[0]->travelMinutes, 2))->toBe(22.28);
 
     // ...and what we STORE is our own estimator's number, never Google's. A route
     // duration may not be written into a row (conventions/09) — the persisted trace

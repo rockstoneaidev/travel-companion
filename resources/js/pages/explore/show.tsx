@@ -3,6 +3,7 @@ import { useLivingFeed } from '@/hooks/use-living-feed';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
 import { sendFeedback } from '@/lib/feedback';
+import { travelMeta, travelSummary } from '@/lib/travel-time';
 import { cn } from '@/lib/utils';
 import { type ExploreSession, type ServeMeta, type SessionOpportunity, type VisitPrompt } from '@/types/travel';
 import { Head, router } from '@inertiajs/react';
@@ -273,12 +274,9 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                                                 className="h-full"
                                                 image={item.image}
                                                 title={item.title ?? item.place.name}
-                                                summary={
-                                                    item.summary ??
-                                                    `${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} minutes away on foot.`
-                                                }
+                                                summary={item.summary ?? travelSummary(item.travel_minutes, item.travel_mode)}
                                                 facets={item.place.facets}
-                                                meta={`${item.walk_minutes !== null ? Math.round(item.walk_minutes) : '–'} min walk`}
+                                                meta={travelMeta(item.travel_minutes, item.travel_mode)}
                                                 // A stale GO NOW must not shout (S11). Offline we cannot know
                                                 // whether the window is still open, and a countdown we can't
                                                 // verify is worse than no countdown: it's a confident lie.

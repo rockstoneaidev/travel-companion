@@ -93,7 +93,7 @@ it('still shows the trace when there IS one — the explanation is not what got 
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('recommendation.id')
-            ->where('recommendation.walk_minutes', 12)
+            ->where('recommendation.travel_minutes', 12)
             ->has('explanation.evidence'));
 });
 
