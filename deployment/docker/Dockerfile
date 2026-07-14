@@ -17,50 +17,35 @@ ARG APP_ENV=production
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # -----------------------------------------------------------------------------
-# The GitHub token is a BUILD SECRET, not an ARG and not an ENV.
+# THERE IS NO GITHUB TOKEN HERE, AND THERE NEVER WAS ONE.
 # -----------------------------------------------------------------------------
-# It used to be both, and Docker was right to complain. `ARG`/`ENV` values are
-# recorded in the image's own metadata — `docker history` prints them back — and the
-# `composer config --global --auth` below writes the token into `/root/.composer/
-# auth.json`, which is a filesystem layer. A multi-stage build keeps that layer out of
-# the final image, but it does NOT keep it out of the build cache, and this build
-# exports its cache to GitHub Actions (`cache-to: type=gha`). A token in a cached layer
-# is a token you have published to everyone who can read that cache.
+# This stage used to take a `GH_PACKAGES_TOKEN` build-arg, export it as `ENV
+# GITHUB_TOKEN`, and hand it to `composer config --global --auth`. Docker warned about
+# it on every build (SecretsUsedInArgOrEnv) and was right to: `ARG`/`ENV` values are
+# recorded in the image's metadata — `docker history` prints them straight back — and
+# the auth config writes the token into a filesystem layer, which this build exports to
+# the GitHub Actions cache.
 #
-# `--mount=type=secret` is the fix: the file exists only for the life of this one RUN,
-# is never committed to a layer, and never appears in the image metadata. Everything
-# that touches it — the auth config, the install, and the deletion of auth.json — has
-# to happen inside that single RUN, which is why these are no longer two steps.
+# But the warning was the smaller half of the story. `gh secret list` says
+# GH_PACKAGES_TOKEN has never existed on this repository. The workflow was passing an
+# EMPTY value, `[ -n "$GH_PACKAGES_TOKEN" ]` was false on every build since the first
+# one, and composer never authenticated with anything. The plumbing did nothing except
+# generate a security warning about a secret that was not there.
 #
-# The token is not required to BUILD: composer.json has no private repositories. It
-# raises the GitHub API rate limit, and an unauthenticated runner sharing an IP with
-# the rest of GitHub Actions runs into that limit eventually. So it stays optional:
-# `-s` means "present and non-empty", and without it the build simply proceeds
-# unauthenticated.
+# It is not needed, either: composer.json declares no private repositories. A token
+# would only lift the GitHub API rate limit — worth adding the day a build actually
+# trips it, as a `--mount=type=secret` (never an ARG), and not before.
 #
 # Runtime provides ext-pcntl (built below); ignore only that ext for resolution, never
 # the PHP version — the version is the check that actually matters.
 #
 # --no-scripts always: this stage has only composer.json/lock, no artisan, so
 # post-autoload scripts (package:discover) would fail. They run at container boot.
-# `set -eu` is load-bearing, and its absence nearly shipped a broken image. Chaining
-# these with `;` makes the RUN's exit code that of the LAST command — `rm -f`, which
-# always succeeds — so a composer install that failed outright would have been reported
-# as a successful build, and the image would have gone out with no vendor/ in it. The
-# first local build did exactly that. Steps that used to be separate RUNs each failed
-# loudly on their own; folding them into one to hold the secret mount silently removed
-# that property, and it has to be put back by hand.
-RUN --mount=type=secret,id=gh_packages_token \
-    set -eu; \
-    if [ -s /run/secrets/gh_packages_token ]; then \
-        composer config --global --auth github-oauth.github.com "$(cat /run/secrets/gh_packages_token)"; \
-    fi; \
-    if [ "$APP_ENV" = "production" ]; then \
+RUN if [ "$APP_ENV" = "production" ]; then \
         composer install --no-dev --prefer-dist --no-progress --no-interaction --no-scripts --no-ansi --ignore-platform-req=ext-pcntl; \
     else \
         composer install --prefer-dist --no-progress --no-interaction --no-scripts --no-ansi --ignore-platform-req=ext-pcntl; \
-    fi; \
-    rm -f /root/.composer/auth.json /root/.config/composer/auth.json
+    fi
 
 # =============================================
 # 2) Node build stage (compiles Vite assets)
