@@ -168,16 +168,20 @@ it('does not mistake a bad fix for a walk', function () {
 });
 
 it('tops the feed back up when a card is dismissed', function () {
-    foreach (['Vinterviken', 'Skinnarviksberget', 'Ivar Los park', 'Tantolunden', 'Bergsunds strand', 'Reimersholme'] as $i => $name) {
-        feedPlace($name, ['lat' => LILJEHOLMEN['lat'] + $i * 0.0005, 'lng' => LILJEHOLMEN['lng']]);
+    $feedSize = (int) config('trips.session.feed_size');
+
+    // A full menu's worth of places, plus one held in reserve — so a dismissal has something
+    // to backfill from.
+    for ($i = 0; $i <= $feedSize; $i++) {
+        feedPlace("Place {$i}", ['lat' => LILJEHOLMEN['lat'] + $i * 0.0005, 'lng' => LILJEHOLMEN['lng']]);
     }
 
     $this->actingAs($user = profilingConsent(User::factory()->create()));
     $session = livingSession($user);
 
-    // A full menu: 5 (config trips.session.feed_size), with a 6th held in reserve.
+    // A full menu, with one more held in reserve.
     $first = Recommendation::query()->where('explore_session_id', $session->id)->orderBy('position')->get();
-    expect($first)->toHaveCount(5);
+    expect($first)->toHaveCount($feedSize);
 
     $rejected = $first->first();
     $rejectedPlace = $rejected->score_inputs['candidate']['place_id'];
@@ -188,7 +192,7 @@ it('tops the feed back up when a card is dismissed', function () {
     // simply get shorter, which is what it did before E46.
     $this->get("/explore/{$session->id}")
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->has('opportunities.data', 5));
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('opportunities.data', $feedSize));
 
     $backfill = Recommendation::query()
         ->where('explore_session_id', $session->id)
@@ -199,7 +203,7 @@ it('tops the feed back up when a card is dismissed', function () {
         // It joined the batch on screen rather than opening a new one — the menu was
         // topped up, not replaced.
         ->and($backfill->first()->serve_group)->toBe(1)
-        ->and($backfill->first()->position)->toBe(6)
+        ->and($backfill->first()->position)->toBe($feedSize + 1)
         // ...and it is emphatically not the place they just refused.
         ->and($backfill->first()->score_inputs['candidate']['place_id'])->not->toBe($rejectedPlace);
 });

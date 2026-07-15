@@ -71,15 +71,15 @@ beforeEach(function () {
     }
 });
 
-it('shows you everything it could reach, not the five it chose', function () {
+it('shows you everything it could reach, not the menu it chose', function () {
     $session = browseSession();
     $rank = app(RankSession::class);
 
     $feed = $rank->feedFor(ExploreSessionData::fromModel($session));
     $browse = $rank->browse(ExploreSessionData::fromModel($session), 50);
 
-    // The feed is the interruption budget.
-    expect($feed)->toHaveCount(5);
+    // The feed is one menu's worth.
+    expect($feed)->toHaveCount((int) config('trips.session.feed_size'));
 
     // The browse list is the candidate set — and it is much bigger, because it always was.
     // These places were scored, gated, evidence-checked and then thrown away on every

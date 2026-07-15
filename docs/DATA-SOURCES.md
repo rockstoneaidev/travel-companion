@@ -313,6 +313,16 @@ NewsLocalScout at scale (closures, alerts) · BestTime evaluation · Flickr dens
   mining into pack builds
 ```
 
+**E45 / Flickr density — BLOCKED on a paid subscription (2026-07-15).** Flickr photo-density
+was the intended source for the "cool"/appeal signal (feeding `unusualness`, never
+credibility — a place with one Commons image is a coverage artifact, but a place hundreds of
+people independently photographed is a real signal). It is **not buildable right now**:
+Flickr has disabled API-key creation for free accounts — *"API key creation is available to
+all Flickr PRO subscribers"* — so the source is gated on a Flickr PRO subscription, a spend
+decision. Not stubbed (an adapter with no key to test against is dead code); noted here so
+the trigger is a purchase, not a rediscovery. The appeal signal it would carry has no other
+free source of comparable independence, so E45's Flickr item waits on the subscription.
+
 **E39 status (2026-07-15): the practical layer and the local-alert path are built.**
 
 - **PracticalScout** is live — pharmacies, toilets, EV charging, shelter and transport

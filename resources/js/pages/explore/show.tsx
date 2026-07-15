@@ -354,15 +354,20 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
                             <p className="text-quiet text-center font-serif text-xs italic">That's all for now.</p>
 
                             {/*
-                             * ...unless you would rather judge for yourself (E51).
+                             * Two doors to more, and they are different questions.
                              *
-                             * Five is the interruption budget, not a limit on what a person may
-                             * look at. The pipeline already scored every reachable place and threw
-                             * all but five away; this is the door to the rest of them. Sitting under
-                             * "That's all for now" on purpose — that sentence was true about the
-                             * FEED and quietly false about the world, and this is the correction.
+                             * "Show more" appends the next menu's worth of CARDS — same ranking,
+                             * more of it, for someone happy with what they are getting. "Show me
+                             * everything" drops the menu framing and hands over the whole scored
+                             * list to judge for themselves (E51). The feed's size is not a limit on
+                             * what a person may look at; these are the ways past it.
                              */}
-                            <div className="mt-3 text-center">
+                            <div className="mt-3 flex flex-col items-center gap-2">
+                                {exploreSession.status === 'active' && (
+                                    <QuietAction onClick={() => router.post(`/explore/${exploreSession.id}/more`, {}, { preserveScroll: true })}>
+                                        Show more
+                                    </QuietAction>
+                                )}
                                 <QuietAction onClick={() => router.visit(`/explore/${exploreSession.id}/browse`)}>
                                     Show me everything around me
                                 </QuietAction>
