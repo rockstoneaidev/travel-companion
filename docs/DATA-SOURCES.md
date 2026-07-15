@@ -427,9 +427,25 @@ Free sources, roughly in order of value-per-hour:
 | **Openverse / Flickr (CC-filtered)** | CC-BY / CC0 | Geotagged CC photos. Needs per-file licence filtering, which the `place_images` schema already carries. |
 | **National heritage portals** | Usually permissive | Riksantikvarieämbetet (SE) and POP/Mérimée (FR) — both already adapters — carry imagery we do not currently take. |
 
+**E50 status (2026-07-15): the free trio is BUILT and live.** `FetchPlaceImages` now runs four
+free sources in order of confidence — Wikidata P18, the OSM `wikimedia_commons` tag we used to
+discard, the Wikipedia lead image, and Commons GeoSearch — each catching what the ones before it
+could not. Every path funnels through `CommonsClient::info()`, so the "no attribution → not
+served" rule holds whichever source found the photo. Measured live on the Umeå region, one batch
+each: OSM tags 18/60, Wikipedia 5/40, **GeoSearch 21/40 (52%)** — geosearch is the widest net, as
+predicted, because it needs only a coordinate. The geosearch radius is deliberately tight (120 m):
+"a photo geotagged here" must mean the same as "a photo OF this", or coverage is bought with quiet
+lies. **Still open (round two):** Mapillary (street-level) and Openverse (the CC pool without
+Flickr's PRO gate) — additive to the same `place_images` schema.
+
 **Explicitly not Google Places photos.** They cannot be persisted into any world-model table
 (ODBL-REVIEW §6, conventions/09) — edge-only, and they cost money per view. A photo is not worth
 a licensing incident.
+
+**Not generic stock (Unsplash / Pexels / Pixabay), and not by accident.** A keyword search for a
+place returns a nice photo of *a* church, not *that* church — and showing it as if it were the
+place is the exact category of unsourced claim this product refuses everywhere else. The paper
+stripe is more honest than a wrong photo.
 
 **Also worth knowing:** the `photos` phase runs at the *end* of a region build, so a region being
 learned on demand has no images until the whole ingest finishes — the same "waits for everything"

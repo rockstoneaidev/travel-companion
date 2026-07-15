@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\Ingest;
 
-use App\Domain\Places\Services\FetchCommonsImages;
+use App\Domain\Places\Services\FetchPlaceImages;
 use App\Domain\Places\Services\FetchWikipediaExtracts;
 use App\Domain\Places\Services\ResolveRegion;
 use App\Domain\Places\Services\ScoutRunner;
@@ -158,7 +158,7 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
         RegionIngest $ingest,
         SourceRegistry $registry,
         ResolveRegion $resolve,
-        FetchCommonsImages $photos,
+        FetchPlaceImages $photos,   // E50: all four free sources, not just Wikidata P18
         RegionBuildStatus $status,
         FetchWikipediaExtracts $wikipedia,
     ): void {
