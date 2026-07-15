@@ -33,6 +33,9 @@ interface OpportunityShowProps {
 export default function OpportunityShow({ opportunity, place, recommendation, explanation, image, sessionId }: OpportunityShowProps) {
     const { online, lastFreshAt } = useOnline('opportunity');
     const [dismissed, setDismissed] = useState(false);
+    // A Commons URL can resolve on our server yet fail to load here (on-demand thumbnail
+    // rate-limiting); a failed load is no-photo, not breakage — fall to the designed stripe.
+    const [imageFailed, setImageFailed] = useState(false);
     const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Queued to disk first, sent second (S11). "Not for me" tapped in a dead zone
@@ -71,12 +74,13 @@ export default function OpportunityShow({ opportunity, place, recommendation, ex
                         )}
                     </div>
 
-                    {image !== null ? (
+                    {image !== null && !imageFailed ? (
                         <figure className="space-y-1">
                             {/* Warm 35mm treatment (DESIGN §2.4) — a CSS filter is enough in v1. */}
                             <img
                                 src={image.url}
                                 alt={place.name ?? opportunity.title}
+                                onError={() => setImageFailed(true)}
                                 className="rounded-photo border-border h-44 w-full border object-cover [filter:sepia(0.14)_contrast(0.96)_saturate(0.9)]"
                             />
                             <figcaption className="text-quiet text-right text-[10px]">

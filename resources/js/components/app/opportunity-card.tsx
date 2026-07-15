@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 import { PrimaryPill, QuietAction, TextAction } from './buttons';
 import { GoNowBadge } from './go-now';
 import { SectionLabel } from './section-label';
@@ -39,6 +40,10 @@ export function OpportunityCard({
     className,
 }: OpportunityCardProps) {
     const urgent = urgency != null;
+    // A stored URL can resolve on our server yet fail to load on the phone (Wikimedia
+    // rate-limits on-demand thumbnails); treat that failure as no-photo, not breakage.
+    const [imageFailed, setImageFailed] = useState(false);
+    const showImage = image != null && !imageFailed;
 
     return (
         <article
@@ -56,9 +61,9 @@ export function OpportunityCard({
              * Attribution is rendered ON the image, because a per-image credit that
              * lives in a page footer is a credit somebody eventually forgets to render.
              */}
-            {image != null ? (
+            {showImage ? (
                 <div className="relative">
-                    <img src={image.url} alt="" loading="lazy" className="h-40 w-full object-cover sm:h-44" />
+                    <img src={image.url} alt="" loading="lazy" onError={() => setImageFailed(true)} className="h-40 w-full object-cover sm:h-44" />
                     {image.attribution !== null && (
                         <span className="bg-ink/55 text-card absolute right-0 bottom-0 max-w-full truncate rounded-tl px-1.5 py-0.5 text-[10px]">
                             {image.attribution}
