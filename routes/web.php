@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\DigestController;
 use App\Http\Controllers\Web\ExploreSessionContextEventController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
+use App\Http\Controllers\Web\ExploreSessionMoreController;
 use App\Http\Controllers\Web\ExploreSessionRefreshController;
 use App\Http\Controllers\Web\JournalController;
 use App\Http\Controllers\Web\KeptController;
@@ -138,6 +139,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('explore/{exploreSession}/refresh', [ExploreSessionRefreshController::class, 'store'])
         ->can('update', 'exploreSession')
         ->name('explore.refresh');
+
+    // "Show more" (S1) — append the next menu's worth of best places to the current feed.
+    Route::post('explore/{exploreSession}/more', [ExploreSessionMoreController::class, 'store'])
+        ->can('update', 'exploreSession')
+        ->name('explore.more');
 
     // S6 — KEPT. Windows are re-checked on every open, so this is a GET with no cache.
     Route::get('kept', [KeptController::class, 'index'])->name('kept.index');

@@ -43,6 +43,16 @@ enum ServeReason: string
      */
     case Browse = 'browse';
 
+    /**
+     * "Show more" — the user asked for the next menu's worth of best places (S1).
+     *
+     * Distinct from a backfill (which tops a thinned batch back UP to feed_size) and from a
+     * refresh (which replaces the menu): this one APPENDS a whole new menu's worth to what
+     * is already on screen. It joins the current serve group, because the user did not move
+     * and did not ask for different picks — they asked for MORE of the same ranking.
+     */
+    case More = 'more';
+
     public function label(): string
     {
         return match ($this) {
@@ -51,6 +61,7 @@ enum ServeReason: string
             self::ManualRefresh => 'Fresh picks from here',
             self::DismissBackfill => 'Topped up after a dismissal',
             self::Browse => 'You went looking for this one',
+            self::More => 'Next best places',
         };
     }
 
@@ -69,6 +80,6 @@ enum ServeReason: string
      */
     public function opensNewGroup(): bool
     {
-        return $this !== self::DismissBackfill && $this !== self::Browse;
+        return $this !== self::DismissBackfill && $this !== self::Browse && $this !== self::More;
     }
 }

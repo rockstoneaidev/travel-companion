@@ -352,12 +352,17 @@ final class RankSession
             $offset = 0;
             $limit = $feedSize;
         } else {
-            // A backfill joins the batch on screen. It may only add what is missing,
-            // and it must not add a second copy of a card already sitting there.
+            // Both "show more" and a backfill APPEND to the batch on screen: same group, at
+            // the next free position, and never a second copy of a card already sitting there.
             $inGroup = $this->batchFor($session->id, $group);
             $offset = $this->highestPosition($session->id, $group);
-            $limit = $feedSize - count($this->withoutDismissed($inGroup));
             $exclude = array_values(array_unique([...$exclude, ...$this->placeIdsOf($inGroup)]));
+
+            // They differ only in how much they add. A backfill tops a THINNED batch back up
+            // to one menu; "show more" adds a whole further menu on top of a full one.
+            $limit = $reason === ServeReason::More
+                ? $feedSize
+                : $feedSize - count($this->withoutDismissed($inGroup));
 
             if ($limit <= 0) {
                 return [];
@@ -610,6 +615,46 @@ final class RankSession
             // the very same instant, not on a nearby one.
             'at' => $at,
         ];
+    }
+
+    /**
+     * "Show more" — the next menu's worth of best places, appended to the one on screen.
+     *
+     * The middle ground between the five-then-ten-card feed and the exhaustive browse list:
+     * the user is happy with the KIND of thing they are getting and just wants more of it, as
+     * full cards, without losing the ones they are already looking at. So this ranks another
+     * menu's worth from the SAME anchor as the current batch (not the user's live position —
+     * they did not move, they scrolled) and joins it to the same serve group.
+     *
+     * It costs what a serve costs — these are real cards, with voice and opportunities — so
+     * it is bounded by `max_serves_per_session` exactly as the refresh is. A button is what an
+     * accidental loop leans on, and the budget is a property of the session, not of the reason.
+     *
+     * @return list<Recommendation> the whole batch now on screen, extended
+     */
+    public function serveMore(ExploreSessionData $session): array
+    {
+        $this->cost->onTrip($session->tripId)->onSession($session->id);
+
+        $batch = $this->latestBatch($session->id);
+
+        if ($batch === [] || ! $session->isLive() || $session->origin === null) {
+            return $this->withoutDismissed($batch);
+        }
+
+        $serves = (int) Recommendation::query()
+            ->where('explore_session_id', $session->id)
+            ->distinct()
+            ->count('served_at');
+
+        if ($serves >= (int) config('trips.reanchor.max_serves_per_session')) {
+            return $this->withoutDismissed($batch);   // the ceiling holds for a button too
+        }
+
+        // Rank the next menu from the batch's own anchor, so "more" is more of the SAME view.
+        $this->serve($session->reAnchoredAt($batch[0]->anchor), ServeReason::More);
+
+        return $this->withoutDismissed($this->latestBatch($session->id));
     }
 
     /**
