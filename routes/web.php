@@ -22,7 +22,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    // A logged-in traveller has no use for the marketing front page — send them to the app.
+    // The landing page is for guests only.
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : Inertia::render('welcome');
 })->name('home');
 
 Route::get('manifest.webmanifest', PwaManifestController::class)->name('pwa.manifest');
