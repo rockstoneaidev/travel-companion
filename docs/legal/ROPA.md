@@ -245,6 +245,7 @@ open contractual questions are in [`PROCESSORS.md`](PROCESSORS.md).
 | **Resend** | Processor — transactional email | Recipient **email address** + message body (password reset, verification) | 🇺🇸 US | DPF / SCCs — **absent from the DPIA entirely** |
 | Overpass / OSM, Wikidata, Wikimedia, DATAtourisme, Mérimée | Not processors | Region bounding boxes. **No user data at all.** | — | n/a |
 | Local news RSS feeds (per-region, config-gated — E39) | Not processors | Nothing but a GET for a public feed URL, with our own User-Agent. **No user data at all** — the traffic is us reading a newspaper's public RSS, identical to a browser. Empty by default; a feed is contacted only once configured for a region. | varies | n/a |
+| **Mapillary** (`graph.mapillary.com`) and **Openverse** (`api.openverse.org`) — image sources (E50) | Not processors | A place coordinate (Mapillary) or a place name (Openverse), to find a photo of it. **No user data at all** — the same class of query as Commons/Wikipedia, about places, never people. Mapillary needs a token and is off until one is set; Openverse is keyless. | 🇺🇸 US | n/a — no personal data leaves |
 | **Nominatim** (OSM) | Not a processor | **A res-8 tile centroid** (~0.74 km²) — asked "what is this place called?" when a user opens a session somewhere we have never ingested (E48). **Never the user's own coordinate**: see the note below. | 🇩🇪 Germany (OSMF) | **No transfer** (EEA) |
 
 ### 6.1 The sharpest transfer
