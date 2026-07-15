@@ -115,6 +115,9 @@ return [
         */
         // Self-hosted OSRM (E43): our own compute on our own box — free at the margin,
         // and named here so it surfaces as 'free' rather than 'unknown' in the ledger.
+        // Free image sources (E50 round two): coordinate-based street imagery, and the CC pool.
+        'graph.mapillary.com' => 'free',
+        'api.openverse.org' => 'free',
         'osrm' => 'free',
         'overpass-api.de' => 'free',
         'lz4.overpass-api.de' => 'free',

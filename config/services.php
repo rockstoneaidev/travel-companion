@@ -46,6 +46,15 @@ return [
         'maps_key' => env('GOOGLE_MAPS_API_KEY', ''),
     ],
 
+    /*
+     * Mapillary — street-level imagery (E50 round two). Free to register; every API call
+     * needs the token. Empty = the source degrades to nothing (like maps_key above), so it
+     * is a config flip once you have an account, and nothing breaks meanwhile.
+     */
+    'mapillary' => [
+        'token' => env('MAPILLARY_TOKEN', ''),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

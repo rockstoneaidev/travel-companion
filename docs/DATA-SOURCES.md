@@ -435,8 +435,14 @@ served" rule holds whichever source found the photo. Measured live on the Umeå 
 each: OSM tags 18/60, Wikipedia 5/40, **GeoSearch 21/40 (52%)** — geosearch is the widest net, as
 predicted, because it needs only a coordinate. The geosearch radius is deliberately tight (120 m):
 "a photo geotagged here" must mean the same as "a photo OF this", or coverage is bought with quiet
-lies. **Still open (round two):** Mapillary (street-level) and Openverse (the CC pool without
-Flickr's PRO gate) — additive to the same `place_images` schema.
+lies. **Round two also built (2026-07-15): Mapillary + Openverse.** Mapillary (street-level,
+coordinate-based, honest "here" — ranks with geosearch) needs a free access token and
+degrades to nothing without `MAPILLARY_TOKEN`. Openverse (the CC pool without Flickr's PRO
+gate) is **keyless** but name-based, so it is guarded hard — distinctive names only, and the
+result title must contain the place name — and it runs DEAD LAST, below every
+coordinate-based source, because a name match is a weaker claim than a geotag. Verified
+keyless against the live Openverse API. Flickr itself stays blocked on its PRO-subscription
+gate.
 
 **Explicitly not Google Places photos.** They cannot be persisted into any world-model table
 (ODBL-REVIEW §6, conventions/09) — edge-only, and they cost money per view. A photo is not worth
