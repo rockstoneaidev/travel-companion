@@ -72,8 +72,8 @@ export default function Welcome() {
                         </h1>
 
                         <p className="text-body mt-6 max-w-xl text-lg leading-relaxed">
-                            Not a list of places to search. A quiet note when something near you is genuinely worth your time — the market
-                            that closes in twenty minutes, the light on the old church at six — and silence the rest of the time.
+                            Not a list of places to search. A quiet note when something near you is genuinely worth your time — the market that closes
+                            in twenty minutes, the light on the old church at six — and silence the rest of the time.
                         </p>
 
                         <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -91,16 +91,16 @@ export default function Welcome() {
                     {/* Three promises, in the companion's own voice. */}
                     <div className="border-border-soft mt-20 grid gap-10 border-t pt-12 sm:grid-cols-3">
                         <Promise title="Opportunities, not places.">
-                            The moment worth doing now, not a directory to comb through. Things that are true at a time and a place, and stop
-                            being true.
+                            The moment worth doing now, not a directory to comb through. Things that are true at a time and a place, and stop being
+                            true.
                         </Promise>
                         <Promise title="It speaks only when it’s worth it.">
-                            A few times a day at most, never at 3am, never while you’re driving. If there’s nothing worth saying, it stays
-                            quiet — that’s the whole promise.
+                            A few times a day at most, never at 3am, never while you’re driving. If there’s nothing worth saying, it stays quiet —
+                            that’s the whole promise.
                         </Promise>
                         <Promise title="It learns what you’d have missed.">
-                            A minute to calibrate, and then it gets quieter and better — surfacing the non-obvious and skipping what every
-                            guidebook already told you.
+                            A minute to calibrate, and then it gets quieter and better — surfacing the non-obvious and skipping what every guidebook
+                            already told you.
                         </Promise>
                     </div>
                 </main>
