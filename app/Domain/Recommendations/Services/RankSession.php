@@ -12,6 +12,7 @@ use App\Domain\Context\Services\OsmOpeningHours;
 use App\Domain\Context\Services\WeatherClient;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
+use App\Domain\Opportunities\Enums\OpportunityKind;
 use App\Domain\Opportunities\Services\MaterializeEvergreenOpportunities;
 use App\Domain\Places\Enums\PlaceType;
 use App\Domain\Places\Services\CoverageGeometry;
@@ -398,6 +399,7 @@ final class RankSession
         ?ScoringModel $modelOverride = null,
         array $excludePlaceIds = [],
         ?int $feedSize = null,
+        bool $fullReach = false,
     ): array {
         // Second precision, deliberately.
         //
@@ -456,7 +458,18 @@ final class RankSession
             $excluded = $before - count($candidates);
         }
 
-        $remaining = ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at);
+        /*
+         * The feed reckons against the REMAINING budget — "what can you still fit before your
+         * time is up" is the whole point of an urgency-ranked feed. But "Show me everything
+         * around me" (browse, $fullReach) is a look-around, not a race against the clock: those
+         * places are exactly as reachable at minute 200 as they were at minute one. Gating
+         * browse on the burned-down remainder blanked the entire list the moment a session ran
+         * over its budget — which, for a session left open overnight, is always. So browse
+         * reckons against the WHOLE budget the user chose, and keeps working regardless of when.
+         */
+        $remaining = $fullReach
+            ? $session->timeBudgetMinutes
+            : ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at);
         $gated = $this->gate->filter(
             $candidates, $session->origin->lat, $session->origin->lng, $session->travelMode,
             $remaining, $session->destinationPoint?->lat, $session->destinationPoint?->lng,
@@ -681,7 +694,7 @@ final class RankSession
 
         $this->cost->onTrip($session->tripId)->onSession($session->id);
 
-        $ranked = $this->plan($session, excludePlaceIds: $this->dismissedPlaceIds($session->id))['ranked'];
+        $ranked = $this->plan($session, excludePlaceIds: $this->dismissedPlaceIds($session->id), fullReach: true)['ranked'];
 
         return [
             'items' => array_slice($ranked, $offset, $limit),
@@ -718,7 +731,10 @@ final class RankSession
             }
         }
 
-        $plan = $this->plan($session, $at);
+        // Opening one you saw in "everything around me" reckons the same way browse did
+        // ($fullReach) — otherwise an item the list happily showed would refuse to open the
+        // instant the session's clock ran out, which reads as a dead button, not a boundary.
+        $plan = $this->plan($session, $at, fullReach: true);
 
         $chosen = array_values(array_filter(
             $plan['ranked'],
@@ -843,6 +859,17 @@ final class RankSession
                 'scores' => [...$candidate['sub_scores'], 'friction_raw' => $candidate['friction_raw'], 'composite' => $candidate['composite']],
                 'score_inputs' => [
                     'candidate' => $this->snapshot($candidate),
+                    // Durable enough to outlive the opportunity row it points at. Opportunities
+                    // are ephemeral and get reaped on a TTL; a keep is not. So Kept must be able
+                    // to tell, months later, whether this was an evergreen PLACE you can revisit
+                    // any day, or a dated MOMENT that has since passed — without the opportunity
+                    // still being there to ask. This serve path materialises evergreen
+                    // opportunities (MaterializeEvergreenOpportunities); richer kinds, when they
+                    // are served, will snapshot their own.
+                    'opportunity' => [
+                        'kind' => OpportunityKind::Evergreen->value,
+                        'window_ends_at' => $candidate['light']?->closesAt?->toDateTimeString(),
+                    ],
                     'raw' => $candidate['raw_inputs'],
                     'selection' => $candidate['selection'],
                     'reachability' => $candidate['reachability'],

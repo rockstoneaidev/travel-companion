@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Feedback\Enums\FeedbackEvent;
+use App\Domain\Opportunities\Enums\OpportunityKind;
 use App\Domain\Opportunities\Enums\OpportunityStatus;
 use App\Domain\Opportunities\Models\Opportunity;
 use App\Domain\Profiles\Models\UserTasteProfile;
@@ -26,13 +27,18 @@ uses(RefreshDatabase::class);
 |
 */
 
-/** A served recommendation for $user, pointing at an opportunity with $windowEndsAt. */
-function keptFixture(User $user, ?string $windowEndsAt, string $name = 'Färgfabriken'): string
-{
+/** A served recommendation for $user, pointing at an opportunity of $kind with $windowEndsAt. */
+function keptFixture(
+    User $user,
+    ?string $windowEndsAt,
+    string $name = 'Färgfabriken',
+    OpportunityKind $kind = OpportunityKind::Evergreen,
+): string {
     $opportunity = Opportunity::factory()->create([
         'status' => OpportunityStatus::Served,
         'title' => $name,
         'summary' => 'An exhibition hall in an old paint factory.',
+        'kind' => $kind,
         'window_ends_at' => $windowEndsAt,
         'expires_at' => now()->addDay(),
     ]);
@@ -42,7 +48,12 @@ function keptFixture(User $user, ?string $windowEndsAt, string $name = 'Färgfab
         'opportunity_id' => $opportunity->id,
         'position' => 1,
         'scores' => [],
-        'score_inputs' => ['candidate' => ['name' => $name, 'lat' => 59.31, 'lng' => 18.02, 'facets' => ['history']]],
+        'score_inputs' => [
+            'candidate' => ['name' => $name, 'lat' => 59.31, 'lng' => 18.02, 'facets' => ['history']],
+            // Mirror what RankSession::persist() records durably, so the row can answer
+            // "evergreen place or dated moment?" after the opportunity has been reaped.
+            'opportunity' => ['kind' => $kind->value, 'window_ends_at' => $windowEndsAt],
+        ],
         'scoring_model_version' => 'v1',
         'taxonomy_version' => 1,
         'served_at' => now(),
@@ -54,9 +65,9 @@ function keptFixture(User $user, ?string $windowEndsAt, string $name = 'Färgfab
 it('splits what you can still do from what has quietly passed', function () {
     $this->actingAs($user = profilingConsent(User::factory()->create()));
 
-    $open = keptFixture($user, now()->addHours(3)->toDateTimeString(), 'Färgfabriken');
-    $closed = keptFixture($user, now()->subHour()->toDateTimeString(), 'Midsummer concert');
-    $timeless = keptFixture($user, null, 'Vitabergsparken');
+    $open = keptFixture($user, now()->addHours(3)->toDateTimeString(), 'Färgfabriken', OpportunityKind::Event);
+    $closed = keptFixture($user, now()->subHour()->toDateTimeString(), 'Midsummer concert', OpportunityKind::Event);
+    $timeless = keptFixture($user, null, 'Vitabergsparken', OpportunityKind::Evergreen);
 
     foreach ([$open, $closed, $timeless] as $id) {
         $this->post("/recommendations/{$id}/feedback", ['event' => 'saved']);
@@ -122,15 +133,17 @@ it('does not teach the taste profile anything when you tidy the list', function 
         ->and(FeedbackEvent::Unsaved->teachesTaste())->toBeFalse();
 });
 
-it('survives the opportunity it points at being reaped — trace, moat and all', function () {
+it('keeps an evergreen place takeable after its opportunity is reaped', function () {
     $this->actingAs($user = profilingConsent(User::factory()->create()));
 
-    $id = keptFixture($user, null, 'Färgfabriken');
+    $id = keptFixture($user, null, 'Färgfabriken', OpportunityKind::Evergreen);
     $this->post("/recommendations/{$id}/feedback", ['event' => 'saved']);
 
-    // Opportunities are ephemeral and TTL'd (PRD §14). Recommendations are the
-    // permanent decision trace (§15) and feedback is the moat (§14.5) — reaping
-    // the first must not take the other two with it. It used to: the FK cascaded.
+    // Opportunities are ephemeral and TTL'd (PRD §14). Recommendations are the permanent
+    // decision trace (§15) and feedback is the moat (§14.5) — reaping the first must not
+    // take the other two with it (it used to: the FK cascaded), AND it must not turn a
+    // place you can walk to any day for years into a greyed-out "window gone". A keep is
+    // a keep of a PLACE; the opportunity row disappearing is housekeeping, not closure.
     DB::table('opportunities')->delete();
 
     expect(DB::table('recommendations')->where('id', $id)->count())->toBe(1)
@@ -138,10 +151,28 @@ it('survives the opportunity it points at being reaped — trace, moat and all',
 
     $kept = app(ListKeptForUser::class)->forUser($user->id);
 
-    // The row still renders — from the recommendation's own candidate snapshot —
-    // it just stops claiming we can take them there.
+    // The row renders from the recommendation's own snapshot, and it is STILL takeable —
+    // an evergreen place does not expire because its ephemeral opportunity did.
     expect($kept)->toHaveCount(1)
         ->and($kept[0]->title)->toBe('Färgfabriken')
+        ->and($kept[0]->stillPossible)->toBeTrue()
+        ->and($kept[0]->windowEndsAt)->toBeNull();
+});
+
+it('still marks a dated keep gone once its window has passed, even after reaping', function () {
+    $this->actingAs($user = profilingConsent(User::factory()->create()));
+
+    // A genuinely dated moment — an event whose window closed an hour ago.
+    $id = keptFixture($user, now()->subHour()->toDateTimeString(), 'Midsummer concert', OpportunityKind::Event);
+    $this->post("/recommendations/{$id}/feedback", ['event' => 'saved']);
+
+    DB::table('opportunities')->delete();
+
+    $kept = app(ListKeptForUser::class)->forUser($user->id);
+
+    // The durable snapshot remembers this was an EVENT with a past window, so — unlike an
+    // evergreen place — it really is gone, and the screen says so honestly.
+    expect($kept)->toHaveCount(1)
         ->and($kept[0]->stillPossible)->toBeFalse();
 });
 

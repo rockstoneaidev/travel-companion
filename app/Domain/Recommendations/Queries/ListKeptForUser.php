@@ -6,6 +6,7 @@ namespace App\Domain\Recommendations\Queries;
 
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
+use App\Domain\Opportunities\Enums\OpportunityKind;
 use App\Domain\Opportunities\Enums\OpportunityStatus;
 use App\Domain\Places\Contracts\PlaceImageLookup;
 use App\Domain\Recommendations\Data\KeptItemData;
@@ -79,9 +80,27 @@ final class ListKeptForUser
 
             $opportunity = $live[$recommendation->opportunity_id] ?? null;
 
-            $windowEndsAt = $opportunity?->window_ends_at !== null
-                ? CarbonImmutable::parse($opportunity->window_ends_at)
-                : null;
+            // A keep is a keep of a PLACE. The opportunity it pointed at is ephemeral and gets
+            // reaped on a TTL, but the place does not move — so a missing opportunity is NOT
+            // "gone", it is just housekeeping. We read the kind and window from the live row if
+            // it is still there, else from the durable snapshot taken when it was served, and
+            // if we have neither we assume evergreen: the safe default for "can I go back to
+            // this place?" is yes.
+            $snapshot = $recommendation->score_inputs['opportunity'] ?? [];
+
+            $kind = OpportunityKind::tryFrom(
+                (string) ($opportunity->kind ?? $snapshot['kind'] ?? OpportunityKind::Evergreen->value),
+            ) ?? OpportunityKind::Evergreen;
+
+            $windowRaw = $opportunity->window_ends_at ?? ($snapshot['window_ends_at'] ?? null);
+            $windowEndsAt = $windowRaw !== null ? CarbonImmutable::parse($windowRaw) : null;
+
+            // Evergreen places have no expiry: you can be taken there days or years later, so
+            // they are always "still possible" and shown as "anytime" (the window is a daily
+            // daylight hint, not a closing date — carrying it here would wrongly read "window
+            // gone" every evening). Only a genuinely DATED kind whose window has passed is gone.
+            $isEvergreen = $kind === OpportunityKind::Evergreen;
+            $stillPossible = $isEvergreen || $windowEndsAt === null || $windowEndsAt->isAfter($now);
 
             $out[] = new KeptItemData(
                 recommendationId: $recommendation->id,
@@ -91,10 +110,8 @@ final class ListKeptForUser
                 lat: (float) $candidate['lat'],
                 lng: (float) $candidate['lng'],
                 keptAt: $keptAt,
-                windowEndsAt: $windowEndsAt,
-                // Gone from the world model, expired, or its window has closed: any
-                // of those and we cannot honestly offer to take them there.
-                stillPossible: $opportunity !== null && ($windowEndsAt === null || $windowEndsAt->isAfter($now)),
+                windowEndsAt: $isEvergreen ? null : $windowEndsAt,
+                stillPossible: $stillPossible,
                 image: $images[$candidate['place_id'] ?? ''] ?? null,
             );
         }
@@ -153,7 +170,7 @@ final class ListKeptForUser
                 OpportunityStatus::terminal(),
             ))
             ->where('expires_at', '>', now())
-            ->get(['id', 'title', 'summary', 'window_ends_at'])
+            ->get(['id', 'title', 'summary', 'kind', 'window_ends_at'])
             ->keyBy('id')
             ->all();
     }
