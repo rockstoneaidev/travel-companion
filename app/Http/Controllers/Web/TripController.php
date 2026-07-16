@@ -12,6 +12,7 @@ use App\Domain\Trips\Models\Trip;
 use App\Domain\Trips\Queries\ListTrips;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Trips\IndexTripRequest;
+use App\Http\Requests\Api\V1\Trips\StartTripRequest;
 use App\Http\Requests\Api\V1\Trips\StoreTripRequest;
 use App\Http\Requests\Api\V1\Trips\UpdateTripRequest;
 use App\Http\Resources\Api\V1\TripResource;
@@ -64,17 +65,26 @@ final class TripController extends Controller
         return to_route('trips.show', $trip)->with('status', 'trip-updated');
     }
 
-    /** "Start exploring" — activate the planned trip and drop the user into a live session there. */
-    public function start(Trip $trip, StartPlannedTrip $startPlannedTrip): RedirectResponse
+    /**
+     * "Start exploring" — activate the planned trip and drop the user into a live session.
+     *
+     * From the trip's anchor if it has one; otherwise from the current location the client
+     * sent, which is how you start a trip you planned by name and then travelled to. Only a
+     * trip with neither is a dead end, and the action says so.
+     */
+    public function start(StartTripRequest $request, Trip $trip, StartPlannedTrip $startPlannedTrip): RedirectResponse
     {
-        if ($trip->anchor_point === null) {
-            return back()->with('error', 'This trip has no location yet — add one before starting.');
+        $origin = $request->toCoordinates();
+
+        if ($trip->anchor_point === null && $origin === null) {
+            return back()->with('error', 'This trip has no location — add one, or start it from where you are.');
         }
 
         $session = $startPlannedTrip(
             $trip,
             (int) config('trips.session.default_time_budget_minutes', 180),
             TravelMode::Walk,
+            $origin,
         );
 
         return to_route('explore.show', $session->id);

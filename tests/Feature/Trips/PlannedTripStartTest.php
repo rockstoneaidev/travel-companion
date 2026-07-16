@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Actions\StartPlannedTrip;
 use App\Domain\Trips\Enums\TravelMode;
 use App\Domain\Trips\Enums\TripStatus;
@@ -65,12 +66,59 @@ it('ends any other active trip — one live trip per person', function () {
         ->and($planned->fresh()->status)->toBe(TripStatus::Active);
 });
 
-it('refuses to start a trip with no location', function () {
+it('refuses to start a trip with neither an anchor nor a current location', function () {
     $user = User::factory()->create();
     $trip = plannedTrip($user, anchor: null);
 
     expect(fn () => app(StartPlannedTrip::class)($trip, 180, TravelMode::Walk))
         ->toThrow(RuntimeException::class);
+});
+
+it('starts an anchorless trip from the current location instead', function () {
+    // The Fjäderholmarna case: planned by name, no anchor, but you are standing in it.
+    $user = User::factory()->create();
+    $trip = plannedTrip($user, anchor: null);
+
+    $session = app(StartPlannedTrip::class)($trip, 180, TravelMode::Walk, new Coordinates(59.3291, 18.1779));
+
+    expect($session->trip_id)->toBe($trip->id)
+        ->and($trip->fresh()->status)->toBe(TripStatus::Active);
+
+    $origin = DB::selectOne('SELECT ST_Y(origin::geometry) lat FROM explore_sessions WHERE id = ?', [$session->id]);
+    expect(round((float) $origin->lat, 3))->toBe(59.329);
+});
+
+it('prefers the planner\'s anchor over a passed-in location when the trip has one', function () {
+    $user = User::factory()->create();
+    $trip = plannedTrip($user);   // anchored at 59.3293, 18.0686
+
+    // Handed a wildly different "current" location, an anchored trip still starts from its anchor.
+    $session = app(StartPlannedTrip::class)($trip, 180, TravelMode::Walk, new Coordinates(10.0, 10.0));
+
+    $origin = DB::selectOne('SELECT ST_Y(origin::geometry) lat FROM explore_sessions WHERE id = ?', [$session->id]);
+    expect(round((float) $origin->lat, 3))->toBe(59.329);
+});
+
+it('starts an anchorless trip from the current location via the web route', function () {
+    $this->actingAs($user = User::factory()->create());
+    $trip = plannedTrip($user, anchor: null);
+
+    $this->post("/trips/{$trip->id}/start", ['lat' => 59.3291, 'lng' => 18.1779])
+        ->assertRedirect();   // into the new session
+
+    expect(ExploreSession::query()->where('trip_id', $trip->id)->where('status', 'active')->exists())->toBeTrue();
+});
+
+it('still refuses via the web route when there is neither anchor nor location', function () {
+    $this->actingAs($user = User::factory()->create());
+    $trip = plannedTrip($user, anchor: null);
+
+    $this->from("/trips/{$trip->id}")
+        ->post("/trips/{$trip->id}/start")
+        ->assertRedirect("/trips/{$trip->id}")   // back with an error, not into a session
+        ->assertSessionHas('error');
+
+    expect(ExploreSession::query()->where('trip_id', $trip->id)->exists())->toBeFalse();
 });
 
 it('opens the trip start via the web route and lands on the live feed', function () {

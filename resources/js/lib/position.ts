@@ -52,6 +52,19 @@ function currentPosition(): Promise<GeolocationPosition | null> {
 }
 
 /**
+ * Get the current position for an EXPLICIT user action — e.g. pressing "Start exploring here".
+ *
+ * Unlike reportPosition, this MAY prompt: the user asked to start a session where they are, so
+ * the permission dialog is expected, not the dark pattern §16 forbids. Resolves null if
+ * geolocation is unavailable or the user declines, and the caller falls back gracefully.
+ */
+export function requestCurrentPosition(): Promise<GeolocationPosition | null> {
+    if (!navigator.geolocation) return Promise.resolve(null);
+
+    return currentPosition();
+}
+
+/**
  * Report the current position for a session, if we can do so without prompting.
  *
  * Resolves `true` when a position actually reached the server — which is the caller's
