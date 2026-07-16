@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
+import { startPlannedTrip } from '@/lib/start-trip';
 import { type BreadcrumbItem } from '@/types';
 import { type Trip } from '@/types/travel';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -80,15 +81,14 @@ export default function TripShow({ trip }: TripShowProps) {
                     <span className="text-muted-foreground text-sm">{item.explore_sessions_count ?? 0} sessions</span>
 
                     <div className="ml-auto flex items-center gap-2">
-                        {/* The door out of "planned". A planned trip with a location can be
-                            started: it activates and drops you into a live session there. */}
-                        {item.status === 'planned' && item.has_location && (
-                            <Button size="sm" onClick={() => router.post(`/trips/${item.id}/start`)}>
-                                Start exploring
+                        {/* The door out of "planned". With a location it starts from the
+                            anchor; without one it starts from where you are right now (it asks
+                            the browser), so a trip you planned by name and travelled to is not a
+                            dead end. */}
+                        {item.status === 'planned' && (
+                            <Button size="sm" onClick={() => startPlannedTrip(item.id, item.has_location ?? false)}>
+                                {item.has_location ? 'Start exploring' : 'Start exploring here'}
                             </Button>
-                        )}
-                        {item.status === 'planned' && !item.has_location && (
-                            <span className="text-muted-foreground text-xs">Add a location to start exploring.</span>
                         )}
                         {item.status !== 'completed' && (
                             <Button

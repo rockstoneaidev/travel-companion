@@ -2,6 +2,7 @@ import { PlaceSearch, type PlaceSuggestion } from '@/components/app';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { startPlannedTrip } from '@/lib/start-trip';
 import { type BreadcrumbItem } from '@/types';
 import { type Trip } from '@/types/travel';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -68,16 +69,15 @@ export default function TripsIndex({ trips }: TripsIndexProps) {
                             {tripDates(trip) !== null && <span className="text-muted-foreground text-sm">· {tripDates(trip)}</span>}
                         </Link>
 
-                        {/* A planned trip's one manual action, right where you can see it —
-                            no auto-start, no geofence (Phase 1 is foreground-only). */}
-                        {trip.status === 'planned' &&
-                            (trip.has_location ? (
-                                <Button size="sm" onClick={() => router.post(`/trips/${trip.id}/start`)}>
-                                    Start exploring
-                                </Button>
-                            ) : (
-                                <span className="text-muted-foreground text-xs">Add a location to start</span>
-                            ))}
+                        {/* A planned trip's one manual action, right where you can see it — no
+                            auto-start, no geofence (Phase 1 is foreground-only). With a location
+                            it starts from the anchor; without one, "here" starts from your
+                            current position (it asks the browser). */}
+                        {trip.status === 'planned' && (
+                            <Button size="sm" onClick={() => startPlannedTrip(trip.id, trip.has_location ?? false)}>
+                                {trip.has_location ? 'Start exploring' : 'Start exploring here'}
+                            </Button>
+                        )}
                     </div>
                 ))}
 

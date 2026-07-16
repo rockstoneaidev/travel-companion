@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Trips\Actions;
 
+use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Data\NewExploreSessionData;
 use App\Domain\Trips\Enums\TravelMode;
 use App\Domain\Trips\Enums\TripStatus;
@@ -20,6 +21,13 @@ use RuntimeException;
  * sat at "planned" forever with no way to begin. This is the door. It activates the trip and
  * opens an explore session at the location the planner chose, so the feed comes alive there.
  *
+ * ## Where it explores from
+ *
+ * The planner's anchor if the trip has one — otherwise wherever the traveller is standing when
+ * they press start. The reported case: you plan "Fjäderholmarna" by name, travel there, and
+ * open it on the spot; there is no anchor, but there is a very good origin — you. So `$origin`
+ * (the live location) is the fallback, and only a trip with neither is a dead end.
+ *
  * ## Why it can force the trip
  *
  * Normally a session's trip is decided by implicit clustering (resolve-or-create), which only
@@ -34,13 +42,15 @@ final class StartPlannedTrip
         private readonly StartExploreSession $start,
     ) {}
 
-    public function __invoke(Trip $trip, int $timeBudgetMinutes, TravelMode $travelMode): ExploreSession
+    public function __invoke(Trip $trip, int $timeBudgetMinutes, TravelMode $travelMode, ?Coordinates $origin = null): ExploreSession
     {
-        $anchor = $trip->anchor_point;
+        // The anchor wins when it exists (it is what the planner deliberately chose); the live
+        // location is the fallback for a plan that was never pinned to a place.
+        $from = $trip->anchor_point ?? $origin;
 
-        if ($anchor === null) {
-            // Nowhere to explore. The planner set no location, so there is no session to open.
-            throw new RuntimeException('A trip needs a location before you can start exploring it.');
+        if ($from === null) {
+            // Nowhere to explore: no anchor, and no current location to stand in for one.
+            throw new RuntimeException('A trip needs a location — set one, or start it from where you are.');
         }
 
         $now = CarbonImmutable::now();
@@ -62,7 +72,7 @@ final class StartPlannedTrip
 
         return ($this->start)(new NewExploreSessionData(
             userId: (int) $trip->user_id,
-            origin: $anchor,
+            origin: $from,
             timeBudgetMinutes: $timeBudgetMinutes,
             travelMode: $travelMode,
             forceTripId: $trip->id,

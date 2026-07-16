@@ -6,6 +6,7 @@ namespace App\Domain\Places\Services;
 
 use App\Domain\Places\Contracts\TileScout;
 use App\Domain\Places\Data\Coverage;
+use App\Domain\Places\Enums\PlaceTypeDomain;
 use App\Domain\Places\Models\ScoutRun;
 use App\Domain\Sources\Enums\ScoutRange;
 use App\Jobs\Scouts\WarmTileJob;
@@ -157,6 +158,19 @@ final class ScoutRunner
                 );
 
                 foreach ($cached ?? [] as $candidate) {
+                    // Phase-2 utility types (toilet, charging point, pharmacy, shelter,
+                    // transport hub) are ingested into the world model but must not surface
+                    // as Phase-1 opportunities: the taxonomy is explicit that no Phase-1 scout
+                    // uses the `practical` domain (TAXONOMY §5). They leaked in via generic OSM
+                    // ingestion — a session that arrived at Fjäderholmarna with its budget spent
+                    // was served three toilets and nothing else, because a toilet is the only
+                    // thing with near-zero dwell that fits a near-empty budget. Dropped here, the
+                    // one chokepoint every candidate passes through, so they are never a card or
+                    // a map pin until Phase 2 gives them their own utility surface.
+                    if (($candidate['type_domain'] ?? null) === PlaceTypeDomain::Practical->value) {
+                        continue;
+                    }
+
                     $out[] = $candidate;
                 }
             }
