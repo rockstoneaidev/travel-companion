@@ -1,6 +1,7 @@
 import { PlaceSearch, type PlaceSuggestion } from '@/components/app';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useExploreHere } from '@/hooks/use-explore-here';
 import AppLayout from '@/layouts/app-layout';
 import { startPlannedTrip } from '@/lib/start-trip';
 import { type BreadcrumbItem } from '@/types';
@@ -32,13 +33,14 @@ function tripDates(trip: Trip): string | null {
 
 export default function TripsIndex({ trips }: TripsIndexProps) {
     const [planning, setPlanning] = useState(false);
+    const exploreHere = useExploreHere();
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Trips" />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-4">
                     <p className="text-muted-foreground text-sm">
                         {/*
                          * This used to say "you never create one", which was true of the
@@ -49,10 +51,19 @@ export default function TripsIndex({ trips }: TripsIndexProps) {
                         A trip appears on its own when you start exploring. Plan one ahead if you already know where you are going.
                     </p>
 
-                    <Button size="sm" variant={planning ? 'ghost' : 'default'} onClick={() => setPlanning((open) => !open)}>
-                        {planning ? 'Cancel' : 'Plan a trip'}
-                    </Button>
+                    <div className="flex shrink-0 items-center gap-2">
+                        {/* One tap starts a session where you are and saves it as this trip —
+                            it finds you, gathers what's around, and opens the feed. */}
+                        <Button size="sm" onClick={exploreHere.go} disabled={exploreHere.locating}>
+                            {exploreHere.locating ? 'Finding you…' : 'Explore my position'}
+                        </Button>
+                        <Button size="sm" variant={planning ? 'ghost' : 'outline'} onClick={() => setPlanning((open) => !open)}>
+                            {planning ? 'Cancel' : 'Plan a trip'}
+                        </Button>
+                    </div>
                 </div>
+
+                {exploreHere.denied && <p className="text-destructive text-xs">Turn on location to explore where you are.</p>}
 
                 {planning && <PlanTripForm onDone={() => setPlanning(false)} />}
 
