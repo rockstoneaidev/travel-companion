@@ -324,24 +324,30 @@ it('keeps the menu it has when the user walks out of the region', function () {
         ->and(Recommendation::query()->where('explore_session_id', $session->id)->count())->toBe(1);
 });
 
-it('does not blank the feed of a session whose budget has run out', function () {
+it('keeps serving a live session long past its budget — the budget is an envelope, not a clock', function () {
     feedPlace('Vinterviken', LILJEHOLMEN);
     feedPlace('Tantolunden', HORNSTULL);
 
     $this->actingAs($user = profilingConsent(User::factory()->create()));
-    $session = livingSession($user);   // 45 minutes
+    $session = livingSession($user);   // a 45-minute envelope
 
-    // Three hours later. The session is still `active` — the reaper has not run — but
-    // its budget is long gone, so nothing is reachable and a re-rank can only ever
-    // return nothing. PRD §8.1 re-serves against the REMAINING budget; there is none.
+    // Serve the first menu at Liljeholmen, then — three hours later, still active — walk to
+    // Hornstull. The old feed treated 45 minutes as a deadline and, once past it, refused to
+    // re-rank: it froze on the first menu. The budget is a reach envelope, not a countdown, so
+    // the feed re-anchors and serves what is actually here now: Tantolunden.
+    $this->get("/explore/{$session->id}")->assertOk();
+
     $this->travelTo(now()->addHours(3));
     reportPosition($session, HORNSTULL);
 
     $this->get("/explore/{$session->id}")
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->has('opportunities.data', 1));
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('opportunities.data', 1)
+            ->where('opportunities.data.0.title', 'Tantolunden'));
 
-    expect(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(1);
+    // A genuine re-anchor — a second serve group — not the frozen first one.
+    expect(Recommendation::query()->where('explore_session_id', $session->id)->max('serve_group'))->toBe(2);
 });
 
 it('replays every serve of the session, each on its own clock and anchor', function () {

@@ -8,16 +8,19 @@ use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Events\ExploreSessionEnded;
 use App\Domain\Trips\Models\ExploreSession;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
- * The session reaper (conventions/03; ExploreSessionStatus::Expired). A session whose time
- * budget elapsed and which nobody ended is Expired — it reads `expires_at` and nothing else,
- * exactly as the status enum promises.
+ * The session reaper (conventions/03; ExploreSessionStatus::Expired). It ends sessions that
+ * have plainly been abandoned — NOT sessions whose time budget elapsed.
  *
- * Left un-reaped, sessions stay `active` for ever: a three-hour session opened last night is
- * still "live" the next afternoon. That is not harmless — it is why the feed keeps a session
- * on a clock that ran out, and why "Show me everything around me" reckoned against a budget
- * that had gone deeply negative. A session that is over should say it is over.
+ * That distinction is the whole point. The budget is a reach envelope, not a countdown (see
+ * RankSession::plan): a "3-hour" session can be explored for eight, because the traveller's
+ * guessed hours were never a deadline. So expiring at `started_at + budget` would end a live
+ * outing on a fictional clock — which is exactly what once left someone at Fjäderholmarna with
+ * a feed frozen hours before they arrived. A session is over when it has been walked away from:
+ * no feed served for `idle_expiry_minutes` (a whole quiet night). Starting a new session ends
+ * the previous one directly, so this only ever sweeps up the truly-orphaned.
  *
  * Expiry is a session END, so it fires ExploreSessionEnded like a manual end does: the cards
  * that were served and never touched are closed as `ignored` (SCREENS.md). A session nobody
@@ -31,11 +34,21 @@ final class ExpireStaleSessions
     public function __invoke(?CarbonImmutable $now = null): int
     {
         $now ??= CarbonImmutable::now();
+        $cutoff = $now->subMinutes((int) config('trips.session.idle_expiry_minutes', 720));
         $expired = 0;
 
+        // Abandoned = started before the cutoff AND no feed served since it. `served_at` is the
+        // activity signal: every re-anchor and refresh writes fresh recommendation rows, so a
+        // session with none past the cutoff is one nobody has pulled in the idle window.
         ExploreSession::query()
             ->where('status', ExploreSessionStatus::Active)
-            ->where('expires_at', '<', $now)
+            ->where('started_at', '<', $cutoff)
+            ->whereNotExists(function ($query) use ($cutoff): void {
+                $query->select(DB::raw(1))
+                    ->from('recommendations')
+                    ->whereColumn('recommendations.explore_session_id', 'explore_sessions.id')
+                    ->where('recommendations.served_at', '>=', $cutoff);
+            })
             ->chunkById(200, function ($sessions) use ($now, &$expired): void {
                 foreach ($sessions as $session) {
                     $session->forceFill([

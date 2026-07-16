@@ -13,8 +13,10 @@ use App\Enums\Concerns\HasOptions;
  *
  * - `active`  — accepting context events; the feed is live.
  * - `ended`   — the user ended it (`POST /explore-sessions/{session}/end`).
- * - `expired` — the time budget elapsed and nobody ended it. Written by the
- *   reaper, which reads `expires_at` and nothing else (conventions/03).
+ * - `expired` — nobody ended it and it was abandoned: no feed served for the idle
+ *   window (`trips.session.idle_expiry_minutes`). Written by the reaper
+ *   (ExpireStaleSessions). NOT tied to the time budget — that is a reach envelope,
+ *   not a deadline, so a long-but-active session is not expired (conventions/03).
  */
 enum ExploreSessionStatus: string
 {

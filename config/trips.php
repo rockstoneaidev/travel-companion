@@ -63,6 +63,14 @@ return [
         'min_time_budget_minutes' => 15,
         'max_time_budget_minutes' => 720,
 
+        // How long a live session may go with NO activity before the reaper calls it
+        // abandoned and marks it `expired`. This is NOT the time budget: the budget is a
+        // reach envelope that never counts down (a "3-hour" session can be explored for
+        // eight). A session ends when the traveller ends it, when a new one supersedes it,
+        // or when it has plainly been walked away from — and 12 hours of silence (an
+        // overnight gap) is the honest signal for the last. Activity = the last feed serve.
+        'idle_expiry_minutes' => 720,
+
         // Hard cap on the reach radius derived from budget × mode speed, so a
         // 12-hour drive session cannot ask PostGIS for half a continent.
         'max_reach_meters' => 120_000,

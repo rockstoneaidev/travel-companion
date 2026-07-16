@@ -133,22 +133,15 @@ final class RankSession
         $opening = $batch[0];
 
         /*
-         * No budget left, no re-rank.
+         * There is no "budget ran out" short-circuit any more, and that is the point.
          *
-         * PRD §8.1 re-serves "against the REMAINING budget", and when that is zero there
-         * is nothing to rank: every candidate fails the reachability gate by definition,
-         * so the pipeline would run in full and return an empty feed. Which is precisely
-         * what it did — a session whose three hours had quietly run out re-anchored on
-         * the next pull, found nothing reachable, and BLANKED a feed that was showing
-         * five cards.
-         *
-         * (Such a session is usually `expired` too; this does not depend on the reaper
-         * having got to it. A budget that ran out is a budget that ran out.)
+         * The old code blanked a live session's feed once elapsed time passed the budget —
+         * treating the traveller's guessed "3 hours" as a hard deadline. It is not: the budget
+         * is a stable reach envelope (see plan()), so a live session always re-ranks against it,
+         * however long it has been open. A session only stops re-ranking when it is genuinely
+         * over — ended by the user, superseded, or reaped for inactivity — which the `! isLive()`
+         * check above already handles.
          */
-        if (ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at) <= 0) {
-            return $this->withoutDismissed($batch);
-        }
-
         $moved = $this->anchor->driftedFrom(
             $session,
             $opening->anchor,
@@ -399,7 +392,6 @@ final class RankSession
         ?ScoringModel $modelOverride = null,
         array $excludePlaceIds = [],
         ?int $feedSize = null,
-        bool $fullReach = false,
     ): array {
         // Second precision, deliberately.
         //
@@ -459,17 +451,23 @@ final class RankSession
         }
 
         /*
-         * The feed reckons against the REMAINING budget — "what can you still fit before your
-         * time is up" is the whole point of an urgency-ranked feed. But "Show me everything
-         * around me" (browse, $fullReach) is a look-around, not a race against the clock: those
-         * places are exactly as reachable at minute 200 as they were at minute one. Gating
-         * browse on the burned-down remainder blanked the entire list the moment a session ran
-         * over its budget — which, for a session left open overnight, is always. So browse
-         * reckons against the WHOLE budget the user chose, and keeps working regardless of when.
+         * Time is a reach ENVELOPE, not a countdown.
+         *
+         * "3 hours" is how far and how ambitious the traveller feels — set once, and it does
+         * NOT deplete as the afternoon passes. Their guess was never a deadline: people rarely
+         * know how long they have, so counting down against the number they picked is fiction,
+         * and fiction must never empty the feed. Reckoning on the burned-down remainder is what
+         * served three toilets on Fjäderholmarna — the only zero-dwell thing that fit the eleven
+         * minutes the clock imagined were left, while the restaurant and the museum ten metres
+         * away were "unreachable". A place is exactly as reachable at minute 200 as at minute 1.
+         *
+         * Urgency still exists, and it is honest, because it comes from the WORLD, not this
+         * clock: the museum closes at five, the light goes at eight, the trip leaves on Sunday
+         * (temporal_urgency, E38). The only user-side deadline that will ever bound this is a
+         * real one — a train — and that arrives as a session hard-stop, not as the elapsed time
+         * since the session opened.
          */
-        $remaining = $fullReach
-            ? $session->timeBudgetMinutes
-            : ReachabilityGate::remainingMinutes($session->startedAt, $session->timeBudgetMinutes, $at);
+        $remaining = $session->timeBudgetMinutes;
         $gated = $this->gate->filter(
             $candidates, $session->origin->lat, $session->origin->lng, $session->travelMode,
             $remaining, $session->destinationPoint?->lat, $session->destinationPoint?->lng,
@@ -694,7 +692,7 @@ final class RankSession
 
         $this->cost->onTrip($session->tripId)->onSession($session->id);
 
-        $ranked = $this->plan($session, excludePlaceIds: $this->dismissedPlaceIds($session->id), fullReach: true)['ranked'];
+        $ranked = $this->plan($session, excludePlaceIds: $this->dismissedPlaceIds($session->id))['ranked'];
 
         return [
             'items' => array_slice($ranked, $offset, $limit),
@@ -731,10 +729,7 @@ final class RankSession
             }
         }
 
-        // Opening one you saw in "everything around me" reckons the same way browse did
-        // ($fullReach) — otherwise an item the list happily showed would refuse to open the
-        // instant the session's clock ran out, which reads as a dead button, not a boundary.
-        $plan = $this->plan($session, $at, fullReach: true);
+        $plan = $this->plan($session, $at);
 
         $chosen = array_values(array_filter(
             $plan['ranked'],
