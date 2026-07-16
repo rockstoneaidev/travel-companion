@@ -4,6 +4,7 @@ use App\Jobs\Cost\RollUpCostsJob;
 use App\Jobs\Ingest\ReapExpiredOpportunitiesJob;
 use App\Jobs\Ingest\RefreshMapillaryUrlsJob;
 use App\Jobs\Privacy\EnforceRetentionJob;
+use App\Jobs\Trips\ReapStaleSessionsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -33,6 +34,19 @@ Schedule::job(new EnforceRetentionJob)
  */
 Schedule::job(new ReapExpiredOpportunitiesJob)
     ->dailyAt('04:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+ * The session reaper (conventions/03; ExploreSessionStatus::Expired). A session whose budget
+ * elapsed and which nobody ended becomes `expired` — otherwise it stays `active` for ever,
+ * and a feed/browse on a clock that ran out is the visible symptom. Hourly, not nightly, so
+ * an abandoned session is cleaned within the hour rather than lingering all day; the hour
+ * also gives the "living feed" its natural grace, keeping the last serving on screen for a
+ * little while past the budget before the session is honestly closed.
+ */
+Schedule::job(new ReapStaleSessionsJob)
+    ->hourly()
     ->withoutOverlapping()
     ->onOneServer();
 
