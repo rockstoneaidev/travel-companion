@@ -89,21 +89,19 @@ it('shows you everything it could reach, not the menu it chose', function () {
 });
 
 it('still shows everything around you after the session clock has run out', function () {
-    // The state a session left open overnight is always in: its whole 3-hour budget
-    // elapsed hours ago. This is the "Nothing reachable within your time budget" bug —
-    // the browse list blanked because it gated on the burned-down REMAINING budget.
+    // The state a session left open overnight is always in: its whole 3-hour budget elapsed
+    // hours ago. Time is a reach ENVELOPE, not a countdown, so neither the feed's ranking nor
+    // the browse list is diminished by the elapsed clock — the places are exactly as reachable
+    // now as at minute one.
     $session = browseSession();
     $session->forceFill(['started_at' => now()->subHours(24), 'expires_at' => now()->subHours(21)])->save();
 
     $data = ExploreSessionData::fromModel($session->fresh());
     $rank = app(RankSession::class);
 
-    // Reckoned against the remainder — what the feed does — everything fails the gate:
-    // you cannot reach anything in negative minutes.
-    expect($rank->plan($data)['ranked'])->toBeEmpty();
+    // The feed itself no longer empties on the elapsed clock.
+    expect($rank->plan($data)['ranked'])->not->toBeEmpty();
 
-    // But "everything around me" reckons against the WHOLE budget, so it is undiminished.
-    // Those places are exactly as reachable now as they were at minute one.
     $browse = $rank->browse($data, 50);
     expect($browse['total'])->toBeGreaterThan(10)
         ->and($browse['items'])->toHaveCount($browse['total']);
