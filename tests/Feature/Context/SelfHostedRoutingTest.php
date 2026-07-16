@@ -28,7 +28,11 @@ uses(RefreshDatabase::class);
 |
 */
 
-beforeEach(fn () => config()->set('routing.osrm.url', 'http://osrm-test:5000'));
+beforeEach(fn () => config()->set('routing.osrm.urls', [
+    'foot' => 'http://osrm-test:5000',
+    'bicycle' => 'http://osrm-test:5000',
+    'driving' => 'http://osrm-test:5000',
+]));
 
 it('reads minutes from a self-hosted OSRM response', function () {
     Http::fake([
@@ -106,4 +110,25 @@ it('selects the engine by config, and defaults to Google', function () {
     app()->forgetInstance(Routing::class);
     config()->set('routing.driver', 'osrm');
     expect(app(Routing::class))->toBeInstanceOf(FallbackRouting::class);
+});
+
+it('self-hosts only the modes it has a server for, and Googles the rest', function () {
+    // The pilot posture: a foot server exists, bike and drive do not.
+    config()->set('routing.osrm.urls', ['foot' => 'http://osrm-foot:5000', 'bicycle' => '', 'driving' => '']);
+    config()->set('services.google.maps_key', 'test-key');
+
+    Http::fake([
+        'osrm-foot:5000/*' => Http::response(['code' => 'Ok', 'routes' => [['duration' => 480]]]),
+        'routes.googleapis.com/*' => Http::response(['routes' => [['duration' => '900s']]]),
+    ]);
+
+    $routing = app(FallbackRouting::class);
+
+    // Walk → the foot server (8 min), no Google.
+    expect($routing->minutes(59.31, 18.02, 59.33, 18.07, TravelMode::Walk))->toEqualWithDelta(8.0, 0.01);
+
+    // Drive → no OSRM for driving, so straight to Google (15 min). OSRM's foot server is
+    // never asked a driving question — that would answer with the wrong graph.
+    expect($routing->minutes(59.31, 18.02, 59.33, 18.07, TravelMode::Drive))->toEqualWithDelta(15.0, 0.01);
+    Http::assertNotSent(fn ($r): bool => str_contains($r->url(), 'osrm-foot') && str_contains($r->url(), 'driving'));
 });
