@@ -207,21 +207,35 @@ a second engine — **self-hosted OSRM on our own OSM extract** — behind the s
 switching is a config flip, not a rewrite. It is **cost-triggered**: turn it on when the
 cost ledger (E24/E25) says Google Routes spend justifies the ops burden, and not before.
 
-**To flip it (when the ledger says so):**
+**One OSRM server per travel mode.** OSRM serves a single profile per process, so `foot`,
+`bicycle` and `driving` are three separate containers on three ports. The client
+(`OsrmRoutes`) reads a URL per mode (`OSRM_URL_FOOT` / `_BIKE` / `_DRIVE`); a mode left blank
+stays on Google. So the walking pilot can go self-hosted alone — set `OSRM_URL_FOOT`, leave
+the other two blank — and bike/drive follow later, one at a time.
 
-1. Stand up OSRM as a container (or three — `foot`, `bicycle`, `driving` profiles) on the
-   OSM extract for the launch regions. Same private network as `app`; expose it only
-   internally (no public port). See the OSRM `docker-compose` recipe; extract build is the
-   slow one-time step.
-2. Set on staging: `ROUTING_DRIVER=osrm`, `OSRM_URL=http://osrm:5000` (the internal host),
-   and leave `OSRM_GOOGLE_FALLBACK=true` at first — Google stays a live fallback, so a bad
-   OSRM day degrades to a real number rather than to the ±30% estimator.
-3. **Spot-check parity** on staging before trusting it: a handful of served routes compared
-   against Google for the same origin/destination/mode. This is the one thing the test
-   suite cannot do — it needs the real extract — and it is the acceptance criterion for the
-   epic. Watch the cost-per-trip-hour line on the dashboard drop.
-4. Once OSRM has earned trust on real traffic, set `OSRM_GOOGLE_FALLBACK=false` and Google
-   stops being called at all.
+**⚠️ RESOURCE PREREQUISITE — the shared staging box cannot host this today (checked
+2026-07-16).** It has ~500 MB RAM free, 3.5 GB disk (91% full), 2 vCPU, and two OTHER
+production apps (refinepress, stock-intelligence). An `osrm-extract` build spikes to 2–4 GB
+RAM for a country and would OOM-kill the neighbours; there is not enough disk for the data
+either. **Do not build OSRM on this box.** Options, cheapest first:
+- A **dedicated small OSRM box** (a €4–5/mo Hetzner CX instance is plenty for city/regional
+  foot extracts). Point `OSRM_URL_FOOT` at it over the private network. This is the clean
+  production answer and keeps the routing engine's memory profile off the app box entirely.
+- Or free up the current box first (it is at 91% disk regardless of OSRM — worth doing).
+- A tiny city-only extract *might* squeeze onto the current box, but the build's RAM spike
+  still risks the neighbours; not worth it for the current billed spend (~$3).
+
+**To flip it (on a box that can take it):**
+
+1. Build the `foot` extract: download the region pbf (Geofabrik — Norrbotten/Sweden for the
+   pilot), then `osrm-extract -p foot.lua`, `osrm-partition`, `osrm-customize`. Run
+   `osrm-routed` on it. Internal port only, no public exposure.
+2. Set: `ROUTING_DRIVER=osrm`, `OSRM_URL_FOOT=http://<host>:5000`, leave `_BIKE`/`_DRIVE`
+   blank, `OSRM_GOOGLE_FALLBACK=true`. `config:clear`.
+3. **Spot-check parity** against Google for a handful of served walking routes — the one
+   thing the test suite cannot do (it needs the real extract), and the epic's acceptance
+   criterion. Watch cost-per-trip-hour drop.
+4. Once trusted, set `OSRM_GOOGLE_FALLBACK=false`.
 
 Nothing downstream changes: the port's contract ("a real number, or null → keep the
 estimator's") is identical for both engines, and `FallbackRouting` is the only thing that

@@ -29,8 +29,16 @@ return [
     'driver' => env('ROUTING_DRIVER', 'google'),
 
     'osrm' => [
-        // The base URL of the self-hosted OSRM server (SERVER-DEPLOYMENT). No trailing slash.
-        'url' => env('OSRM_URL', 'http://osrm:5000'),
+        /*
+         * ONE URL PER TRAVEL MODE — OSRM serves a single profile per process (SERVER-DEPLOYMENT).
+         * A mode left blank stays on Google via FallbackRouting, so we can self-host the walking
+         * pilot first (set OSRM_URL_FOOT) and bring bike/drive across later, one at a time.
+         */
+        'urls' => [
+            'foot' => env('OSRM_URL_FOOT', ''),
+            'bicycle' => env('OSRM_URL_BIKE', ''),
+            'driving' => env('OSRM_URL_DRIVE', ''),
+        ],
 
         'timeout_seconds' => 4,
 

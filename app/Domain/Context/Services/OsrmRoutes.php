@@ -44,6 +44,17 @@ final class OsrmRoutes implements Routing
 
     public function minutes(float $fromLat, float $fromLng, float $toLat, float $toLng, TravelMode $mode): ?float
     {
+        $base = $this->baseUrlFor($mode);
+
+        // No OSRM instance for THIS mode → null, so FallbackRouting sends it to Google. This
+        // is what lets us self-host one profile at a time: deploy the `foot` server for the
+        // walking pilot, leave bike and drive on Google until their servers exist. OSRM runs
+        // one travel mode per process, so "is there an OSRM for this mode" is a real question
+        // and the answer is per-mode config, not one URL.
+        if ($base === null) {
+            return null;
+        }
+
         $key = $this->cacheKey($fromLat, $fromLng, $toLat, $toLng, $mode);
 
         $cached = Cache::get($key);
@@ -54,8 +65,7 @@ final class OsrmRoutes implements Routing
 
         $minutes = $this->breaker->call(
             self::SOURCE,
-            function () use ($fromLat, $fromLng, $toLat, $toLng, $mode): ?float {
-                $base = rtrim((string) config('routing.osrm.url'), '/');
+            function () use ($base, $fromLat, $fromLng, $toLat, $toLng, $mode): ?float {
                 $profile = $this->profile($mode);
 
                 // OSRM wants lng,lat;lng,lat in the path.
@@ -111,5 +121,13 @@ final class OsrmRoutes implements Routing
             Mode::Bike => 'bicycle',
             Mode::Drive => 'driving',
         };
+    }
+
+    /** The OSRM server for this mode, or null if none is configured — one process per mode. */
+    private function baseUrlFor(TravelMode $mode): ?string
+    {
+        $url = trim((string) config('routing.osrm.urls.'.$this->profile($mode)));
+
+        return $url === '' ? null : rtrim($url, '/');
     }
 }
