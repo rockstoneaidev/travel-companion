@@ -26,4 +26,19 @@ return [
         'openverse_min_name_length' => 8,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Opening-hours verification (E16, E50 cost lever)
+    |--------------------------------------------------------------------------
+    |
+    | Before paying Google to verify a place is open, we read OSM's own opening_hours tag.
+    | OSM hours are LOCAL, so we evaluate them in the place's timezone — and the whole pilot
+    | is Central European, so one region timezone is exact. When the product serves a place
+    | outside CET, this MUST become a per-place timezone (OsmOpeningHours says so too).
+    |
+    */
+    'hours' => [
+        'assumed_timezone' => env('HOURS_ASSUMED_TIMEZONE', 'Europe/Stockholm'),
+    ],
+
 ];

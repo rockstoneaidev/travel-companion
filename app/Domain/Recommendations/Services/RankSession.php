@@ -8,6 +8,7 @@ use App\Cost\Services\CostMeter;
 use App\Domain\Context\Data\WeatherContext;
 use App\Domain\Context\Services\GoogleHoursVerifier;
 use App\Domain\Context\Services\LightContextResolver;
+use App\Domain\Context\Services\OsmOpeningHours;
 use App\Domain\Context\Services\WeatherClient;
 use App\Domain\Feedback\Enums\FeedbackEvent;
 use App\Domain\Feedback\Services\FeedbackLedger;
@@ -76,6 +77,7 @@ final class RankSession
         private readonly SessionWeatherLog $sessionWeather,
         private readonly SessionAnchor $anchor,
         private readonly StayHorizon $horizon,
+        private readonly OsmOpeningHours $osmHours,
     ) {}
 
     /**
@@ -1019,7 +1021,18 @@ final class RankSession
         $shut = [];
 
         foreach ($picked as $candidate) {
-            $hours = $this->hours->forPlace(
+            /*
+             * OSM's own opening_hours first, for free (E50). It answers the easy cases —
+             * clearly open midday, clearly shut at night — and returns null for anything it
+             * cannot be certain of (rich grammar, or a time too near a boundary given the
+             * timezone). Only then do we pay Google. A wrong "open" is never cheaper than a
+             * Google call, which is exactly why the parser is conservative.
+             */
+            $hours = $this->osmHours->evaluate(
+                $candidate['osm_opening_hours'] ?? null,
+                $at,
+                (string) config('places.hours.assumed_timezone'),
+            ) ?? $this->hours->forPlace(
                 (string) $candidate['place_id'],
                 (string) $candidate['name'],
                 (float) $candidate['lat'],

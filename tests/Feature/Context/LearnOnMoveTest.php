@@ -9,12 +9,12 @@ use App\Domain\Places\Data\Coordinates;
 use App\Domain\Privacy\Actions\UpdatePrivacySettings;
 use App\Domain\Trips\Models\ExploreSession;
 use App\Domain\Trips\Models\Trip;
+use App\Jobs\Ingest\BuildRegionWorldModelJob;
+use App\Jobs\Ingest\FirstLightJob;
 use App\Listeners\LearnAreaOnPositionMoved;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Jobs\Ingest\BuildRegionWorldModelJob;
-use App\Jobs\Ingest\FirstLightJob;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 

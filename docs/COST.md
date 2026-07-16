@@ -85,7 +85,8 @@ and a solo operator, the kill-switch is worth more than the dashboard. It ships 
 | Opportunity voice | `AgentOrchestrator::opportunitySummary`, cheap tier (`gemini-3.1-flash-lite`), via `GenerateOpportunityVoiceJob`; output cached 30 d keyed `llm:{prompt_version}:{bundle_id}` — shared across users | ~$0.25 / M input, ~$1.50 / M output | user (causal) |
 | Curated-claim drafting | `AgentOrchestrator::curatedClaim`, capable tier (`gemini-3.5-flash`), pack pipeline | ~$1.50 / M input, ~$9.00 / M output | system (region capex) |
 | Edge routing (planned) | Google Routes API, served items only behind the estimator gate (PRD §10, decisions log 2026-07-11) | $5 / 1,000 (Essentials) | user |
-| Edge place enrichment (planned) | Google Places, edge-only per non-negotiable #2 | $5–17 / 1,000 depending on SKU | user |
+| Edge place enrichment | Google Places (hours), edge-only per non-negotiable #2 — but **OSM `opening_hours` answers the easy cases first, for free** (E50 lever): the verify step reads the tag we already ingested and only pays Google for the grammar it cannot parse or the near-boundary times where the timezone matters. | $5 / 1,000 (only what OSM could not answer) | user |
+| Edge routing | Google Routes (Stage B), edge-only — the dominant Google spend by call volume. **Free alternative built (E43): self-hosted OSRM**, flipped on with `ROUTING_DRIVER=osrm` once the ledger says so. | $5 / 1,000, or **$0 self-hosted** | user |
 | Everything else | All five source adapters (OSM, Overture, Wikidata, Datatourisme, Mérimée), Open-Meteo, OSM raster tiles | **free / open** | — |
 | Infra | Hetzner staging, fixed monthly | fixed lump — §2.1 usage-meter treatment | — |
 
