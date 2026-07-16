@@ -1,4 +1,5 @@
 import { AppHeader, EditorialLede, PrimaryPill, SectionLabel, TextAction, Thumb, type ThumbImage } from '@/components/app';
+import { useExploreHere } from '@/hooks/use-explore-here';
 import ProductLayout from '@/layouts/product-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
@@ -62,6 +63,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ digest, hero, session, map, kept }: DashboardProps) {
+    const exploreHere = useExploreHere();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
     const evening = digest.variant === 'evening';
@@ -159,7 +161,16 @@ export default function Dashboard({ digest, hero, session, map, kept }: Dashboar
                         {session !== null ? (
                             <PrimaryPill onClick={() => router.visit(`/explore/${session}`)}>Back to what's near you</PrimaryPill>
                         ) : (
-                            <PrimaryPill onClick={() => router.visit('/explore')}>I have some time</PrimaryPill>
+                            <>
+                                {/* One tap: start a session where you are standing. No form —
+                                    it finds you, gathers what's around, and opens the feed. */}
+                                <PrimaryPill onClick={exploreHere.go} disabled={exploreHere.locating}>
+                                    {exploreHere.locating ? 'Finding you…' : 'Explore my position'}
+                                </PrimaryPill>
+                                <Link href="/explore">
+                                    <TextAction>I have some time</TextAction>
+                                </Link>
+                            </>
                         )}
 
                         {kept.total > 0 && (
@@ -170,6 +181,8 @@ export default function Dashboard({ digest, hero, session, map, kept }: Dashboar
                             </Link>
                         )}
                     </div>
+
+                    {exploreHere.denied && <p className="text-quiet text-xs">Turn on location to explore where you are.</p>}
 
                     {/* THE MAP. Not a widget — the imagery. And not a map of everything: you,
                         what you kept, and the ones the ranker weighed and held back. */}
