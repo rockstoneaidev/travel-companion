@@ -2,6 +2,7 @@
 
 use App\Jobs\Cost\RollUpCostsJob;
 use App\Jobs\Ingest\ReapExpiredOpportunitiesJob;
+use App\Jobs\Ingest\RefreshMapillaryUrlsJob;
 use App\Jobs\Privacy\EnforceRetentionJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -69,4 +70,15 @@ Schedule::job(new RollUpCostsJob)
  */
 Schedule::command('cost:price-drift')
     ->weeklyOn(1, '05:00')
+    ->onOneServer();
+
+/*
+ * Mapillary photo URLs are signed Facebook-CDN links that EXPIRE (~4 weeks) — unlike
+ * permanent Commons URLs. So they must be re-fetched by their stored image id before they
+ * die, or a photo silently turns back into a paper stripe a month after it was found
+ * (E50). Daily, refreshing anything older than a week — comfortably inside the expiry.
+ */
+Schedule::job(new RefreshMapillaryUrlsJob)
+    ->dailyAt('02:40')
+    ->withoutOverlapping()
     ->onOneServer();
