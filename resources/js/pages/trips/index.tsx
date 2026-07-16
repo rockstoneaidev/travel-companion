@@ -16,6 +16,19 @@ interface TripsIndexProps {
     };
 }
 
+/** A short, readable line for the planned window — echoed on the list so you don't have to
+ *  open a trip to remember when it is. Null when no dates are set. */
+function tripDates(trip: Trip): string | null {
+    const fmt = (iso: string) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const starts = trip.planned_start_at ? fmt(trip.planned_start_at) : null;
+    const departs = trip.departs_at ? fmt(trip.departs_at) : null;
+
+    if (starts !== null && departs !== null) return `${starts} – ${departs}`;
+    if (starts !== null) return `from ${starts}`;
+    if (departs !== null) return `until ${departs}`;
+    return null;
+}
+
 export default function TripsIndex({ trips }: TripsIndexProps) {
     const [planning, setPlanning] = useState(false);
 
@@ -45,11 +58,27 @@ export default function TripsIndex({ trips }: TripsIndexProps) {
                 {trips.data.length === 0 && !planning && <p className="text-muted-foreground text-sm">No trips yet.</p>}
 
                 {trips.data.map((trip) => (
-                    <Link key={trip.id} href={`/trips/${trip.id}`} className="border-sidebar-border/70 flex items-center gap-3 rounded-xl border p-4">
-                        <span className="font-medium">{trip.name ?? 'Untitled trip'}</span>
-                        <Badge variant={trip.status === 'active' ? 'default' : 'secondary'}>{trip.status}</Badge>
-                        <span className="text-muted-foreground text-sm">{trip.explore_sessions_count ?? 0} sessions</span>
-                    </Link>
+                    <div key={trip.id} className="border-sidebar-border/70 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border p-4">
+                        {/* The whole row still opens the trip; the Start button is a sibling,
+                            not nested inside the link (a button inside an <a> is invalid). */}
+                        <Link href={`/trips/${trip.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                            <span className="font-medium">{trip.name ?? 'Untitled trip'}</span>
+                            <Badge variant={trip.status === 'active' ? 'default' : 'secondary'}>{trip.status}</Badge>
+                            <span className="text-muted-foreground text-sm">{trip.explore_sessions_count ?? 0} sessions</span>
+                            {tripDates(trip) !== null && <span className="text-muted-foreground text-sm">· {tripDates(trip)}</span>}
+                        </Link>
+
+                        {/* A planned trip's one manual action, right where you can see it —
+                            no auto-start, no geofence (Phase 1 is foreground-only). */}
+                        {trip.status === 'planned' &&
+                            (trip.has_location ? (
+                                <Button size="sm" onClick={() => router.post(`/trips/${trip.id}/start`)}>
+                                    Start exploring
+                                </Button>
+                            ) : (
+                                <span className="text-muted-foreground text-xs">Add a location to start</span>
+                            ))}
+                    </div>
                 ))}
 
                 <p className="text-muted-foreground text-xs">
