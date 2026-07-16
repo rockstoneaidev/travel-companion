@@ -9,6 +9,7 @@ use App\Domain\Trips\Data\NewExploreSessionData;
 use App\Domain\Trips\Enums\ExploreSessionStatus;
 use App\Domain\Trips\Events\ExploreSessionStarted;
 use App\Domain\Trips\Models\ExploreSession;
+use App\Domain\Trips\Models\Trip;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -54,7 +55,12 @@ final class StartExploreSession
                     'updated_at' => $startedAt,
                 ]);
 
-            $trip = ($this->resolveTrip)($data->userId, $data->origin, $startedAt, $data->contextSource);
+            // A planned trip the user explicitly chose to start bypasses clustering: the
+            // controller has already activated it, and we attach straight to it rather than
+            // letting resolve-or-create decide the session belongs to some other trip.
+            $trip = $data->forceTripId !== null
+                ? Trip::query()->where('user_id', $data->userId)->findOrFail($data->forceTripId)
+                : ($this->resolveTrip)($data->userId, $data->origin, $startedAt, $data->contextSource);
 
             /*
              * The res-8 cell, written at creation — the seam the migration promised

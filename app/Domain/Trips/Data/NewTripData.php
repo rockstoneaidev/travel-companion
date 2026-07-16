@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Trips\Data;
 
 use App\Domain\Places\Data\Coordinates;
+use Carbon\CarbonImmutable;
 
 /**
  * The optional explicit path (PRD §6.6): a planner pre-creates a named trip to
@@ -18,5 +19,7 @@ final readonly class NewTripData
         public int $userId,
         public string $name,
         public ?Coordinates $anchorPoint = null,
+        public ?CarbonImmutable $plannedStartAt = null,
+        public ?CarbonImmutable $departsAt = null,
     ) {}
 }

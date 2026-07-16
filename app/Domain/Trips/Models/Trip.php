@@ -43,6 +43,7 @@ final class Trip extends Model
             // WHEN THEY LEAVE (E38). The stay-aware urgency horizon hangs entirely off this
             // column, and `null` means "we do not know" — never "today". See StayHorizon.
             'departs_at' => 'immutable_datetime',
+            'planned_start_at' => 'immutable_datetime',
             'context_source' => ContextSource::class,
             'source' => TripSource::class,
             'anchor_point' => AsCoordinates::class,

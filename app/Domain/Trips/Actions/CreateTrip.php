@@ -29,6 +29,11 @@ final class CreateTrip
             'status' => TripStatus::Planned,
             'source' => TripSource::User,
             'anchor_point' => $data->anchorPoint,
+            'planned_start_at' => $data->plannedStartAt,
+            // A user-set departure feeds the stay-aware urgency horizon (E38), and is marked
+            // 'user' so it is never confused with an inferred one.
+            'departs_at' => $data->departsAt,
+            'departure_source' => $data->departsAt !== null ? 'user' : null,
             'clustering_version' => config('trips.clustering.version'),
         ]);
     }
