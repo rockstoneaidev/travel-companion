@@ -2,6 +2,7 @@ export { AppHeader } from './app-header';
 export { ChoicePill, PrimaryPill, QuietAction, SecondaryPill, TextAction } from './buttons';
 export { EditorialLede } from './editorial-lede';
 export { EmptyFeed } from './empty-feed';
+export { EssentialsButton } from './essentials-button';
 export { EvidenceList, type EvidenceItem } from './evidence-list';
 export { GoNowBadge } from './go-now';
 export { GoNowPin, PlacePin, YouMarker } from './map-pin';

@@ -1,4 +1,4 @@
-import { EmptyFeed, PeekSheet, StalenessLine, TabBar } from '@/components/app';
+import { EmptyFeed, EssentialsButton, PeekSheet, StalenessLine, TabBar } from '@/components/app';
 import type { MapItem } from '@/components/app/paper-map';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
@@ -158,6 +158,9 @@ export default function ExploreMap({ session, opportunities }: ExploreMapProps) 
             </div>
 
             <TabBar tabs={tabs} />
+            {/* Raised on the map so it clears the OpenStreetMap/OpenFreeMap attribution, which
+                must stay legible (licensing), and the zoom controls. */}
+            <EssentialsButton className="bottom-[calc(4.5rem+env(safe-area-inset-bottom))]" />
         </ProductLayout>
     );
 }

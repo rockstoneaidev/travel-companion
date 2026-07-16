@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\BrowseController;
 use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DigestController;
+use App\Http\Controllers\Web\EssentialsController;
 use App\Http\Controllers\Web\ExploreSessionContextEventController;
 use App\Http\Controllers\Web\ExploreSessionController;
 use App\Http\Controllers\Web\ExploreSessionEndController;
@@ -92,6 +93,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Typeahead for the manual start point on S2 — JSON, not a page visit.
     Route::get('places/search', [PlaceSearchController::class, 'index'])->name('places.search');
+
+    // "I need a…" — nearest toilets/pharmacies/etc by distance, over any screen. JSON.
+    Route::get('essentials', [EssentialsController::class, 'index'])->name('essentials');
 
     Route::get('explore/{exploreSession}', [ExploreSessionController::class, 'show'])
         ->can('view', 'exploreSession')

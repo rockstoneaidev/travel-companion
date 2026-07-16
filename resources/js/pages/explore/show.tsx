@@ -1,4 +1,4 @@
-import { AppHeader, EmptyFeed, OpportunityCard, QuietAction, StalenessLine, TabBar, VisitPromptCard } from '@/components/app';
+import { AppHeader, EmptyFeed, EssentialsButton, OpportunityCard, QuietAction, StalenessLine, TabBar, VisitPromptCard } from '@/components/app';
 import { useLivingFeed } from '@/hooks/use-living-feed';
 import { useOnline } from '@/hooks/use-online';
 import ProductLayout from '@/layouts/product-layout';
@@ -222,6 +222,7 @@ export default function ExploreShow({ session, opportunities, visitPrompts, serv
             <div className="bg-paper min-h-full flex-1 pb-28">
                 <Head title="Now" />
                 <TabBar tabs={TABS(exploreSession.id, exploreSession.trip_id)} />
+                <EssentialsButton />
 
                 <div className="mx-auto max-w-md space-y-6 px-5 py-8 lg:max-w-4xl">
                     <AppHeader contextStamp={`Stockholm · ${budget} ${exploreSession.travel_mode}`} />
