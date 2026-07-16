@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Context\Actions;
 
 use App\Domain\Context\Data\NewContextEventData;
+use App\Domain\Context\Events\SessionPositionMoved;
 use App\Domain\Context\Exceptions\ExploreSessionNotAcceptingEvents;
 use App\Domain\Context\Models\ContextEvent;
 use App\Domain\Places\Contracts\TileIndexer;
@@ -56,6 +57,20 @@ final class RecordContextEvent
                 $location = null;
                 $accuracy = null;   // the accuracy of a coordinate we did not keep is not a fact about anything
             }
+        }
+
+        /*
+         * The traveller moved — ask whether we know where they now are, and learn it if not
+         * (E48). Session start already asks this once; without this, walking OUT of the
+         * ingested area found nothing AND started no ingest of the new ground, because the
+         * only trigger was the door already walked through.
+         *
+         * Fired only when a real coordinate was kept — a home-zone position is suppressed to
+         * null above, so "learn the area around me" can never become "learn my home". Queued
+         * and throttled downstream; it never touches this write path.
+         */
+        if ($location !== null) {
+            SessionPositionMoved::dispatch($session->id, $location->lat, $location->lng);
         }
 
         return ContextEvent::query()->create([
