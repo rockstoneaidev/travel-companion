@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Places\Services\FetchPlaceImages;
+use App\Jobs\Ingest\BackfillPhotosJob;
 use Illuminate\Console\Command;
 
 /**
@@ -22,12 +23,22 @@ use Illuminate\Console\Command;
  */
 final class PhotosFetchCommand extends Command
 {
-    protected $signature = 'photos:fetch';
+    protected $signature = 'photos:fetch {--queue : Dispatch a deploy-durable Horizon chain instead of looping in the foreground}';
 
     protected $description = 'Backfill place photos across all free sources (Commons, OSM tags, Wikipedia, GeoSearch, Mapillary, Openverse)';
 
     public function handle(FetchPlaceImages $fetch): int
     {
+        // On a box that deploys, prefer the queued chain: a foreground loop is killed the
+        // next time the app container restarts, which is exactly how this backfill stalled
+        // twice. The queued job re-dispatches itself on the ingest lane and survives deploys.
+        if ($this->option('queue')) {
+            BackfillPhotosJob::dispatch();
+            $this->components->info('Photos backfill dispatched to Horizon (ingest lane). It survives deploys and re-dispatches until every place has been examined.');
+
+            return self::SUCCESS;
+        }
+
         $totalCandidates = 0;
         $totalImages = 0;
 
