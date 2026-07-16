@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Places\Services;
 
+use Throwable;
+
 /**
  * Every free way we have to find a photo of a place, in order of confidence (E50).
  *
@@ -55,9 +57,22 @@ final class FetchPlaceImages
         // stronger claim than a title match — and each excludes places already served, so the
         // weaker sources only ever run on the tail the stronger ones could not reach (E50).
         foreach ([$this->wikidata, $this->osmTags, $this->wikipedia, $this->geo, $this->mapillary, $this->openverse] as $source) {
-            $result = $source->fetchBatch();
-            $candidates += $result['candidates'];
-            $images += $result['images'];
+            /*
+             * One source erroring must NOT stop the backfill.
+             *
+             * This bit the real backfill: a Mapillary call with a truncated token threw, and
+             * because the whole batch ran unguarded, that one 401 killed the photos phase —
+             * it stalled at ~12% coverage with 50k places still unprocessed. A vendor having a
+             * bad minute is normal (the sources already treat their own outages as "skip");
+             * it is never a reason to abandon the other five wells and the places downstream.
+             */
+            try {
+                $result = $source->fetchBatch();
+                $candidates += $result['candidates'];
+                $images += $result['images'];
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         return ['candidates' => $candidates, 'images' => $images];
