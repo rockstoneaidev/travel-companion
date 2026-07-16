@@ -175,6 +175,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::patch('trips/{trip}', [TripController::class, 'update'])->name('trips.update');
 
+    // "Start exploring" a planned trip — activate it and open a session at its location (E-trip).
+    Route::post('trips/{trip}/start', [TripController::class, 'start'])
+        ->can('update', 'trip')
+        ->name('trips.start');
+
     Route::get('opportunities/{opportunity}', [OpportunityController::class, 'show'])
         ->name('opportunities.show');
 

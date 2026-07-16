@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Domain\Trips\Actions\CreateTrip;
+use App\Domain\Trips\Actions\StartPlannedTrip;
 use App\Domain\Trips\Actions\UpdateTrip;
+use App\Domain\Trips\Enums\TravelMode;
 use App\Domain\Trips\Models\Trip;
 use App\Domain\Trips\Queries\ListTrips;
 use App\Http\Controllers\Controller;
@@ -60,5 +62,21 @@ final class TripController extends Controller
         $updateTrip($trip, $request->toData());
 
         return to_route('trips.show', $trip)->with('status', 'trip-updated');
+    }
+
+    /** "Start exploring" — activate the planned trip and drop the user into a live session there. */
+    public function start(Trip $trip, StartPlannedTrip $startPlannedTrip): RedirectResponse
+    {
+        if ($trip->anchor_point === null) {
+            return back()->with('error', 'This trip has no location yet — add one before starting.');
+        }
+
+        $session = $startPlannedTrip(
+            $trip,
+            (int) config('trips.session.default_time_budget_minutes', 180),
+            TravelMode::Walk,
+        );
+
+        return to_route('explore.show', $session->id);
     }
 }

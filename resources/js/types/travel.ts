@@ -24,6 +24,9 @@ export interface Trip {
     id: string;
     name: string | null;
     status: TripStatus;
+    planned_start_at?: string | null;
+    departs_at?: string | null;
+    has_location?: boolean;
     source: TripSource;
     started_at: string | null;
     last_session_at: string | null;

@@ -69,9 +69,16 @@ export default function TripsIndex({ trips }: TripsIndexProps) {
  * the ODbL boundary and off anybody's terms of service.
  */
 function PlanTripForm({ onDone }: { onDone: () => void }) {
-    const form = useForm<{ name: string; anchor_point: { lat: number; lng: number } | null }>({
+    const form = useForm<{
+        name: string;
+        anchor_point: { lat: number; lng: number } | null;
+        planned_start_at: string;
+        departs_at: string;
+    }>({
         name: '',
         anchor_point: null,
+        planned_start_at: '',
+        departs_at: '',
     });
 
     const [anchorName, setAnchorName] = useState<string | null>(null);
@@ -88,6 +95,13 @@ function PlanTripForm({ onDone }: { onDone: () => void }) {
     };
 
     const submit = () => {
+        // Empty date inputs are "not set" — send null, not '', which would fail `date`.
+        form.transform((data) => ({
+            ...data,
+            planned_start_at: data.planned_start_at || null,
+            departs_at: data.departs_at || null,
+        }));
+
         form.post('/trips', {
             preserveScroll: true,
             onSuccess: () => {
@@ -118,6 +132,31 @@ function PlanTripForm({ onDone }: { onDone: () => void }) {
                 <PlaceSearch onChoose={choose} placeholder="Anywhere in particular? (optional)" label="Anchor" />
                 {anchorName !== null && <p className="text-muted-foreground mt-1 text-xs">Anchored on {anchorName}</p>}
             </div>
+
+            {/* When. The departure date is not just a label — it feeds the "last day makes
+                everything urgent" behaviour once you're there (the stay-aware horizon). */}
+            <div className="flex flex-wrap gap-4">
+                <label className="flex flex-col gap-1 text-xs font-medium">
+                    Starts <span className="text-muted-foreground font-normal">(optional)</span>
+                    <input
+                        type="date"
+                        value={form.data.planned_start_at}
+                        onChange={(event) => form.setData('planned_start_at', event.target.value)}
+                        className="border-sidebar-border/70 rounded-md border bg-transparent px-3 py-2 text-sm outline-none"
+                    />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium">
+                    Departs <span className="text-muted-foreground font-normal">(optional)</span>
+                    <input
+                        type="date"
+                        value={form.data.departs_at}
+                        min={form.data.planned_start_at || undefined}
+                        onChange={(event) => form.setData('departs_at', event.target.value)}
+                        className="border-sidebar-border/70 rounded-md border bg-transparent px-3 py-2 text-sm outline-none"
+                    />
+                </label>
+            </div>
+            {form.errors.departs_at && <p className="text-destructive text-xs">{form.errors.departs_at}</p>}
 
             <div className="flex items-center gap-3">
                 <Button size="sm" onClick={submit} disabled={form.processing || form.data.name.trim() === ''}>

@@ -28,6 +28,11 @@ final class TripResource extends JsonResource
             'started_at' => $this->started_at?->toIso8601String(),
             'last_session_at' => $this->last_session_at?->toIso8601String(),
             'ended_at' => $this->ended_at?->toIso8601String(),
+            'planned_start_at' => $this->planned_start_at?->toIso8601String(),
+            'departs_at' => $this->departs_at?->toIso8601String(),
+            // Whether a session can be started here — a boolean, never the raw coordinate
+            // (which stays unexposed, per the note above and PRD §16).
+            'has_location' => $this->anchor_point !== null,
             'created_at' => $this->created_at->toIso8601String(),
 
             /*

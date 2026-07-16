@@ -7,6 +7,7 @@ namespace App\Http\Requests\Api\V1\Trips;
 use App\Domain\Places\Data\Coordinates;
 use App\Domain\Trips\Data\NewTripData;
 use App\Domain\Trips\Models\Trip;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -30,6 +31,11 @@ final class StoreTripRequest extends FormRequest
             'anchor_point' => ['sometimes', 'nullable', 'array'],
             'anchor_point.lat' => ['required_with:anchor_point', 'numeric', 'between:-90,90'],
             'anchor_point.lng' => ['required_with:anchor_point', 'numeric', 'between:-180,180'],
+
+            'planned_start_at' => ['sometimes', 'nullable', 'date'],
+            // The trip can't end before it starts — a departure earlier than the planned
+            // start is a typo, not a plan.
+            'departs_at' => ['sometimes', 'nullable', 'date', 'after_or_equal:planned_start_at'],
         ];
     }
 
@@ -44,6 +50,8 @@ final class StoreTripRequest extends FormRequest
                 lat: (float) $anchor['lat'],
                 lng: (float) $anchor['lng'],
             ) : null,
+            plannedStartAt: $this->date('planned_start_at') !== null ? CarbonImmutable::parse($this->input('planned_start_at')) : null,
+            departsAt: $this->date('departs_at') !== null ? CarbonImmutable::parse($this->input('departs_at')) : null,
         );
     }
 }

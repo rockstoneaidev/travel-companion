@@ -30,6 +30,12 @@ final readonly class NewExploreSessionData
          * Form Request does not read it, so there is no field for a client to send.
          */
         public ContextSource $contextSource = ContextSource::Device,
+        /*
+         * Attach this session to a SPECIFIC trip instead of the implicit clustering (E-trip
+         * planner). Set only by "Start exploring" on a planned trip, which has already
+         * activated the trip; null everywhere else, so the normal resolve-or-create still runs.
+         */
+        public ?string $forceTripId = null,
     ) {}
 
     public function startedAt(): CarbonImmutable

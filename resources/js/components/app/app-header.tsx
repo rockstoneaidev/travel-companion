@@ -18,7 +18,13 @@ export function AppHeader({ contextStamp, className, ...props }: AppHeaderProps)
     const { name } = usePage<SharedData>().props;
 
     return (
-        <header className={cn('flex items-center justify-between gap-3', className)} {...props}>
+        <header
+            className={cn(
+                'bg-paper/95 supports-[backdrop-filter]:bg-paper/80 sticky top-0 z-30 flex items-center justify-between gap-3 backdrop-blur',
+                className,
+            )}
+            {...props}
+        >
             <div className="flex min-w-0 items-center gap-2">
                 <NavMenu />
                 <span className="text-wordmark text-ink truncate font-serif font-medium lowercase italic">{name}</span>

@@ -31,6 +31,15 @@ final class UpdateTrip
             $trip->ended_at = CarbonImmutable::now();
         }
 
+        // Dates are edited as a set (both fields sent together), so a cleared field means
+        // "unset", not "leave alone" — hence the explicit `datesProvided` flag rather than
+        // null-means-skip, which could never clear a date once set.
+        if ($data->datesProvided) {
+            $trip->planned_start_at = $data->plannedStartAt;
+            $trip->departs_at = $data->departsAt;
+            $trip->departure_source = $data->departsAt !== null ? 'user' : null;
+        }
+
         $trip->save();
 
         return $trip;
