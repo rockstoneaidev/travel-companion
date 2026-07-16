@@ -55,8 +55,14 @@ it('comes back later when Wikipedia says slow down, rather than at once', functi
     expect($next)->toBe('evidence')->and($delay)->toBeGreaterThan(0);
 });
 
-it('finishes the photos phase when no more images can be found', function () {
-    // 40 places with no Commons photo are 40 places that will still have none next time.
-    expect(BuildRegionWorldModelJob::afterPhotos(['candidates' => 40, 'images' => 0]))->toBe('warm')
+it('keeps going while candidates remain, even if a batch fills none', function () {
+    // The stall bug: a batch of places NO free source can photograph fills zero images —
+    // but there are still candidates to examine downstream, so the phase must NOT stop.
+    // Keying off images stalled real backfills at ~15% coverage.
+    expect(BuildRegionWorldModelJob::afterPhotos(['candidates' => 40, 'images' => 0]))->toBe('photos')
         ->and(BuildRegionWorldModelJob::afterPhotos(['candidates' => 40, 'images' => 7]))->toBe('photos');
+
+    // It finishes only when every place has been examined (each source having written a
+    // photo or a "found nothing" marker), so no candidates are left.
+    expect(BuildRegionWorldModelJob::afterPhotos(['candidates' => 0, 'images' => 0]))->toBe('warm');
 });

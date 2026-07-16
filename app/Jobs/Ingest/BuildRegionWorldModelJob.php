@@ -476,9 +476,18 @@ final class BuildRegionWorldModelJob implements ShouldBeUniqueUntilProcessing, S
      */
     public static function afterPhotos(array $result): string
     {
-        // Same rule, same reason: 40 places with no Commons photo will still have no
-        // Commons photo next time round.
-        return ($result['images'] ?? 0) > 0 ? 'photos' : 'warm';
+        /*
+         * Continue while there are CANDIDATES left to examine — not while the last batch
+         * happened to FILL one.
+         *
+         * The old rule keyed off images, and it stalled the backfill at ~15% coverage: a
+         * single batch of places that no free source could photograph fills zero images,
+         * even though tens of thousands of unprocessed places sit downstream of it. Keying
+         * off candidates keeps going until every place has either a photo or a
+         * "looked, found nothing" marker — which is what each source writes, so the count
+         * drains to zero and the phase terminates cleanly.
+         */
+        return ($result['candidates'] ?? 0) > 0 ? 'photos' : 'warm';
     }
 
     /** Next source in the registry, or on to `resolve` when this was the last one. */
