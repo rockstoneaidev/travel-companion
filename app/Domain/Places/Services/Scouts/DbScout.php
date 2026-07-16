@@ -47,6 +47,9 @@ abstract class DbScout implements TileScout
                 'lng' => (float) $p->getAttribute('lng'),
                 'h3_index' => $p->h3_index,
                 'scout' => $this->key(),
+                // OSM's own opening_hours, if the mapper tagged it (E50 cost lever). Read for
+                // free here so the verify step can answer the easy cases without paying Google.
+                'osm_opening_hours' => $p->source_tags['osm']['opening_hours'] ?? null,
                 // Confidence inputs (SCORING §4.6), tile-scoped by design:
                 'sources' => array_keys($p->source_tags),
                 'conflict_groups' => count(($p->attribute_sources ?? [])['conflicts'] ?? []),
