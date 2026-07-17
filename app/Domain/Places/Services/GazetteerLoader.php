@@ -25,6 +25,14 @@ use RuntimeException;
  * and Spain, and a bbox-only query pulls their towns in tagged as France (it did — 29k of them).
  * So each tile query intersects the tile with the country's admin AREA — accurate coverage, and
  * still tile-sized, so no 504.
+ *
+ * NOTE for whoever loads more countries: this runs SYNCHRONOUSLY (one artisan command, no
+ * queue), and area-clipping is slow — Overpass re-resolves the country boundary per request, so
+ * France is ~30–40 min. A crash or a killed process loses everything after the last upserted
+ * tile. That is fine for a rare, one-off reference load run by hand. If it becomes a hot path
+ * (many countries, on-demand), make it a RESUMABLE QUEUED JOB that dispatches one tile per job
+ * and re-dispatches until done — the exact pattern `App\Jobs\Ingest\BackfillPhotosJob` uses for
+ * the photo backfill — so a hiccup resumes instead of restarting.
  */
 final class GazetteerLoader
 {
