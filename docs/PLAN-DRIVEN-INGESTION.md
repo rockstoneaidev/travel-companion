@@ -172,10 +172,15 @@ product must degrade honestly, never look broken:
 
 Each phase is independently useful and shippable.
 
-1. **Gazetteer + planner search.** Load OSM `place=*`; add `gazetteer_places` + search; merge into
-   the planner typeahead; use it to name derived cells. *Outcome: you can search and anchor
-   anywhere on Earth.* (Feeds outside covered cells stay empty until phase 2 — but planning works,
-   and E48's arrival path already fills them if you go.)
+1. **Gazetteer + planner search.** ✅ **SHIPPED 2026-07-17** (PRs #98–#101), scoped to Sweden +
+   France (~263k rows, ~100 MB, mostly French `hamlet`). `gazetteer_places` + `SearchGazetteer` +
+   `PlaceTypeahead` merge into the typeahead; `gazetteer:load SE FR`. *Outcome: you can search and
+   anchor any settlement in the loaded countries.* Cell NAMING from the gazetteer (§3.1) is not yet
+   wired. **Operational note:** `GazetteerLoader` is a synchronous artisan command and area-clipping
+   is slow (Overpass re-resolves the country boundary per tile → France ≈ 30–40 min); a crash loses
+   everything after the last tile. Fine for a rare hand-run load. If it becomes a hot path (many
+   countries, on demand), **make it a resumable queued job** — one tile per job, re-dispatching
+   until done, the way `App\Jobs\Ingest\BackfillPhotosJob` does the photo backfill.
 2. **Trip-plan trigger, cheap-first.** `LearnAreaOnTripPlanned` → `LearnAreaIfUnknown`; add the
    `geo_core`/`full` build tier to `BuildRegionWorldModelJob`; dispatch geo-core on trip-create.
    *Outcome: anchoring a trip warms its geo-core ahead of arrival.*
