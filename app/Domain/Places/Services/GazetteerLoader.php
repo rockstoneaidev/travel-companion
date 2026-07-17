@@ -18,11 +18,13 @@ use RuntimeException;
  * would turn a tens-of-MB load into most of a gigabyte. The named villages people actually plan
  * trips to (Kusmark among them) are `village`/`hamlet`, and those we keep.
  *
- * TILED, not one big query. A whole-country `area[...]` fetch works for a sparse country like
- * Sweden but 504s for a dense one like France — the question is too big for Overpass to answer
- * in one go, and a large response is a lot of RAM on a small box besides. So the country's box
- * is walked as a grid of ~1.5° bbox queries, each cheap and upserted before the next, so memory
- * stays flat and one busy tile never sinks the whole load.
+ * TILED and AREA-CLIPPED. A whole-country `area[...]` fetch works for a sparse country like
+ * Sweden but 504s for a dense one like France — too big for Overpass in one go. So the country
+ * is walked as a grid of ~1.5° tiles, each cheap and upserted before the next. But a tile is a
+ * rectangle, and a country is not: France's bounding box overlaps Germany, Switzerland, Italy
+ * and Spain, and a bbox-only query pulls their towns in tagged as France (it did — 29k of them).
+ * So each tile query intersects the tile with the country's admin AREA — accurate coverage, and
+ * still tile-sized, so no 504.
  */
 final class GazetteerLoader
 {
@@ -62,7 +64,7 @@ final class GazetteerLoader
 
         foreach ($this->tiles($bbox) as $tile) {
             try {
-                $elements = $this->fetchTile($tile);
+                $elements = $this->fetchTile($tile, $countryCode);
             } catch (\Throwable $e) {
                 // One busy tile must not sink the load — record the gap and keep going.
                 Log::warning('gazetteer tile failed', ['country' => $countryCode, 'tile' => $tile, 'error' => $e->getMessage()]);
@@ -102,9 +104,9 @@ final class GazetteerLoader
      * @param  array{0: float, 1: float, 2: float, 3: float}  $tile
      * @return list<array<string, mixed>>
      */
-    private function fetchTile(array $tile): array
+    private function fetchTile(array $tile, string $countryCode): array
     {
-        $query = $this->overpassQuery($tile);
+        $query = $this->overpassQuery($tile, $countryCode);
         $lastError = null;
 
         foreach (self::ENDPOINTS as $endpoint) {
@@ -129,15 +131,19 @@ final class GazetteerLoader
         throw new RuntimeException('Overpass tile fetch failed', previous: $lastError);
     }
 
-    private function overpassQuery(array $tile): string
+    private function overpassQuery(array $tile, string $countryCode): string
     {
         [$south, $west, $north, $east] = $tile;
         $types = implode('|', self::SETTLEMENT_TYPES);
 
-        // A plain bbox — cheap for Overpass, no admin-area computation. `qt` orders by quadtile.
+        // The country's admin area INTERSECTED with the tile: `(area.c)` clips to the country so
+        // a bbox straddling a border does not pull the neighbour's towns, and `(bbox)` keeps the
+        // result tile-sized so it never 504s. Overpass caches the country area after the first
+        // tile, so this costs a lookup, not a recompute, per tile. `qt` orders by quadtile.
         return <<<OVERPASS
         [out:json][timeout:120];
-        node["place"~"^({$types})\$"]["name"]({$south},{$west},{$north},{$east});
+        area["ISO3166-1"="{$countryCode}"][admin_level=2]->.c;
+        node["place"~"^({$types})\$"]["name"](area.c)({$south},{$west},{$north},{$east});
         out qt;
         OVERPASS;
     }
