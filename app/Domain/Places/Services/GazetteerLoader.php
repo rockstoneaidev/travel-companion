@@ -87,11 +87,18 @@ final class GazetteerLoader
 
         foreach (self::ENDPOINTS as $endpoint) {
             try {
-                $response = Http::timeout(300)->asForm()->post($endpoint, ['data' => $query]);
+                // Overpass rejects requests without a real User-Agent (406/429) — the same
+                // header the scout adapter sends, or the mirror refuses us.
+                $response = Http::timeout(300)
+                    ->withHeaders(['User-Agent' => 'TravelCompanion-ingest/1.0 (rockstoneaidev@gmail.com)'])
+                    ->asForm()
+                    ->post($endpoint, ['data' => $query]);
 
                 if ($response->successful()) {
                     return $response->json('elements') ?? [];
                 }
+
+                $lastError = new RuntimeException("Overpass {$endpoint} returned HTTP {$response->status()}");
             } catch (\Throwable $e) {
                 $lastError = $e;   // try the next mirror
             }
