@@ -100,6 +100,13 @@ acting as an acquisition funnel for the app. Recorded here with its honest shape
 
 ## 4. What this changes today
 
-The `archivable` descriptor flag, the two archive tables, and the nightly reaper (§2). Nothing
-else: no dynamic region derivation, no trip-plan ingest triggers, no site. When those get built,
-they get specs; this document is only the reason they will still be possible.
+The `archivable` descriptor flag, the two archive tables, and the nightly reaper (§2).
+
+**Since first draft, §1 has partly shipped.** Dynamic region derivation is real (E48):
+`DeriveRegionForPosition` snaps any pin to an H3 res-5 cell and `LearnAreaIfUnknown` learns it,
+deduped and rate-limited — *on arrival* (`LearnAreaOnSessionStart` / `LearnAreaOnPositionMoved`).
+What is still missing, and now specced in **`docs/PLAN-DRIVEN-INGESTION.md`**, is the plan-time
+front-end: a **global gazetteer** so you can *search* a place before you go, a **trip-plan
+trigger** that runs ingestion ahead of arrival on the lead time, and a **cheap-first** phase
+split so speculative plans warm the geo-core without paying for evidence/photos they may never
+need. Still not built, and out of scope here: the public content site (§3).
